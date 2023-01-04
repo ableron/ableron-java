@@ -13,12 +13,20 @@ public class Ableron {
     this.ableronConfig = ableronConfig;
   }
 
+  /**
+   * Indicates whether Ableron UI composition is enabled.
+   *
+   * @return true in case UI composition is enabled. false otherwise
+   */
   public boolean isEnabled() {
     return Boolean.parseBoolean(ableronConfig.getProperty(AbleronConfigParams.ENABLED, "true"));
   }
 
-  public TransclusionResult applyTransclusion(String body) {
-    var transclusionResult = transclusionProcessor.applyTransclusion(body);
+  /**
+   * @see TransclusionProcessor#applyTransclusion(String)
+   */
+  public TransclusionResult applyTransclusion(String content) {
+    var transclusionResult = transclusionProcessor.applyTransclusion(content);
     logger.debug("Ableron UI composition processed {} fragments in {}ms", transclusionResult.getProcessedFragmentsCount(), transclusionResult.getProcessingTimeMillis());
     return transclusionResult;
   }

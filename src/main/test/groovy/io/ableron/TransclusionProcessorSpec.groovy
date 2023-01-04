@@ -8,10 +8,10 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should have tolerant fragment matching pattern"() {
     expect:
-    transclusionProcessor.findFragments(inputBody).first().originalTag == expectedFragmentTag
+    transclusionProcessor.findFragments(inputContent).first().originalTag == expectedFragmentTag
 
     where:
-    inputBody                                                     | expectedFragmentTag
+    inputContent                                                  | expectedFragmentTag
     "<fragment src=\"https://example.com\">"                      | "<fragment src=\"https://example.com\">"
     "<div><fragment src=\"https://example.com\"></div>"           | "<fragment src=\"https://example.com\">"
     "<div><fragment src=\"https://example.com\" foo=\">\"></div>" | "<fragment src=\"https://example.com\" foo=\">\">"
@@ -22,7 +22,7 @@ class TransclusionProcessorSpec extends Specification {
     "<fragment   src=\"test\"  >"                                 | "<fragment   src=\"test\"  >"
   }
 
-  def "should find all fragments in input body"() {
+  def "should find all fragments in input content"() {
     expect:
     transclusionProcessor.findFragments("""
       <html>
@@ -83,7 +83,7 @@ class TransclusionProcessorSpec extends Specification {
     then:
     transclusionResult.processedFragmentsCount == 3
     transclusionResult.processingTimeMillis >= 1
-    transclusionResult.body == """
+    transclusionResult.content == """
       <html>
       <head>
         <!-- Error loading fragment -->

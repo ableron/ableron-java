@@ -2,16 +2,27 @@ package io.ableron;
 
 public class TransclusionResult {
 
-  private String body;
+  /**
+   * Content with resolved fragments.
+   */
+  private String content;
+
+  /**
+   * Number of fragments that have been processed in the content.
+   */
   private int processedFragmentsCount;
+
+  /**
+   * Time in milliseconds it took to resolve the fragments in the content.
+   */
   private long processingTimeMillis;
 
-  public String getBody() {
-    return body;
+  public String getContent() {
+    return content;
   }
 
-  public void setBody(String body) {
-    this.body = body;
+  public void setContent(String content) {
+    this.content = content;
   }
 
   public int getProcessedFragmentsCount() {
