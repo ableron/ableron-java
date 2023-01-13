@@ -4,11 +4,45 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.ableron</groupId>
+  <groupId>io.github.ableron</groupId>
   <artifactId>ableron</artifactId>
-  <version>0.0.1</version>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
 
-  <name>io.ableron</name>
+  <name>ableron</name>
+  <description>Library for performing server side dynamic UI composition.</description>
+  <url>https://github.com/ableron/ableron-java</url>
+  <inceptionYear>2022</inceptionYear>
+
+  <scm>
+    <connection>scm:git:git@github.com:ableron/ableron-java.git</connection>
+    <developerConnection>scm:git:git@github.com:ableron/ableron-java.git</developerConnection>
+    <url>https://github.com/ableron/ableron-java/tree/main</url>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/ableron/ableron-java/issues</url>
+  </issueManagement>
+
+  <ciManagement>
+    <system>GitHub Actions</system>
+    <url>https://github.com/ableron/ableron-java/actions</url>
+  </ciManagement>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Torsten Blasche</name>
+      <email>contact@t-blasche.de</email>
+    </developer>
+  </developers>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -16,6 +50,10 @@
     <jakarta-annotation.version>2.1.1</jakarta-annotation.version>
     <java.version>17</java.version>
     <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+    <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
+    <maven-javadoc-plugin.version>3.4.1</maven-javadoc-plugin.version>
+    <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
+    <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
     <slf4j.version>2.0.6</slf4j.version>
     <spock.version>2.4-M1-groovy-4.0</spock.version>
   </properties>
@@ -59,5 +97,66 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${maven-javadoc-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>${maven-source-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${maven-gpg-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>${nexus-staging-maven-plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <serverId>ossrh</serverId>
+              <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

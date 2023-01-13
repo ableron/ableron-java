@@ -1,4 +1,4 @@
-package io.ableron
+package io.github.ableron
 
 import spock.lang.Specification
 
@@ -36,9 +36,9 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-            new Fragment("<fragment src=\"https://foo.bar/baz?test=123\" />"),
-            new Fragment("<fragment foo=\"bar\" src=\"https://foo.bar/baz?test=456\">"),
-            new Fragment("<fragment src=\"https://foo.bar/baz?test=789\">")
+      new Fragment("<fragment src=\"https://foo.bar/baz?test=123\" />"),
+      new Fragment("<fragment foo=\"bar\" src=\"https://foo.bar/baz?test=456\">"),
+      new Fragment("<fragment src=\"https://foo.bar/baz?test=789\">")
     ] as Set
   }
 

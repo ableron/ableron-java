@@ -1,4 +1,4 @@
-package io.ableron;
+package io.github.ableron;
 
 import jakarta.annotation.Nonnull;
 import java.io.IOException;

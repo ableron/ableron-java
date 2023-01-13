@@ -1,4 +1,4 @@
-package io.ableron
+package io.github.ableron
 
 import spock.lang.Specification
 
