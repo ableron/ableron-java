@@ -40,6 +40,10 @@ Java Library for Ableron Server Side UI Composition
   ```
 
 ## Developing the library
+* Install to local `.m2` repository
+  ```console
+  $ ./mvnw clean install
+  ```
 * Check for updated dependencies via [Versions Maven Plugin](https://www.mojohaus.org/versions/versions-maven-plugin/index.html)
   ```console
   $ ./mvnw versions:display-dependency-updates
