@@ -12,4 +12,14 @@ jobs:
           java-version: 19
           distribution: temurin
           cache: maven
-      - run: ./mvnw --batch-mode --update-snapshots clean deploy -Prelease -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+          server-id: ossrh # value of the distributionManagement/repository/id field of the pom.xml
+          server-username: OSSRH_USERNAME # env variable for username in deploy
+          server-password: OSSRH_PASSWORD # env variable for password in deploy
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }} # value of the GPG private key to import
+          gpg-passphrase: GPG_PASSPHRASE # env variable for GPG private key passphrase
+      - name: Publish to Apache Maven Central
+        run: ./mvnw --batch-mode --update-snapshots deploy -Prelease
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_TOKEN: ${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
