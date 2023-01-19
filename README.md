@@ -7,7 +7,7 @@ Java Library for Ableron Server Side UI Composition
 ## Using the library
 1. Add Ableron Java library to your project
    * Maven `pom.xml`
-   ```console
+   ```xml
    <dependency>
      <groupId>io.github.ableron</groupId>
      <artifactId>ableron</artifactId>
@@ -16,7 +16,7 @@ Java Library for Ableron Server Side UI Composition
    ```
 
    * Gradle `build.gradle`:
-   ```console
+   ```groovy
    dependencies {
      implementation 'io.github.ableron:ableron:0.0.1'
    }
@@ -26,7 +26,7 @@ Java Library for Ableron Server Side UI Composition
      * HTTP response status 2xx, 4xx or 5xx
      * Response content type is non-binary
    * Apply transclusion
-   ```console
+   ```java
    var ableronConfig = new AbleronConfig();
    ableronConfig.put(AbleronConfigParams.ENABLED, true);
    var ableron = new Ableron(ableronConfig);
@@ -35,7 +35,7 @@ Java Library for Ableron Server Side UI Composition
    ```
 
 ## Using fragments in response body
-  ```console
+  ```html
   <fragment src="https://your-fragment-url" />
   ```
 
@@ -44,7 +44,7 @@ Java Library for Ableron Server Side UI Composition
   ```console
   $ ./mvnw clean install
   ```
-* Check for updated dependencies via [Versions Maven Plugin](https://www.mojohaus.org/versions/versions-maven-plugin/index.html)
+* Check for outdated dependencies via [Versions Maven Plugin](https://www.mojohaus.org/versions/versions-maven-plugin/index.html)
   ```console
   $ ./mvnw versions:display-dependency-updates
   ```

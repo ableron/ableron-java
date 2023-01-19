@@ -12,4 +12,4 @@ jobs:
           java-version: 19
           distribution: temurin
           cache: maven
-      - run: ./mvnw --batch-mode --update-snapshots clean deploy -Prelease -Dgpg.passphrase=${{ secrets.GPG_SIGN_ARTIFACTS_PASSPHRASE }}
+      - run: ./mvnw --batch-mode --update-snapshots clean deploy -Prelease
