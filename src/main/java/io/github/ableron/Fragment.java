@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 public class Fragment {
 
-  private static final Pattern SRC_PATTERN = Pattern.compile("\ssrc=\"([^\"]+)\"");
+  private static final Pattern SRC_PATTERN = Pattern.compile("\\ssrc=\"([^\"]+)\"");
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final HttpClient httpClient;
@@ -55,7 +55,7 @@ public class Fragment {
   }
 
   private String normalizeTag(String tag) {
-    return tag.replaceAll("\s*/?>$", ">");
+    return tag.replaceAll("\\s*/?>$", ">");
   }
 
   private String extractSrc(String tag) {
