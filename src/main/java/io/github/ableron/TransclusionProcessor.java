@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 public class TransclusionProcessor {
 
-  private static final Pattern FRAGMENT_PATTERN = Pattern.compile("<fragment\s(\"[^\"]*\"|[^\">])*/?>");
+  private static final Pattern FRAGMENT_PATTERN = Pattern.compile("<fragment\\s(\"[^\"]*\"|[^\">])*/?>");
   private static final long NANO_2_MILLIS = 1000000L;
 
   /**
