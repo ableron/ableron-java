@@ -48,3 +48,10 @@ Java Library for Ableron Server Side UI Composition
   ```console
   $ ./mvnw versions:display-dependency-updates
   ```
+
+## Perform release
+1. Create new release branch (`git checkout -b release-x.x.x`)
+2. Set release version in `pom.xml` (remove `-SNAPSHOT`)
+3. Merge release branch into `main`
+4. Perform release via GitHub Action `release`
+5. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
