@@ -53,5 +53,5 @@ Java Library for Ableron Server Side UI Composition
 1. Create new release branch (`git checkout -b release-x.x.x`)
 2. Set release version in `pom.xml` (remove `-SNAPSHOT`)
 3. Merge release branch into `main`
-4. Perform release via GitHub Action `release`
+4. Perform release via GitHub Action `Release`
 5. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
