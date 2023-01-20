@@ -5,7 +5,7 @@
 
 Java Library for Ableron Server Side UI Composition
 
-## Using the library
+## How to use the library
 1. Add Ableron Java library to your project
    * Maven `pom.xml`
    ```xml
@@ -35,12 +35,12 @@ Java Library for Ableron Server Side UI Composition
    String processedResponseBody = transclusionResult.getBody();
    ```
 
-## Using fragments in response body
+## How to use fragments in response body
   ```html
   <fragment src="https://your-fragment-url" />
   ```
 
-## Developing the library
+## Develop the library
 * Install to local `.m2` repository
   ```console
   $ ./mvnw clean install
