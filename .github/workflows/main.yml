@@ -1,9 +1,9 @@
-name: Build
+name: CI
 
 on: push
 
 jobs:
-  build_test_analyze:
+  build_and_test:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
@@ -17,3 +17,32 @@ jobs:
           distribution: temurin
           cache: maven
       - run: mvn --batch-mode --update-snapshots verify
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          java-version: 19
+          distribution: temurin
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+      - name: Set up Apache Maven Central
+        uses: actions/setup-java@v3
+        with:
+          java-version: 19
+          distribution: temurin
+          cache: maven
+          server-id: ossrh # value of the distributionManagement/repository/id field of the pom.xml
+          server-username: OSSRH_USERNAME # env variable for username in deploy
+          server-password: OSSRH_PASSWORD # env variable for password in deploy
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }} # value of the GPG private key to import
+          gpg-passphrase: GPG_PASSPHRASE # env variable for GPG private key passphrase
+      - name: Publish to Apache Maven Central
+        run: mvn --batch-mode --update-snapshots deploy -Prelease
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

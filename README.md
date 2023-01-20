@@ -1,6 +1,7 @@
 # Ableron Java Library
-![Build Status](https://github.com/ableron/ableron-java/actions/workflows/main.yml/badge.svg)
-![License](https://img.shields.io/github/license/ableron/ableron-java)
+[![Build Status](https://github.com/ableron/ableron-java/actions/workflows/main.yml/badge.svg)](https://github.com/ableron/ableron-java/actions/workflows/main.yml)
+[![License](https://img.shields.io/github/license/ableron/ableron-java)](https://github.com/ableron/ableron-java/blob/main/LICENSE)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.ableron/ableron/badge.svg)](https://mvnrepository.com/artifact/io.github.ableron/ableron)
 
 Java Library for Ableron Server Side UI Composition
 
@@ -53,5 +54,10 @@ Java Library for Ableron Server Side UI Composition
 1. Create new release branch (`git checkout -b release-x.x.x`)
 2. Set release version in `pom.xml` (remove `-SNAPSHOT`)
 3. Merge release branch into `main`
-4. Perform release via GitHub Action `Release`
-5. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
+4. Release and deploy to Maven Central is performed automatically
+5. Manually create [GitHub Release](https://github.com/ableron/ableron-java/releases/new)
+   1. Set tag name to the version declared in `pom.xml`, e.g. `v0.0.1`
+   2. Set release title to the version declared in `pom.xml`, e.g. `0.0.1`
+   3. Let GitHub generate the release notes automatically
+   4. Publish release
+6. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
