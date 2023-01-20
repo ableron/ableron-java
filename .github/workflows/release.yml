@@ -11,6 +11,13 @@ jobs:
         with:
           java-version: 19
           distribution: temurin
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+      - name: Set up Apache Maven Central
+        uses: actions/setup-java@v3
+        with:
+          java-version: 19
+          distribution: temurin
           cache: maven
           server-id: ossrh # value of the distributionManagement/repository/id field of the pom.xml
           server-username: OSSRH_USERNAME # env variable for username in deploy
@@ -18,7 +25,7 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }} # value of the GPG private key to import
           gpg-passphrase: GPG_PASSPHRASE # env variable for GPG private key passphrase
       - name: Publish to Apache Maven Central
-        run: ./mvnw --batch-mode --update-snapshots deploy -Prelease
+        run: mvnw --batch-mode --update-snapshots deploy -Prelease
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_TOKEN: ${{ secrets.OSSRH_PASSWORD }}
