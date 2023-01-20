@@ -2,6 +2,7 @@
 [![Build Status](https://github.com/ableron/ableron-java/actions/workflows/main.yml/badge.svg)](https://github.com/ableron/ableron-java/actions/workflows/main.yml)
 [![License](https://img.shields.io/github/license/ableron/ableron-java)](https://github.com/ableron/ableron-java/blob/main/LICENSE)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.ableron/ableron/badge.svg)](https://mvnrepository.com/artifact/io.github.ableron/ableron)
+[![GitHub Release](https://img.shields.io/github/v/release/ableron/ableron-java.svg)](https://github.com/ableron/ableron-java/releases)
 
 Java Library for Ableron Server Side UI Composition
 
