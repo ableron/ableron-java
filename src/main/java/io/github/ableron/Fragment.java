@@ -34,18 +34,30 @@ public class Fragment {
     this.src = extractSrc(tag);
   }
 
+  /**
+   * @return The original tag string as found in the input content
+   */
   public String getOriginalTag() {
     return originalTag;
   }
 
+  /**
+   * @return The normalized version of the fragment tag
+   */
   public String getNormalizedTag() {
     return normalizedTag;
   }
 
+  /**
+   * @return The source URL of the actual fragment content the fragment tag should be replaced with
+   */
   public String getSrc() {
     return src;
   }
 
+  /**
+   * @return The content of the fragment as provided by the source URL
+   */
   public String getResolvedContent() {
     if (resolvedContent == null) {
       resolvedContent = resolveContent();
@@ -54,6 +66,17 @@ public class Fragment {
     return resolvedContent;
   }
 
+  /**
+   * Normalizes the fragment tag.
+   * <br>
+   * Performs the following actions:
+   * <ul>
+   *   <li>Remove tag-self-closing-slash if available</li>
+   * </ul>
+   *
+   * @param tag The original fragment tag
+   * @return The normalized fragment tag
+   */
   private String normalizeTag(String tag) {
     return tag.replaceAll("\\s*/?>$", ">");
   }
