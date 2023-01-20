@@ -16,4 +16,4 @@ jobs:
           java-version: ${{ matrix.javaVersion }}
           distribution: temurin
           cache: maven
-      - run: mvnw --batch-mode --update-snapshots verify
+      - run: mvn --batch-mode --update-snapshots verify
