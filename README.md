@@ -7,42 +7,42 @@
 
 Java Library for Ableron Server Side UI Composition
 
-## How to use the library
-1. Add Ableron Java library to your project
-   * Maven `pom.xml`
-   ```xml
-   <dependency>
-     <groupId>io.github.ableron</groupId>
-     <artifactId>ableron</artifactId>
-     <version>0.0.1</version>
-   </dependency>
-   ```
+## Installation
+Maven:
+```xml
+<dependency>
+  <groupId>io.github.ableron</groupId>
+  <artifactId>ableron</artifactId>
+  <version>0.0.1</version>
+</dependency>
+```
+Gradle:
+```groovy
+dependencies {
+  implementation 'io.github.ableron:ableron:0.0.1'
+}
+```
 
-   * Gradle `build.gradle`:
-   ```groovy
-   dependencies {
-     implementation 'io.github.ableron:ableron:0.0.1'
-   }
-   ```
-2. Apply transclusion to response bodies
-   * Check whether response body is suitable to be handled, e.g.
-     * HTTP response status 2xx, 4xx or 5xx
-     * Response content type is non-binary
-   * Apply transclusion
-   ```java
-   var ableronConfig = new AbleronConfig();
-   ableronConfig.put(AbleronConfigParams.ENABLED, true);
-   var ableron = new Ableron(ableronConfig);
-   TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
-   String processedResponseBody = transclusionResult.getBody();
-   ```
+## Usage
+* Check whether response body is suitable to be handled, e.g.
+  * HTTP response status 2xx, 4xx or 5xx
+  * Response content type is non-binary
+* Apply transclusion
+```java
+var ableronConfig = new AbleronConfig();
+ableronConfig.put(AbleronConfigParams.ENABLED, true);
+var ableron = new Ableron(ableronConfig);
+TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
+String processedResponseBody = transclusionResult.getBody();
+```
+* Use fragments in response body
+```html
+<fragment src="https://your-fragment-url" />
+```
 
-## How to use fragments in response body
-  ```html
-  <fragment src="https://your-fragment-url" />
-  ```
+## Library Development
 
-## Develop the library
+### Quick Start
 * Install to local `.m2` repository
   ```console
   $ ./mvnw clean install
@@ -52,14 +52,15 @@ Java Library for Ableron Server Side UI Composition
   $ ./mvnw versions:display-dependency-updates
   ```
 
-## Perform release
+### Perform Release
 1. Create new release branch (`git checkout -b release-x.x.x`)
 2. Set release version in `pom.xml` (remove `-SNAPSHOT`)
-3. Merge release branch into `main`
-4. Release and deploy to Maven Central is performed automatically
-5. Manually create [GitHub Release](https://github.com/ableron/ableron-java/releases/new)
+3. Update version in maven and gradle dependency declaration code snippets in`README.md`
+4. Merge release branch into `main`
+5. Release and deploy to Maven Central is performed automatically
+6. Manually create [GitHub Release](https://github.com/ableron/ableron-java/releases/new)
    1. Set tag name to the version declared in `pom.xml`, e.g. `v0.0.1`
    2. Set release title to the version declared in `pom.xml`, e.g. `0.0.1`
    3. Let GitHub generate the release notes automatically
    4. Publish release
-6. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
+7. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
