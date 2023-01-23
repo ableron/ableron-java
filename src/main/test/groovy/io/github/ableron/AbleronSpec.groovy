@@ -4,7 +4,7 @@ import spock.lang.Specification
 
 class AbleronSpec extends Specification {
 
-  def "handles property ableron.enabled correctly if no set"() {
+  def "handles property ableron.enabled correctly if no set explicitly"() {
     given:
     def ableronConfig = new AbleronConfig()
     def ableron = new Ableron(ableronConfig)
@@ -13,11 +13,13 @@ class AbleronSpec extends Specification {
     ableron.isEnabled()
   }
 
-  def "handles property ableron.enabled correctly if set"() {
-    when:
+  def "handles property ableron.enabled correctly if set explicitly"() {
+    given:
     def ableronConfig = new AbleronConfig()
-    ableronConfig.put(AbleronConfigParams.ENABLED, ableronEnabledPropertyValue)
     def ableron = new Ableron(ableronConfig)
+
+    when:
+    ableronConfig.put(AbleronConfigParams.ENABLED, ableronEnabledPropertyValue)
 
     then:
     ableron.isEnabled() == expectedIsEnabled
@@ -26,6 +28,8 @@ class AbleronSpec extends Specification {
     ableronEnabledPropertyValue | expectedIsEnabled
     "true"                      | true
     "false"                     | false
+    "on"                        | false
+    "off"                       | false
     "null"                      | false
     "foo"                       | false
   }
