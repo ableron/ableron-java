@@ -23,11 +23,11 @@ public class Ableron {
   }
 
   /**
-   * @see TransclusionProcessor#applyTransclusion(String)
+   * @see TransclusionProcessor#resolveIncludes(String)
    */
-  public TransclusionResult applyTransclusion(String content) {
-    var transclusionResult = transclusionProcessor.applyTransclusion(content);
-    logger.debug("Ableron UI composition processed {} fragments in {}ms", transclusionResult.getProcessedFragmentsCount(), transclusionResult.getProcessingTimeMillis());
+  public TransclusionResult resolveIncludes(String content) {
+    var transclusionResult = transclusionProcessor.resolveIncludes(content);
+    logger.debug("Ableron UI composition processed {} includes in {}ms", transclusionResult.getProcessedIncludesCount(), transclusionResult.getProcessingTimeMillis());
     return transclusionResult;
   }
 }

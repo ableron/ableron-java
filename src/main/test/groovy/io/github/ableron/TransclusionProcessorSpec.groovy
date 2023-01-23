@@ -6,92 +6,92 @@ class TransclusionProcessorSpec extends Specification {
 
   def transclusionProcessor = new TransclusionProcessor()
 
-  def "should have tolerant fragment matching pattern"() {
+  def "should have tolerant include matching pattern"() {
     expect:
-    transclusionProcessor.findFragments(inputContent).first().originalTag == expectedFragmentTag
+    transclusionProcessor.findIncludes(inputContent).first().rawIncludeTag == expectedRawIcludeTag
 
     where:
-    inputContent                                                  | expectedFragmentTag
-    "<fragment src=\"https://example.com\">"                      | "<fragment src=\"https://example.com\">"
-    "<div><fragment src=\"https://example.com\"></div>"           | "<fragment src=\"https://example.com\">"
-    "<div><fragment src=\"https://example.com\" foo=\">\"></div>" | "<fragment src=\"https://example.com\" foo=\">\">"
-    "<fragment src=\"test\">"                                     | "<fragment src=\"test\">"
-    "<fragment src=\"test\"/>"                                    | "<fragment src=\"test\"/>"
-    "<fragment src=\"test\" />"                                   | "<fragment src=\"test\" />"
-    "<fragment   src=\"test\"/>"                                  | "<fragment   src=\"test\"/>"
-    "<fragment   src=\"test\"  >"                                 | "<fragment   src=\"test\"  >"
+    inputContent                                                         | expectedRawIcludeTag
+    "<ableron-include src=\"https://example.com\">"                      | "<ableron-include src=\"https://example.com\">"
+    "<div><ableron-include src=\"https://example.com\"></div>"           | "<ableron-include src=\"https://example.com\">"
+    "<div><ableron-include src=\"https://example.com\" foo=\">\"></div>" | "<ableron-include src=\"https://example.com\" foo=\">\">"
+    "<ableron-include src=\"test\">"                                     | "<ableron-include src=\"test\">"
+    "<ableron-include src=\"test\"/>"                                    | "<ableron-include src=\"test\"/>"
+    "<ableron-include src=\"test\" />"                                   | "<ableron-include src=\"test\" />"
+    "<ableron-include   src=\"test\"/>"                                  | "<ableron-include   src=\"test\"/>"
+    "<ableron-include   src=\"test\"  >"                                 | "<ableron-include   src=\"test\"  >"
   }
 
-  def "should find all fragments in input content"() {
+  def "should find all includes in input content"() {
     expect:
-    transclusionProcessor.findFragments("""
+    transclusionProcessor.findIncludes("""
       <html>
       <head>
-        <fragment src="https://foo.bar/baz?test=123" />
+        <ableron-include src="https://foo.bar/baz?test=123" />
         <title>Foo</title>
-        <fragment foo="bar" src="https://foo.bar/baz?test=456">
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456">
       </head>
       <body>
-        <fragment src="https://foo.bar/baz?test=789">
+        <ableron-include src="https://foo.bar/baz?test=789">
       </body>
       </html>
     """) == [
-      new Fragment("<fragment src=\"https://foo.bar/baz?test=123\" />"),
-      new Fragment("<fragment foo=\"bar\" src=\"https://foo.bar/baz?test=456\">"),
-      new Fragment("<fragment src=\"https://foo.bar/baz?test=789\">")
+            new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />"),
+            new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\">"),
+            new Include("<ableron-include src=\"https://foo.bar/baz?test=789\">")
     ] as Set
   }
 
-  def "should treat identical fragments as one fragment"() {
+  def "should treat multiple identical includes as one include"() {
     expect:
-    transclusionProcessor.findFragments("""
+    transclusionProcessor.findIncludes("""
       <html>
       <head>
-        <fragment src="https://foo.bar/baz?test=123" />
-        <fragment src="https://foo.bar/baz?test=123">
+        <ableron-include src="https://foo.bar/baz?test=123" />
+        <ableron-include src="https://foo.bar/baz?test=123">
         <title>Foo</title>
-        <fragment foo="bar" src="https://foo.bar/baz?test=456">
-        <fragment foo="bar" src="https://foo.bar/baz?test=456">
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456">
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456">
       </head>
       <body>
-        <fragment src="https://foo.bar/baz?test=789">
-        <fragment src="https://foo.bar/baz?test=789">
+        <ableron-include src="https://foo.bar/baz?test=789">
+        <ableron-include src="https://foo.bar/baz?test=789">
       </body>
       </html>
     """) == [
-            new Fragment("<fragment src=\"https://foo.bar/baz?test=123\" />"),
-            new Fragment("<fragment foo=\"bar\" src=\"https://foo.bar/baz?test=456\">"),
-            new Fragment("<fragment src=\"https://foo.bar/baz?test=789\">")
+            new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />"),
+            new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\">"),
+            new Include("<ableron-include src=\"https://foo.bar/baz?test=789\">")
     ] as Set
   }
 
   def "should populate TransclusionResult"() {
     when:
-    def transclusionResult = transclusionProcessor.applyTransclusion("""
+    def transclusionResult = transclusionProcessor.resolveIncludes("""
       <html>
       <head>
-        <fragment src="https://foo.bar/baz?test=123" />
+        <ableron-include src="https://foo.bar/baz?test=123" />
         <title>Foo</title>
-        <fragment foo="bar" src="https://foo.bar/baz?test=456">
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456">
       </head>
       <body>
-        <fragment src="https://foo.bar/baz?test=789">
+        <ableron-include src="https://foo.bar/baz?test=789">
       </body>
       </html>
     """)
 
     then:
-    transclusionResult.processedFragmentsCount == 3
+    transclusionResult.processedIncludesCount == 3
     transclusionResult.processingTimeMillis >= 1
     transclusionResult.content == """
       <html>
       <head>
-        <!-- Error loading fragment -->
+        <!-- Error loading include -->
         <title>Foo</title>
-        <!-- Error loading fragment -->
+        <!-- Error loading include -->
       </head>
       <body>
-        <!-- Error loading fragment -->
+        <!-- Error loading include -->
       </body>
       </html>
     """

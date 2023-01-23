@@ -1,48 +1,43 @@
 package io.github.ableron;
 
-import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class TransclusionProcessor {
 
-  private static final Pattern FRAGMENT_PATTERN = Pattern.compile("<fragment\\s(\"[^\"]*\"|[^\">])*/?>");
+  private static final Pattern INCLUDE_PATTERN = Pattern.compile("<ableron-include\\s(\"[^\"]*\"|[^\">])*/?>");
   private static final long NANO_2_MILLIS = 1000000L;
 
   /**
-   * Finds all fragments in the given content.
+   * Finds all includes in the given content.
    *
-   * @param content The content to find the fragments in
-   * @return The found fragments
+   * @param content Content to find the includes in
+   * @return The includes
    */
-  public Set<Fragment> findFragments(String content) {
-    Set<Fragment> fragments = new HashSet<>();
-    Matcher matcher = FRAGMENT_PATTERN.matcher(content);
-
-    while (matcher.find()) {
-      fragments.add(new Fragment(matcher.group(0)));
-    }
-
-    return fragments;
+  public Set<Include> findIncludes(String content) {
+    return INCLUDE_PATTERN.matcher(content)
+      .results()
+      .map(matchResult -> new Include(matchResult.group(0)))
+      .collect(Collectors.toSet());
   }
 
   /**
-   * Replaces all fragments in the given content.
+   * Resolves all includes in the given content.
    *
-   * @param content The content to replace the fragments of
-   * @return The content with resolved fragments
+   * @param content The content to resolve the includes of
+   * @return The content with resolved includes
    */
-  public TransclusionResult applyTransclusion(String content) {
+  public TransclusionResult resolveIncludes(String content) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult();
-    var fragments = findFragments(content);
+    var includes = findIncludes(content);
 
-    for (Fragment fragment : fragments) {
-      content = content.replace(fragment.getOriginalTag(), fragment.getResolvedContent());
+    for (Include include : includes) {
+      content = content.replace(include.getRawIncludeTag(), include.getResolvedContent());
     }
 
-    transclusionResult.setProcessedFragmentsCount(fragments.size());
+    transclusionResult.setProcessedIncludesCount(includes.size());
     transclusionResult.setContent(content);
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
