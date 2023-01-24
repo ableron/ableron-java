@@ -4,42 +4,77 @@ import spock.lang.Specification
 
 class IncludeSpec extends Specification {
 
-  def "should normalize include tag"() {
-    expect:
-    new Include(originalTag).normalizedIncludeTag == expectedNormalizedIncludeTag
+  def "provided include must not be null"() {
+    when:
+    new Include(null, Map.of(), "")
 
-    where:
-    originalTag                                                  | expectedNormalizedIncludeTag
-    "<ableron-include src=\"https://example.com\">"              | "<ableron-include src=\"https://example.com\">"
-    "<ableron-include src=\"https://example.com\"/>"             | "<ableron-include src=\"https://example.com\">"
-    "<ableron-include src=\"https://example.com\" >"             | "<ableron-include src=\"https://example.com\">"
-    "<ableron-include src=\"https://example.com\" />"            | "<ableron-include src=\"https://example.com\">"
-    "<ableron-include src=\"https://example.com\"   >"           | "<ableron-include src=\"https://example.com\">"
-    "<ableron-include src=\"https://example.com\"   />"          | "<ableron-include src=\"https://example.com\">"
-    "<ableron-include src=\"https://example.com\" test=\"/>\"/>" | "<ableron-include src=\"https://example.com\" test=\"/>\">"
+    then:
+    thrown(NullPointerException)
   }
 
-  def "should consider two includes with same normalized tag as equal"() {
+  def "provided include attributes must not be null"() {
     when:
-    def include1 = new Include("<ableron-include src=\"https://example.com\">")
-    def include2 = new Include("<ableron-include src=\"https://example.com\"/>")
-    def include3 = new Include("<ableron-include src=\"https://example.com/foo\">")
+    new Include("", null, "")
+
+    then:
+    thrown(NullPointerException)
+  }
+
+  def "provided HTTP client must not be null"() {
+    when:
+    new Include("", Map.of(), "", null)
+
+    then:
+    thrown(NullPointerException)
+  }
+
+  def "constructor should set raw include"() {
+    when:
+    def include = new Include("<ableron-include src=\"https://example.com\"/>", Map.of())
+
+    then:
+    include.rawInclude == "<ableron-include src=\"https://example.com\"/>"
+  }
+
+  def "constructor should set src attribute"() {
+    expect:
+    include.src == expectedSrc
+
+    where:
+    include                                                                             | expectedSrc
+    new Include("<ableron-include src=\"...\"/>", Map.of())                             | null
+    new Include("<ableron-include src=\"...\"/>", Map.of("src", "https://example.com")) | "https://example.com"
+  }
+
+  def "constructor should set fallback-src attribute"() {
+    expect:
+    include.fallbackSrc == expectedFallbackSrc
+
+    where:
+    include                                                                                      | expectedFallbackSrc
+    new Include("<ableron-include src=\"...\"/>", Map.of())                                      | null
+    new Include("<ableron-include src=\"...\"/>", Map.of("fallback-src", "https://example.com")) | "https://example.com"
+  }
+
+  def "constructor should set fallback content"() {
+    expect:
+    include.fallbackContent == expectedFallbackContent
+
+    where:
+    include                                                             | expectedFallbackContent
+    new Include("<ableron-include src=\"...\"/>", Map.of())             | null
+    new Include("<ableron-include src=\"...\"/>", Map.of(), "fallback") | "fallback"
+  }
+
+  def "should consider include objects with identical include string as equal"() {
+    when:
+    def include1 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of())
+    def include2 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of("foo", "bar"))
+    def include3 = new Include("<ableron-include src=\"...\"/>", Map.of("test", "test"))
 
     then:
     include1 == include2
     include1 != include3
     include2 != include3
-  }
-
-  def "should extract include source from tag"() {
-    expect:
-    new Include(includeTag).src == expectedSource
-
-    where:
-    includeTag                                                       | expectedSource
-    "<ableron-include _src=\"https://example.com\">"                 | null
-    "<ableron-include src=\"https://example.com\">"                  | "https://example.com"
-    "<ableron-include   src=\"https://example.com\">"                | "https://example.com"
-    "<ableron-include foo=\"foo\" src=\"https://example.com/test\">" | "https://example.com/test"
   }
 }

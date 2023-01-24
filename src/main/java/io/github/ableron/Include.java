@@ -1,102 +1,149 @@
 package io.github.ableron;
 
 import jakarta.annotation.Nonnull;
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Include {
 
-  private static final Pattern SRC_PATTERN = Pattern.compile("\\ssrc=\"([^\"]+)\"");
+  /**
+   * Name of the attribute which contains the source URl to resolve the include to.
+   */
+  private static final String ATTR_SOURCE = "src";
+
+  /**
+   * Name of the attribute which contains the fallback URl to resolve the include to in case the
+   * source URl could not be resolved.
+   */
+  private static final String ATTR_FALLBACK_SOURCE = "fallback-src";
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final HttpClient httpClient;
-  private final String rawIncludeTag;
-  private final String normalizedIncludeTag;
+
+  /**
+   * Raw include string.
+   */
+  private final String rawInclude;
+
+  /**
+   * Source URL the include resolves to.
+   */
   private final String src;
-  private String resolvedContent = null;
-
-  public Include(@Nonnull String tag) {
-    this(tag, HttpClient.newHttpClient());
-  }
-
-  public Include(@Nonnull String tag, @Nonnull HttpClient httpClient) {
-    this.httpClient = httpClient;
-    this.rawIncludeTag = tag;
-    this.normalizedIncludeTag = normalizeTag(tag);
-    this.src = extractSrc(tag);
-  }
 
   /**
-   * @return The original tag string as found in the input content
+   * Fallback URL to resolve the include to in case the source URl could not be resolved.
    */
-  public String getRawIncludeTag() {
-    return rawIncludeTag;
-  }
+  private final String fallbackSrc;
 
   /**
-   * @return The normalized representation of the include tag
+   * Fallback content to use in case the include could not be resolved.
    */
-  public String getNormalizedIncludeTag() {
-    return normalizedIncludeTag;
+  private final String fallbackContent;
+
+  /**
+   * Resolved include content.
+   */
+  private String resolvedInclude = null;
+
+  /**
+   * HTTP client used to resolve the includes.
+   */
+  private final HttpClient httpClient;
+
+  public Include(@Nonnull String include, @Nonnull Map<String, String> attributes) {
+    this(include, attributes, null);
+  }
+
+  public Include(@Nonnull String include, @Nonnull Map<String, String> attributes, String fallbackContent) {
+    this(include, attributes, fallbackContent, HttpClient.newHttpClient());
   }
 
   /**
-   * @return Source URL of the include
+   * Constructs a new Include.
+   *
+   * @param include Raw include string
+   * @param attributes Attributes of the include tag
+   * @param fallbackContent Fallback content to use in case the include could not be resolved
+   * @param httpClient HTTP client used to resolve the includes
+   */
+  public Include(@Nonnull String include, @Nonnull Map<String, String> attributes, String fallbackContent, @Nonnull HttpClient httpClient) {
+    this.rawInclude = Objects.requireNonNull(include, "include must not be null");
+    this.src = attributes.get(ATTR_SOURCE);
+    this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
+    this.fallbackContent = fallbackContent;
+    this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
+  }
+
+  /**
+   * @return The raw include string
+   */
+  public String getRawInclude() {
+    return rawInclude;
+  }
+
+  /**
+   * @return The source URL the include resolves to
    */
   public String getSrc() {
     return src;
   }
 
   /**
-   * @return The content of the include as provided by the source URL
+   * @return The fallback URL to resolve the include to in case the source URl could not be resolved.
    */
-  public String getResolvedContent() {
-    if (resolvedContent == null) {
-      resolvedContent = resolveContent();
-    }
-
-    return resolvedContent;
+  public String getFallbackSrc() {
+    return fallbackSrc;
   }
 
   /**
-   * Normalizes the include tag.
-   * <br>
-   * Performs the following actions:
-   * <ul>
-   *   <li>Remove tag-self-closing-slash if available</li>
-   * </ul>
-   *
-   * @param rawIncludeTag The original include tag
-   * @return The normalized include tag
+   * @return Fallback content to use in case the include could not be resolved
    */
-  private String normalizeTag(String rawIncludeTag) {
-    return rawIncludeTag.replaceAll("\\s*/?>$", ">");
+  public String getFallbackContent() {
+    return fallbackContent;
   }
 
-  private String extractSrc(String tag) {
-    Matcher matcher = SRC_PATTERN.matcher(tag);
-    return matcher.find() ? matcher.group(1) : null;
+  /**
+   * @return The resolved include
+   */
+  public String getResolvedInclude() {
+    if (resolvedInclude == null) {
+      resolvedInclude = resolveInclude();
+    }
+
+    return resolvedInclude;
   }
 
-  private String resolveContent() {
-    HttpRequest request = HttpRequest.newBuilder()
-      .uri(URI.create(src))
-      .GET()
-      .build();
+  private String resolveInclude() {
+    return loadSrc()
+      .or(this::loadFallbackSrc)
+      .orElse(fallbackContent);
+  }
 
+  private Optional<String> loadSrc() {
+    return (src == null) ? Optional.empty() : loadUri(src);
+  }
+
+  private Optional<String> loadFallbackSrc() {
+    return (fallbackSrc == null) ? Optional.empty() : loadUri(fallbackSrc);
+  }
+
+  private Optional<String> loadUri(String uri) {
     try {
-      return httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body();
-    } catch (IOException | InterruptedException e) {
-      logger.error("Unable to resolve Ableron include", e);
-      return "<!-- Error loading include -->";
+      HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create(uri))
+        .GET()
+        .build();
+
+      return Optional.of(httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body());
+    } catch (Exception e) {
+      logger.error("Unable to load uri {} of ableron-include", uri, e);
+      return Optional.empty();
     }
   }
 
@@ -108,12 +155,14 @@ public class Include {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     Include include = (Include) o;
-    return normalizedIncludeTag.equals(include.normalizedIncludeTag);
+
+    return rawInclude.equals(include.rawInclude);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(normalizedIncludeTag);
+    return rawInclude.hashCode();
   }
 }
