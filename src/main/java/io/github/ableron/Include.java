@@ -52,17 +52,9 @@ public class Include {
   private String resolvedInclude = null;
 
   /**
-   * HTTP client used to resolve the includes.
+   * HTTP client used to resolve this include.
    */
   private final HttpClient httpClient;
-
-  public Include(@Nonnull String include, @Nonnull Map<String, String> attributes) {
-    this(include, attributes, null);
-  }
-
-  public Include(@Nonnull String include, @Nonnull Map<String, String> attributes, String fallbackContent) {
-    this(include, attributes, fallbackContent, HttpClient.newHttpClient());
-  }
 
   /**
    * Constructs a new Include.
@@ -74,7 +66,7 @@ public class Include {
    */
   public Include(@Nonnull String include, @Nonnull Map<String, String> attributes, String fallbackContent, @Nonnull HttpClient httpClient) {
     this.rawInclude = Objects.requireNonNull(include, "include must not be null");
-    this.src = attributes.get(ATTR_SOURCE);
+    this.src = Objects.requireNonNull(attributes, "attributes must not be null").get(ATTR_SOURCE);
     this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
     this.fallbackContent = fallbackContent;
     this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");

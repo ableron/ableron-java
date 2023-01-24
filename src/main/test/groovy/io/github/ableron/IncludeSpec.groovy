@@ -1,23 +1,31 @@
 package io.github.ableron
 
+import spock.lang.Shared
 import spock.lang.Specification
+
+import java.net.http.HttpClient
 
 class IncludeSpec extends Specification {
 
+  @Shared
+  def httpClient = HttpClient.newHttpClient()
+
   def "provided include must not be null"() {
     when:
-    new Include(null, Map.of(), "")
+    new Include(null, Map.of(), "", httpClient)
 
     then:
-    thrown(NullPointerException)
+    def exception = thrown(NullPointerException)
+    exception.message == "include must not be null"
   }
 
   def "provided include attributes must not be null"() {
     when:
-    new Include("", null, "")
+    new Include("", null, "", httpClient)
 
     then:
-    thrown(NullPointerException)
+    def exception = thrown(NullPointerException)
+    exception.message == "attributes must not be null"
   }
 
   def "provided HTTP client must not be null"() {
@@ -25,12 +33,13 @@ class IncludeSpec extends Specification {
     new Include("", Map.of(), "", null)
 
     then:
-    thrown(NullPointerException)
+    def exception = thrown(NullPointerException)
+    exception.message == "httpClient must not be null"
   }
 
   def "constructor should set raw include"() {
     when:
-    def include = new Include("<ableron-include src=\"https://example.com\"/>", Map.of())
+    def include = new Include("<ableron-include src=\"https://example.com\"/>", Map.of(), null, httpClient)
 
     then:
     include.rawInclude == "<ableron-include src=\"https://example.com\"/>"
@@ -41,9 +50,9 @@ class IncludeSpec extends Specification {
     include.src == expectedSrc
 
     where:
-    include                                                                             | expectedSrc
-    new Include("<ableron-include src=\"...\"/>", Map.of())                             | null
-    new Include("<ableron-include src=\"...\"/>", Map.of("src", "https://example.com")) | "https://example.com"
+    include                                                                                               | expectedSrc
+    new Include("<ableron-include src=\"...\"/>", Map.of(), null, httpClient)                             | null
+    new Include("<ableron-include src=\"...\"/>", Map.of("src", "https://example.com"), null, httpClient) | "https://example.com"
   }
 
   def "constructor should set fallback-src attribute"() {
@@ -51,9 +60,9 @@ class IncludeSpec extends Specification {
     include.fallbackSrc == expectedFallbackSrc
 
     where:
-    include                                                                                      | expectedFallbackSrc
-    new Include("<ableron-include src=\"...\"/>", Map.of())                                      | null
-    new Include("<ableron-include src=\"...\"/>", Map.of("fallback-src", "https://example.com")) | "https://example.com"
+    include                                                                                                        | expectedFallbackSrc
+    new Include("<ableron-include src=\"...\"/>", Map.of(), null, httpClient)                                      | null
+    new Include("<ableron-include src=\"...\"/>", Map.of("fallback-src", "https://example.com"), null, httpClient) | "https://example.com"
   }
 
   def "constructor should set fallback content"() {
@@ -61,16 +70,16 @@ class IncludeSpec extends Specification {
     include.fallbackContent == expectedFallbackContent
 
     where:
-    include                                                             | expectedFallbackContent
-    new Include("<ableron-include src=\"...\"/>", Map.of())             | null
-    new Include("<ableron-include src=\"...\"/>", Map.of(), "fallback") | "fallback"
+    include                                                                               | expectedFallbackContent
+    new Include("<ableron-include src=\"...\"/>", Map.of(), null, httpClient)             | null
+    new Include("<ableron-include src=\"...\"/>", Map.of(), "fallback", httpClient) | "fallback"
   }
 
   def "should consider include objects with identical include string as equal"() {
     when:
-    def include1 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of())
-    def include2 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of("foo", "bar"))
-    def include3 = new Include("<ableron-include src=\"...\"/>", Map.of("test", "test"))
+    def include1 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of(), null, httpClient)
+    def include2 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of("foo", "bar"), null, httpClient)
+    def include3 = new Include("<ableron-include src=\"...\"/>", Map.of("test", "test"), null, httpClient)
 
     then:
     include1 == include2

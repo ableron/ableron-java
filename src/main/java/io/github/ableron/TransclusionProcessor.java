@@ -1,5 +1,6 @@
 package io.github.ableron;
 
+import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +22,8 @@ public class TransclusionProcessor {
 
   private static final long NANO_2_MILLIS = 1000000L;
 
+  private HttpClient httpClient = HttpClient.newHttpClient();
+
   /**
    * Finds all includes in the given content.
    *
@@ -30,7 +33,7 @@ public class TransclusionProcessor {
   public Set<Include> findIncludes(String content) {
     return INCLUDE_PATTERN.matcher(content)
       .results()
-      .map(matchResult -> new Include(matchResult.group(0), parseAttributes(matchResult.group(2)), matchResult.group(5)))
+      .map(matchResult -> new Include(matchResult.group(0), parseAttributes(matchResult.group(2)), matchResult.group(5), httpClient))
       .collect(Collectors.toSet());
   }
 
