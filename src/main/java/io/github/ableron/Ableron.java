@@ -16,9 +16,9 @@ public class Ableron {
     this(ableronConfig, HttpClient.newHttpClient());
   }
 
-  public Ableron(@Nonnull AbleronConfig ableronConfig, HttpClient httpClient) {
+  public Ableron(@Nonnull AbleronConfig ableronConfig, @Nonnull HttpClient httpClient) {
     this.ableronConfig = Objects.requireNonNull(ableronConfig, "ableronConfig must not be null");
-    this.transclusionProcessor = new TransclusionProcessor(httpClient != null ? httpClient : HttpClient.newHttpClient());
+    this.transclusionProcessor = new TransclusionProcessor(httpClient);
   }
 
   /**

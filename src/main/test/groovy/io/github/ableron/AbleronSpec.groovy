@@ -13,6 +13,15 @@ class AbleronSpec extends Specification {
     exception.message == "ableronConfig must not be null"
   }
 
+  def "should throw exception if httpClient is not provided"() {
+    when:
+    new Ableron(new AbleronConfig(), null)
+
+    then:
+    def exception = thrown(NullPointerException)
+    exception.message == "httpClient must not be null"
+  }
+
   def "handles property ableron.enabled correctly if no set explicitly"() {
     given:
     def ableronConfig = new AbleronConfig()
