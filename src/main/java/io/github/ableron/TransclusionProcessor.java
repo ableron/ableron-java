@@ -31,7 +31,9 @@ public class TransclusionProcessor {
    * @return The includes
    */
   public Set<Include> findIncludes(String content) {
-    return INCLUDE_PATTERN.matcher(content)
+    int firstIncludePosition = content.indexOf("<ableron-include");
+
+    return (firstIncludePosition == -1) ? Set.of() : INCLUDE_PATTERN.matcher(content.substring(firstIncludePosition))
       .results()
       .map(matchResult -> new Include(matchResult.group(0), parseAttributes(matchResult.group(2)), matchResult.group(5), httpClient))
       .collect(Collectors.toSet());

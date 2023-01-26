@@ -1,10 +1,17 @@
 package io.github.ableron
 
+import spock.lang.Shared
 import spock.lang.Specification
+
+import java.net.http.HttpClient
 
 class TransclusionProcessorSpec extends Specification {
 
+  @Shared
   def transclusionProcessor = new TransclusionProcessor()
+
+  @Shared
+  def httpClient = HttpClient.newHttpClient()
 
   def "should recognize includes of different forms"() {
     expect:
@@ -54,10 +61,10 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of("src", "https://foo.bar/baz?test=123")),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of("foo", "bar", "src", "https://foo.bar/baz?test=456")),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of("src", "https://foo.bar/baz?test=789", "fallback-src", "https://example.com")),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of("src", "https://foo.bar/baz?test=789", "fallback-src", "https://example.com"))
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of(), null, httpClient),
+      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of(), null, httpClient),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of(), null, httpClient),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of(), null, httpClient)
     ] as Set
   }
 
@@ -78,9 +85,26 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of("src", "https://foo.bar/baz?test=123")),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of("src", "https://foo.bar/baz?test=456")),
-      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of("src", "...")),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of(), null, httpClient),
+      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of(), null, httpClient),
+      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of(), null, httpClient)
     ] as Set
+  }
+
+  def "should perform search for includes in big input string"() {
+    given:
+    def randomStringWithoutIncludes = new Random().ints(32, 127)
+      .limit(512 * 1024)
+      .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+      .toString()
+    def randomStringWithIncludeAtTheBeginning = "<ableron-include />" + randomStringWithoutIncludes
+    def randomStringWithIncludeAtTheEnd = randomStringWithoutIncludes + "<ableron-include />"
+    def randomStringWithIncludeAtTheMiddle = randomStringWithoutIncludes + "<ableron-include />" + randomStringWithoutIncludes
+
+    expect:
+    transclusionProcessor.findIncludes(randomStringWithoutIncludes).size() == 0
+    transclusionProcessor.findIncludes(randomStringWithIncludeAtTheBeginning).size() == 1
+    transclusionProcessor.findIncludes(randomStringWithIncludeAtTheEnd).size() == 1
+    transclusionProcessor.findIncludes(randomStringWithIncludeAtTheMiddle).size() == 1
   }
 }
