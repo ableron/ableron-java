@@ -55,6 +55,27 @@ class TransclusionProcessorSpec extends Specification {
     ]
   }
 
+  def "should parse include attributes"() {
+    when:
+    def include = transclusionProcessor.findIncludes(includeTag).first()
+
+    then:
+    include.src == expectedSource
+    include.fallbackSrc == expectedFallbackSource
+
+    where:
+    includeTag                                                    | expectedSource        | expectedFallbackSource
+    "<ableron-include src=\"https://example.com\"/>"              | "https://example.com" | null
+    "<ableron-include  src=\"https://example.com\"/>"             | "https://example.com" | null
+    "<ableron-include -src=\"https://example.com\"/>"             | null                  | null
+    "<ableron-include _src=\"https://example.com\"/>"             | null                  | null
+    "<ableron-include 0src=\"https://example.com\"/>"             | null                  | null
+    "<ableron-include foo=\"\" src=\"https://example.com\"/>"     | "https://example.com" | null
+    "<ableron-include fallback-src=\"fallback\" src=\"source\"/>" | "source"              | "fallback"
+    "<ableron-include src=\"source\" fallback-src=\"fallback\"/>" | "source"              | "fallback"
+    "<ableron-include src=\">\" fallback-src=\"/>\"/>"            | ">"                   | "/>"
+  }
+
   def "should accept line breaks in include tag attributes"() {
     when:
     def include = transclusionProcessor.findIncludes("""
