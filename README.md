@@ -31,7 +31,7 @@ dependencies {
 ```java
 var ableronConfig = new AbleronConfig();
 ableronConfig.put(AbleronConfigParams.ENABLED, true);
-var ableron = new Ableron(ableronConfig);
+var ableron = new Ableron(ableronConfig, java.net.http.HttpClient.newHttpClient());
 TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
 String processedResponseBody = transclusionResult.getBody();
 ```

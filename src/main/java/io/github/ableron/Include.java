@@ -129,12 +129,18 @@ public class Include {
         .uri(URI.create(uri))
         .GET()
         .build();
+      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-      return Optional.of(httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body());
+      if (response.statusCode() == 200) {
+        return Optional.of(response.body());
+      } else {
+        logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
+      }
     } catch (Exception e) {
       logger.error("Unable to load uri {} of ableron-include", uri, e);
-      return Optional.empty();
     }
+
+    return Optional.empty();
   }
 
   @Override

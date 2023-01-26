@@ -1,5 +1,7 @@
 package io.github.ableron
 
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -85,5 +87,67 @@ class IncludeSpec extends Specification {
     include1 == include2
     include1 != include3
     include2 != include3
+  }
+
+  def "should resolve include with URL provided via src attribute"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(200))
+
+    when:
+    def resolvedInclude = new Include("<ableron-include src=\"...\"/>", Map.of("src", mockWebServer.url("/fragment").toString()), null, httpClient).resolve()
+
+    then:
+    resolvedInclude == "response"
+    mockWebServer.takeRequest().getPath() == "/fragment"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should resolve include with URL provided via fallback-src attribute if src could not be loaded"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setResponseCode(500))
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from fallback-src")
+      .setResponseCode(200))
+
+    when:
+    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), null, httpClient).resolve()
+
+    then:
+    resolvedInclude == "response from fallback-src"
+    mockWebServer.takeRequest().getPath() == "/fragment"
+    mockWebServer.takeRequest().getPath() == "/fallback-fragment"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should resolve include with fallback content if src and fallback-src could not be loaded"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setResponseCode(500))
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from fallback-src")
+      .setResponseCode(500))
+
+    when:
+    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), "fallback content", httpClient).resolve()
+
+    then:
+    resolvedInclude == "fallback content"
+    mockWebServer.takeRequest().getPath() == "/fragment"
+    mockWebServer.takeRequest().getPath() == "/fallback-fragment"
+
+    cleanup:
+    mockWebServer.shutdown()
   }
 }

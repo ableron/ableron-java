@@ -65,6 +65,7 @@
     <maven-javadoc-plugin.version>3.4.1</maven-javadoc-plugin.version>
     <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
     <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
+    <okhttp-mockwebserver.version>4.10.0</okhttp-mockwebserver.version>
     <slf4j.version>2.0.6</slf4j.version>
     <spock.version>2.4-M1-groovy-4.0</spock.version>
   </properties>
@@ -91,6 +92,12 @@
       <groupId>org.spockframework</groupId>
       <artifactId>spock-core</artifactId>
       <version>${spock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>mockwebserver</artifactId>
+      <version>${okhttp-mockwebserver.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
