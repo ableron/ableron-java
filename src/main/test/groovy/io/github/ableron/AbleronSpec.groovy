@@ -22,7 +22,7 @@ class AbleronSpec extends Specification {
     exception.message == "httpClient must not be null"
   }
 
-  def "handles property ableron.enabled correctly if no set explicitly"() {
+  def "should treat property ableron.enabled as set to true if no provided"() {
     given:
     def ableronConfig = new AbleronConfig()
     def ableron = new Ableron(ableronConfig)
@@ -31,7 +31,7 @@ class AbleronSpec extends Specification {
     ableron.isEnabled()
   }
 
-  def "handles property ableron.enabled correctly if set explicitly"() {
+  def "should handle property ableron.enabled"() {
     given:
     def ableronConfig = new AbleronConfig()
     def ableron = new Ableron(ableronConfig)

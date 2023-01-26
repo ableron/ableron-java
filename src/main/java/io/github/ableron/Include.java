@@ -19,8 +19,8 @@ public class Include {
   private static final String ATTR_SOURCE = "src";
 
   /**
-   * Name of the attribute which contains the fallback URl to resolve the include to in case the
-   * source URl could not be resolved.
+   * Name of the attribute which contains the fallback URL to resolve the include to in case the
+   * source URL could not be loaded.
    */
   private static final String ATTR_FALLBACK_SOURCE = "fallback-src";
 
@@ -37,7 +37,7 @@ public class Include {
   private final String src;
 
   /**
-   * Fallback URL to resolve the include to in case the source URl could not be resolved.
+   * Fallback URL to resolve the include to in case the source URL could not be loaded.
    */
   private final String fallbackSrc;
 
@@ -87,7 +87,7 @@ public class Include {
   }
 
   /**
-   * @return The fallback URL to resolve the include to in case the source URl could not be resolved.
+   * @return The fallback URL to resolve the include to in case the source URL could not be loaded.
    */
   public String getFallbackSrc() {
     return fallbackSrc;
@@ -133,9 +133,9 @@ public class Include {
 
       if (response.statusCode() == 200) {
         return Optional.of(response.body());
-      } else {
-        logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
       }
+
+      logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
     } catch (Exception e) {
       logger.error("Unable to load uri {} of ableron-include", uri, e);
     }

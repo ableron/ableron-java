@@ -27,22 +27,22 @@ class TransclusionProcessorSpec extends Specification {
     transclusionProcessor.findIncludes(content).first().rawInclude == expectedRawInclude
 
     where:
-    content                                                              | expectedRawInclude
-    "<ableron-include src=\"test\"/>"                                    | "<ableron-include src=\"test\"/>"
-    "<ableron-include src=\"test\" />"                                   | "<ableron-include src=\"test\" />"
-    "<ableron-include\nsrc=\"test\" />"                                  | "<ableron-include\nsrc=\"test\" />"
-    "<ableron-include\tsrc=\"test\"\t\t/>"                               | "<ableron-include\tsrc=\"test\"\t\t/>"
-    "<ableron-include src=\"test\"></ableron-include>"                   | "<ableron-include src=\"test\"></ableron-include>"
-    "<ableron-include src=\"test\"> </ableron-include>"                  | "<ableron-include src=\"test\"> </ableron-include>"
-    "<ableron-include src=\"test\">foo\nbar\nbaz</ableron-include>"      | "<ableron-include src=\"test\">foo\nbar\nbaz</ableron-include>"
-    "<ableron-include src=\">>\"/>"                                      | "<ableron-include src=\">>\"/>"
-    "<ableron-include src=\"/>\"/>"                                      | "<ableron-include src=\"/>\"/>"
-    "\n<ableron-include src=\"...\"/>\n"                                 | "<ableron-include src=\"...\"/>"
-    "<div><ableron-include src=\"...\"/></div>"                          | "<ableron-include src=\"...\"/>"
-    "<ableron-include src=\"...\"  fallback-src=\"...\"/>"               | "<ableron-include src=\"...\"  fallback-src=\"...\"/>"
+    content                                                         | expectedRawInclude
+    "<ableron-include src=\"test\"/>"                               | "<ableron-include src=\"test\"/>"
+    "<ableron-include src=\"test\" />"                              | "<ableron-include src=\"test\" />"
+    "<ableron-include\nsrc=\"test\" />"                             | "<ableron-include\nsrc=\"test\" />"
+    "<ableron-include\tsrc=\"test\"\t\t/>"                          | "<ableron-include\tsrc=\"test\"\t\t/>"
+    "<ableron-include src=\"test\"></ableron-include>"              | "<ableron-include src=\"test\"></ableron-include>"
+    "<ableron-include src=\"test\"> </ableron-include>"             | "<ableron-include src=\"test\"> </ableron-include>"
+    "<ableron-include src=\"test\">foo\nbar\nbaz</ableron-include>" | "<ableron-include src=\"test\">foo\nbar\nbaz</ableron-include>"
+    "<ableron-include src=\">>\"/>"                                 | "<ableron-include src=\">>\"/>"
+    "<ableron-include src=\"/>\"/>"                                 | "<ableron-include src=\"/>\"/>"
+    "\n<ableron-include src=\"...\"/>\n"                            | "<ableron-include src=\"...\"/>"
+    "<div><ableron-include src=\"...\"/></div>"                     | "<ableron-include src=\"...\"/>"
+    "<ableron-include src=\"...\"  fallback-src=\"...\"/>"          | "<ableron-include src=\"...\"  fallback-src=\"...\"/>"
   }
 
-  def "should not recognize includes with invalid format as valid"() {
+  def "should not recognize includes with invalid format"() {
     expect:
     transclusionProcessor.findIncludes(inputContent).isEmpty()
 

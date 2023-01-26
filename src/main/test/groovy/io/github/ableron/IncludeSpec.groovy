@@ -72,8 +72,8 @@ class IncludeSpec extends Specification {
     include.fallbackContent == expectedFallbackContent
 
     where:
-    include                                                                               | expectedFallbackContent
-    new Include("<ableron-include src=\"...\"/>", Map.of(), null, httpClient)             | null
+    include                                                                         | expectedFallbackContent
+    new Include("<ableron-include src=\"...\"/>", Map.of(), null, httpClient)       | null
     new Include("<ableron-include src=\"...\"/>", Map.of(), "fallback", httpClient) | "fallback"
   }
 
@@ -97,7 +97,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("<ableron-include src=\"...\"/>", Map.of("src", mockWebServer.url("/fragment").toString()), null, httpClient).resolve()
+    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString()), null, httpClient).resolve()
 
     then:
     resolvedInclude == "response"
