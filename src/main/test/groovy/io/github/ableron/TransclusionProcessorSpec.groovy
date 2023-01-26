@@ -8,10 +8,19 @@ import java.net.http.HttpClient
 class TransclusionProcessorSpec extends Specification {
 
   @Shared
-  def transclusionProcessor = new TransclusionProcessor()
+  def httpClient = HttpClient.newHttpClient()
 
   @Shared
-  def httpClient = HttpClient.newHttpClient()
+  def transclusionProcessor = new TransclusionProcessor(httpClient)
+
+  def "should throw exception if httpClient is not provided"() {
+    when:
+    new TransclusionProcessor(null)
+
+    then:
+    def exception = thrown(NullPointerException)
+    exception.message == "httpClient must not be null"
+  }
 
   def "should recognize includes of different forms"() {
     expect:

@@ -1,8 +1,10 @@
 package io.github.ableron;
 
+import jakarta.annotation.Nonnull;
 import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -22,7 +24,11 @@ public class TransclusionProcessor {
 
   private static final long NANO_2_MILLIS = 1000000L;
 
-  private HttpClient httpClient = HttpClient.newHttpClient();
+  private final HttpClient httpClient;
+
+  public TransclusionProcessor(@Nonnull HttpClient httpClient) {
+    this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
+  }
 
   /**
    * Finds all includes in the given content.
@@ -51,7 +57,7 @@ public class TransclusionProcessor {
     var includes = findIncludes(content);
 
     for (Include include : includes) {
-      content = content.replace(include.getRawInclude(), include.getResolvedInclude());
+      content = content.replace(include.getRawInclude(), include.resolve());
     }
 
     transclusionResult.setProcessedIncludesCount(includes.size());

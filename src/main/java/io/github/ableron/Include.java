@@ -59,13 +59,13 @@ public class Include {
   /**
    * Constructs a new Include.
    *
-   * @param include Raw include string
+   * @param rawInclude Raw include string
    * @param attributes Attributes of the include tag
    * @param fallbackContent Fallback content to use in case the include could not be resolved
    * @param httpClient HTTP client used to resolve the includes
    */
-  public Include(@Nonnull String include, @Nonnull Map<String, String> attributes, String fallbackContent, @Nonnull HttpClient httpClient) {
-    this.rawInclude = Objects.requireNonNull(include, "include must not be null");
+  public Include(@Nonnull String rawInclude, @Nonnull Map<String, String> attributes, String fallbackContent, @Nonnull HttpClient httpClient) {
+    this.rawInclude = Objects.requireNonNull(rawInclude, "rawInclude must not be null");
     this.src = Objects.requireNonNull(attributes, "attributes must not be null").get(ATTR_SOURCE);
     this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
     this.fallbackContent = fallbackContent;
@@ -101,20 +101,18 @@ public class Include {
   }
 
   /**
-   * @return The resolved include
+   * Resolves this include.
+   *
+   * @return Content of the resolved include
    */
-  public String getResolvedInclude() {
+  public String resolve() {
     if (resolvedInclude == null) {
-      resolvedInclude = resolveInclude();
+      resolvedInclude = loadSrc()
+        .or(this::loadFallbackSrc)
+        .orElse(fallbackContent);
     }
 
     return resolvedInclude;
-  }
-
-  private String resolveInclude() {
-    return loadSrc()
-      .or(this::loadFallbackSrc)
-      .orElse(fallbackContent);
   }
 
   private Optional<String> loadSrc() {

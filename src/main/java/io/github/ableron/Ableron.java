@@ -1,5 +1,8 @@
 package io.github.ableron;
 
+import jakarta.annotation.Nonnull;
+import java.net.http.HttpClient;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,10 +10,15 @@ public class Ableron {
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final AbleronConfig ableronConfig;
-  private final TransclusionProcessor transclusionProcessor = new TransclusionProcessor();
+  private final TransclusionProcessor transclusionProcessor;
 
-  public Ableron(AbleronConfig ableronConfig) {
-    this.ableronConfig = ableronConfig;
+  public Ableron(@Nonnull AbleronConfig ableronConfig) {
+    this(ableronConfig, HttpClient.newHttpClient());
+  }
+
+  public Ableron(@Nonnull AbleronConfig ableronConfig, HttpClient httpClient) {
+    this.ableronConfig = Objects.requireNonNull(ableronConfig, "ableronConfig must not be null");
+    this.transclusionProcessor = new TransclusionProcessor(httpClient != null ? httpClient : HttpClient.newHttpClient());
   }
 
   /**

@@ -10,16 +10,16 @@ class IncludeSpec extends Specification {
   @Shared
   def httpClient = HttpClient.newHttpClient()
 
-  def "provided include must not be null"() {
+  def "should throw exception if rawInclude is not provided"() {
     when:
     new Include(null, Map.of(), "", httpClient)
 
     then:
     def exception = thrown(NullPointerException)
-    exception.message == "include must not be null"
+    exception.message == "rawInclude must not be null"
   }
 
-  def "provided include attributes must not be null"() {
+  def "should throw exception if attributes are not provided"() {
     when:
     new Include("", null, "", httpClient)
 
@@ -28,7 +28,7 @@ class IncludeSpec extends Specification {
     exception.message == "attributes must not be null"
   }
 
-  def "provided HTTP client must not be null"() {
+  def "should throw exception if httpClient is not provided"() {
     when:
     new Include("", Map.of(), "", null)
 
