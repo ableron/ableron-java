@@ -3,17 +3,17 @@ package io.github.ableron;
 public class TransclusionResult {
 
   /**
-   * Content with resolved fragments.
+   * Content with resolved includes.
    */
   private String content;
 
   /**
-   * Number of fragments that have been processed in the content.
+   * Number of includes that have been processed.
    */
-  private int processedFragmentsCount;
+  private int processedIncludesCount;
 
   /**
-   * Time in milliseconds it took to resolve the fragments in the content.
+   * Time in milliseconds it took to resolve the includes in the content.
    */
   private long processingTimeMillis;
 
@@ -25,12 +25,12 @@ public class TransclusionResult {
     this.content = content;
   }
 
-  public int getProcessedFragmentsCount() {
-    return processedFragmentsCount;
+  public int getProcessedIncludesCount() {
+    return processedIncludesCount;
   }
 
-  public void setProcessedFragmentsCount(int processedFragmentsCount) {
-    this.processedFragmentsCount = processedFragmentsCount;
+  public void setProcessedIncludesCount(int processedIncludesCount) {
+    this.processedIncludesCount = processedIncludesCount;
   }
 
   public long getProcessingTimeMillis() {

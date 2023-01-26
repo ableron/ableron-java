@@ -1,99 +1,203 @@
 package io.github.ableron
 
+import spock.lang.Shared
 import spock.lang.Specification
+
+import java.net.http.HttpClient
 
 class TransclusionProcessorSpec extends Specification {
 
-  def transclusionProcessor = new TransclusionProcessor()
+  @Shared
+  def httpClient = HttpClient.newHttpClient()
 
-  def "should have tolerant fragment matching pattern"() {
+  @Shared
+  def transclusionProcessor = new TransclusionProcessor(httpClient)
+
+  def "should throw exception if httpClient is not provided"() {
+    when:
+    new TransclusionProcessor(null)
+
+    then:
+    def exception = thrown(NullPointerException)
+    exception.message == "httpClient must not be null"
+  }
+
+  def "should recognize includes of different forms"() {
     expect:
-    transclusionProcessor.findFragments(inputContent).first().originalTag == expectedFragmentTag
+    transclusionProcessor.findIncludes(content).first().rawInclude == expectedRawInclude
 
     where:
-    inputContent                                                  | expectedFragmentTag
-    "<fragment src=\"https://example.com\">"                      | "<fragment src=\"https://example.com\">"
-    "<div><fragment src=\"https://example.com\"></div>"           | "<fragment src=\"https://example.com\">"
-    "<div><fragment src=\"https://example.com\" foo=\">\"></div>" | "<fragment src=\"https://example.com\" foo=\">\">"
-    "<fragment src=\"test\">"                                     | "<fragment src=\"test\">"
-    "<fragment src=\"test\"/>"                                    | "<fragment src=\"test\"/>"
-    "<fragment src=\"test\" />"                                   | "<fragment src=\"test\" />"
-    "<fragment   src=\"test\"/>"                                  | "<fragment   src=\"test\"/>"
-    "<fragment   src=\"test\"  >"                                 | "<fragment   src=\"test\"  >"
+    content                                                         | expectedRawInclude
+    "<ableron-include src=\"test\"/>"                               | "<ableron-include src=\"test\"/>"
+    "<ableron-include src=\"test\" />"                              | "<ableron-include src=\"test\" />"
+    "<ableron-include\nsrc=\"test\" />"                             | "<ableron-include\nsrc=\"test\" />"
+    "<ableron-include\tsrc=\"test\"\t\t/>"                          | "<ableron-include\tsrc=\"test\"\t\t/>"
+    "<ableron-include src=\"test\"></ableron-include>"              | "<ableron-include src=\"test\"></ableron-include>"
+    "<ableron-include src=\"test\"> </ableron-include>"             | "<ableron-include src=\"test\"> </ableron-include>"
+    "<ableron-include src=\"test\">foo\nbar\nbaz</ableron-include>" | "<ableron-include src=\"test\">foo\nbar\nbaz</ableron-include>"
+    "<ableron-include src=\">>\"/>"                                 | "<ableron-include src=\">>\"/>"
+    "<ableron-include src=\"/>\"/>"                                 | "<ableron-include src=\"/>\"/>"
+    "\n<ableron-include src=\"...\"/>\n"                            | "<ableron-include src=\"...\"/>"
+    "<div><ableron-include src=\"...\"/></div>"                     | "<ableron-include src=\"...\"/>"
+    "<ableron-include src=\"...\"  fallback-src=\"...\"/>"          | "<ableron-include src=\"...\"  fallback-src=\"...\"/>"
   }
 
-  def "should find all fragments in input content"() {
+  def "should not recognize includes with invalid format"() {
     expect:
-    transclusionProcessor.findFragments("""
+    transclusionProcessor.findIncludes(inputContent).isEmpty()
+
+    where:
+    inputContent << [
+      "<ableron-include/>",
+      "<ableron-include >",
+      "<ableron-include src=\"s\">",
+      "<ableron-include src=\"s\" b=\"b\">"
+    ]
+  }
+
+  def "should parse include attributes"() {
+    when:
+    def include = transclusionProcessor.findIncludes(includeTag).first()
+
+    then:
+    include.src == expectedSource
+    include.fallbackSrc == expectedFallbackSource
+
+    where:
+    includeTag                                                    | expectedSource        | expectedFallbackSource
+    "<ableron-include src=\"https://example.com\"/>"              | "https://example.com" | null
+    "<ableron-include  src=\"https://example.com\"/>"             | "https://example.com" | null
+    "<ableron-include -src=\"https://example.com\"/>"             | null                  | null
+    "<ableron-include _src=\"https://example.com\"/>"             | null                  | null
+    "<ableron-include 0src=\"https://example.com\"/>"             | null                  | null
+    "<ableron-include foo=\"\" src=\"https://example.com\"/>"     | "https://example.com" | null
+    "<ableron-include fallback-src=\"fallback\" src=\"source\"/>" | "source"              | "fallback"
+    "<ableron-include src=\"source\" fallback-src=\"fallback\"/>" | "source"              | "fallback"
+    "<ableron-include src=\">\" fallback-src=\"/>\"/>"            | ">"                   | "/>"
+  }
+
+  def "should accept line breaks in include tag attributes"() {
+    when:
+    def include = transclusionProcessor.findIncludes("""
+      <ableron-include
+          src="https://foo.bar/fragment-1"
+          fallback-src="https://foo.bar/fragment-1-fallback"/>
+      """).first()
+
+    then:
+    include.src == "https://foo.bar/fragment-1"
+    include.fallbackSrc == "https://foo.bar/fragment-1-fallback"
+  }
+
+  def "should find all includes in input content"() {
+    expect:
+    transclusionProcessor.findIncludes("""
       <html>
       <head>
-        <fragment src="https://foo.bar/baz?test=123" />
+        <ableron-include src="https://foo.bar/baz?test=123" />
         <title>Foo</title>
-        <fragment foo="bar" src="https://foo.bar/baz?test=456">
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>
       </head>
       <body>
-        <fragment src="https://foo.bar/baz?test=789">
+        <ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>
+        <ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>
       </body>
       </html>
     """) == [
-      new Fragment("<fragment src=\"https://foo.bar/baz?test=123\" />"),
-      new Fragment("<fragment foo=\"bar\" src=\"https://foo.bar/baz?test=456\">"),
-      new Fragment("<fragment src=\"https://foo.bar/baz?test=789\">")
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of(), null, httpClient),
+      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of(), null, httpClient),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of(), null, httpClient),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of(), null, httpClient)
     ] as Set
   }
 
-  def "should treat identical fragments as one fragment"() {
+  def "should treat multiple identical includes as one include"() {
     expect:
-    transclusionProcessor.findFragments("""
+    transclusionProcessor.findIncludes("""
       <html>
       <head>
-        <fragment src="https://foo.bar/baz?test=123" />
-        <fragment src="https://foo.bar/baz?test=123">
+        <ableron-include src="https://foo.bar/baz?test=123"/>
+        <ableron-include src="https://foo.bar/baz?test=123"/>
         <title>Foo</title>
-        <fragment foo="bar" src="https://foo.bar/baz?test=456">
-        <fragment foo="bar" src="https://foo.bar/baz?test=456">
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>
       </head>
       <body>
-        <fragment src="https://foo.bar/baz?test=789">
-        <fragment src="https://foo.bar/baz?test=789">
+        <ableron-include src="...">...</ableron-include>
+        <ableron-include src="...">...</ableron-include>
       </body>
       </html>
     """) == [
-            new Fragment("<fragment src=\"https://foo.bar/baz?test=123\" />"),
-            new Fragment("<fragment foo=\"bar\" src=\"https://foo.bar/baz?test=456\">"),
-            new Fragment("<fragment src=\"https://foo.bar/baz?test=789\">")
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of(), null, httpClient),
+      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of(), null, httpClient),
+      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of(), null, httpClient)
     ] as Set
+  }
+
+  def "should perform search for includes in big input string"() {
+    given:
+    def randomStringWithoutIncludes = new Random().ints(32, 127)
+      .limit(512 * 1024)
+      .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+      .toString()
+    def randomStringWithIncludeAtTheBeginning = "<ableron-include />" + randomStringWithoutIncludes
+    def randomStringWithIncludeAtTheEnd = randomStringWithoutIncludes + "<ableron-include />"
+    def randomStringWithIncludeAtTheMiddle = randomStringWithoutIncludes + "<ableron-include />" + randomStringWithoutIncludes
+
+    expect:
+    transclusionProcessor.findIncludes(randomStringWithoutIncludes).size() == 0
+    transclusionProcessor.findIncludes(randomStringWithIncludeAtTheBeginning).size() == 1
+    transclusionProcessor.findIncludes(randomStringWithIncludeAtTheEnd).size() == 1
+    transclusionProcessor.findIncludes(randomStringWithIncludeAtTheMiddle).size() == 1
   }
 
   def "should populate TransclusionResult"() {
     when:
-    def transclusionResult = transclusionProcessor.applyTransclusion("""
+    def result = transclusionProcessor.resolveIncludes("""
       <html>
       <head>
-        <fragment src="https://foo.bar/baz?test=123" />
+        <ableron-include src="https://foo.bar/baz?test=123"><!-- failed loading 1st include --></ableron-include>
         <title>Foo</title>
-        <fragment foo="bar" src="https://foo.bar/baz?test=456">
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456"><!-- failed loading 2nd include --></ableron-include>
       </head>
       <body>
-        <fragment src="https://foo.bar/baz?test=789">
+        <ableron-include src="https://foo.bar/baz?test=789"><!-- failed loading 3rd include --></ableron-include>
       </body>
       </html>
     """)
 
     then:
-    transclusionResult.processedFragmentsCount == 3
-    transclusionResult.processingTimeMillis >= 1
-    transclusionResult.content == """
+    result.processedIncludesCount == 3
+    result.processingTimeMillis >= 1
+    result.content == """
       <html>
       <head>
-        <!-- Error loading fragment -->
+        <!-- failed loading 1st include -->
         <title>Foo</title>
-        <!-- Error loading fragment -->
+        <!-- failed loading 2nd include -->
       </head>
       <body>
-        <!-- Error loading fragment -->
+        <!-- failed loading 3rd include -->
       </body>
       </html>
+    """
+  }
+
+  def "should replace identical includes"() {
+    when:
+    def result = transclusionProcessor.resolveIncludes("""
+      <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
+      <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
+      <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
+      <ableron-include src="foo-bar"><!-- #2 --></ableron-include>
+    """)
+
+    then:
+    result.content == """
+      <!-- #1 -->
+      <!-- #1 -->
+      <!-- #1 -->
+      <!-- #2 -->
     """
   }
 }

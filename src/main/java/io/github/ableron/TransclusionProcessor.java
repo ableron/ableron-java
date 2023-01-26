@@ -1,50 +1,86 @@
 package io.github.ableron;
 
-import java.util.HashSet;
+import jakarta.annotation.Nonnull;
+import java.net.http.HttpClient;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class TransclusionProcessor {
 
-  private static final Pattern FRAGMENT_PATTERN = Pattern.compile("<fragment\\s(\"[^\"]*\"|[^\">])*/?>");
-  private static final long NANO_2_MILLIS = 1000000L;
+  /**
+   * Regular expression matching ableron includes.
+   */
+  private static final Pattern INCLUDE_PATTERN =
+    Pattern.compile("<(ableron-include)\\s(([^\">]|\"[^\"]*\")*?)(/>|>(.*?)</\\1>)", Pattern.DOTALL);
 
   /**
-   * Finds all fragments in the given content.
-   *
-   * @param content The content to find the fragments in
-   * @return The found fragments
+   * Regular expression used to parse include tag attributes.
    */
-  public Set<Fragment> findFragments(String content) {
-    Set<Fragment> fragments = new HashSet<>();
-    Matcher matcher = FRAGMENT_PATTERN.matcher(content);
+  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)=\"([^\"]+)\"");
 
-    while (matcher.find()) {
-      fragments.add(new Fragment(matcher.group(0)));
-    }
+  private static final long NANO_2_MILLIS = 1000000L;
 
-    return fragments;
+  private final HttpClient httpClient;
+
+  public TransclusionProcessor(@Nonnull HttpClient httpClient) {
+    this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
   }
 
   /**
-   * Replaces all fragments in the given content.
+   * Finds all includes in the given content.
    *
-   * @param content The content to replace the fragments of
-   * @return The content with resolved fragments
+   * @param content Content to find the includes in
+   * @return The includes
    */
-  public TransclusionResult applyTransclusion(String content) {
+  public Set<Include> findIncludes(String content) {
+    int firstIncludePosition = content.indexOf("<ableron-include");
+
+    return (firstIncludePosition == -1) ? Set.of() : INCLUDE_PATTERN.matcher(content.substring(firstIncludePosition))
+      .results()
+      .map(matchResult -> new Include(matchResult.group(0), parseAttributes(matchResult.group(2)), matchResult.group(5), httpClient))
+      .collect(Collectors.toSet());
+  }
+
+  /**
+   * Resolves all includes in the given content.
+   *
+   * @param content The content to resolve the includes of
+   * @return Content with resolved includes
+   */
+  public TransclusionResult resolveIncludes(String content) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult();
-    var fragments = findFragments(content);
+    var includes = findIncludes(content);
 
-    for (Fragment fragment : fragments) {
-      content = content.replace(fragment.getOriginalTag(), fragment.getResolvedContent());
+    for (Include include : includes) {
+      content = content.replace(include.getRawInclude(), include.resolve());
     }
 
-    transclusionResult.setProcessedFragmentsCount(fragments.size());
+    transclusionResult.setProcessedIncludesCount(includes.size());
     transclusionResult.setContent(content);
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
+  }
+
+  /**
+   * Parses the given include tag attributes string.
+   *
+   * @param attributesString Attributes string to parse
+   * @return A key-value map of the include tag attributes
+   */
+  private Map<String, String> parseAttributes(String attributesString) {
+    Map<String, String> attributes = new HashMap<>();
+
+    if (attributesString != null) {
+      ATTRIBUTES_PATTERN.matcher(attributesString)
+        .results()
+        .forEach(matchResult -> attributes.put(matchResult.group(1), matchResult.group(2)));
+    }
+
+    return attributes;
   }
 }

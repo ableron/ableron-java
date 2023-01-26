@@ -31,13 +31,13 @@ dependencies {
 ```java
 var ableronConfig = new AbleronConfig();
 ableronConfig.put(AbleronConfigParams.ENABLED, true);
-var ableron = new Ableron(ableronConfig);
+var ableron = new Ableron(ableronConfig, java.net.http.HttpClient.newHttpClient());
 TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
 String processedResponseBody = transclusionResult.getBody();
 ```
-* Use fragments in response body
+* Use includes in response body
 ```html
-<fragment src="https://your-fragment-url" />
+<ableron-include src="https://your-include-url" />
 ```
 
 ## Library Development
@@ -52,6 +52,9 @@ String processedResponseBody = transclusionResult.getBody();
   $ ./mvnw versions:display-dependency-updates
   ```
 
+### Tooling
+* See Artifacts in [nexus repository manager](https://s01.oss.sonatype.org/index.html#nexus-search;gav~io.github.ableron~ableron~~~)
+
 ### Perform Release
 1. Create new release branch (`git checkout -b release-x.x.x`)
 2. Set release version in `pom.xml` (remove `-SNAPSHOT`)
@@ -64,3 +67,11 @@ String processedResponseBody = transclusionResult.getBody();
    3. Let GitHub generate the release notes automatically
    4. Publish release
 7. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
+
+## Contributing
+Contributions are greatly appreciated. To contribute you can either simply open an issue or fork the repository and create a pull request:
+1. Fork this repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Added some amazing feature'`)
+4. Push to your branch (`git push origin feature/amazing-feature`)
+5. Open a pull request

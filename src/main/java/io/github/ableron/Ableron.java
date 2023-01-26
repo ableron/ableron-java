@@ -1,5 +1,8 @@
 package io.github.ableron;
 
+import jakarta.annotation.Nonnull;
+import java.net.http.HttpClient;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,10 +10,15 @@ public class Ableron {
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final AbleronConfig ableronConfig;
-  private final TransclusionProcessor transclusionProcessor = new TransclusionProcessor();
+  private final TransclusionProcessor transclusionProcessor;
 
-  public Ableron(AbleronConfig ableronConfig) {
-    this.ableronConfig = ableronConfig;
+  public Ableron(@Nonnull AbleronConfig ableronConfig) {
+    this(ableronConfig, HttpClient.newHttpClient());
+  }
+
+  public Ableron(@Nonnull AbleronConfig ableronConfig, @Nonnull HttpClient httpClient) {
+    this.ableronConfig = Objects.requireNonNull(ableronConfig, "ableronConfig must not be null");
+    this.transclusionProcessor = new TransclusionProcessor(httpClient);
   }
 
   /**
@@ -23,11 +31,11 @@ public class Ableron {
   }
 
   /**
-   * @see TransclusionProcessor#applyTransclusion(String)
+   * @see TransclusionProcessor#resolveIncludes(String)
    */
-  public TransclusionResult applyTransclusion(String content) {
-    var transclusionResult = transclusionProcessor.applyTransclusion(content);
-    logger.debug("Ableron UI composition processed {} fragments in {}ms", transclusionResult.getProcessedFragmentsCount(), transclusionResult.getProcessingTimeMillis());
+  public TransclusionResult resolveIncludes(String content) {
+    var transclusionResult = transclusionProcessor.resolveIncludes(content);
+    logger.debug("Ableron UI composition processed {} includes in {}ms", transclusionResult.getProcessedIncludesCount(), transclusionResult.getProcessingTimeMillis());
     return transclusionResult;
   }
 }
