@@ -55,6 +55,19 @@ class TransclusionProcessorSpec extends Specification {
     ]
   }
 
+  def "should accept line breaks in include tag attributes"() {
+    when:
+    def include = transclusionProcessor.findIncludes("""
+      <ableron-include
+          src="https://example.com/fragment-1"
+          fallback-src="https://example.com/fragment-1-fallback"/>
+      """).first()
+
+    then:
+    include.src == "https://example.com/fragment-1"
+    include.fallbackSrc == "https://example.com/fragment-1-fallback"
+  }
+
   def "should find all includes in input content"() {
     expect:
     transclusionProcessor.findIncludes("""
