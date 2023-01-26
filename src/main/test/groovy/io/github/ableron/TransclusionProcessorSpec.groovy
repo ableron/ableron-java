@@ -80,13 +80,13 @@ class TransclusionProcessorSpec extends Specification {
     when:
     def include = transclusionProcessor.findIncludes("""
       <ableron-include
-          src="https://example.com/fragment-1"
-          fallback-src="https://example.com/fragment-1-fallback"/>
+          src="https://foo.bar/fragment-1"
+          fallback-src="https://foo.bar/fragment-1-fallback"/>
       """).first()
 
     then:
-    include.src == "https://example.com/fragment-1"
-    include.fallbackSrc == "https://example.com/fragment-1-fallback"
+    include.src == "https://foo.bar/fragment-1"
+    include.fallbackSrc == "https://foo.bar/fragment-1-fallback"
   }
 
   def "should find all includes in input content"() {
@@ -149,5 +149,55 @@ class TransclusionProcessorSpec extends Specification {
     transclusionProcessor.findIncludes(randomStringWithIncludeAtTheBeginning).size() == 1
     transclusionProcessor.findIncludes(randomStringWithIncludeAtTheEnd).size() == 1
     transclusionProcessor.findIncludes(randomStringWithIncludeAtTheMiddle).size() == 1
+  }
+
+  def "should populate TransclusionResult"() {
+    when:
+    def result = transclusionProcessor.resolveIncludes("""
+      <html>
+      <head>
+        <ableron-include src="https://foo.bar/baz?test=123"><!-- failed loading 1st include --></ableron-include>
+        <title>Foo</title>
+        <ableron-include foo="bar" src="https://foo.bar/baz?test=456"><!-- failed loading 2nd include --></ableron-include>
+      </head>
+      <body>
+        <ableron-include src="https://foo.bar/baz?test=789"><!-- failed loading 3rd include --></ableron-include>
+      </body>
+      </html>
+    """)
+
+    then:
+    result.processedIncludesCount == 3
+    result.processingTimeMillis >= 1
+    result.content == """
+      <html>
+      <head>
+        <!-- failed loading 1st include -->
+        <title>Foo</title>
+        <!-- failed loading 2nd include -->
+      </head>
+      <body>
+        <!-- failed loading 3rd include -->
+      </body>
+      </html>
+    """
+  }
+
+  def "should replace identical includes"() {
+    when:
+    def result = transclusionProcessor.resolveIncludes("""
+      <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
+      <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
+      <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
+      <ableron-include src="foo-bar"><!-- #2 --></ableron-include>
+    """)
+
+    then:
+    result.content == """
+      <!-- #1 -->
+      <!-- #1 -->
+      <!-- #1 -->
+      <!-- #2 -->
+    """
   }
 }
