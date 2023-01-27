@@ -12,11 +12,22 @@ public class Ableron {
   private final AbleronConfig ableronConfig;
   private final TransclusionProcessor transclusionProcessor;
 
+  /**
+   * Initializes Ableron with the given configuration.
+   *
+   * @param ableronConfig The Ableron configuration
+   */
   public Ableron(@Nonnull AbleronConfig ableronConfig) {
-    this(ableronConfig, HttpClient.newHttpClient());
+    this(ableronConfig, null);
   }
 
-  public Ableron(@Nonnull AbleronConfig ableronConfig, @Nonnull HttpClient httpClient) {
+  /**
+   * Initializes Ableron with the given configuration and optional HTTP client.
+   *
+   * @param ableronConfig The Ableron configuration
+   * @param httpClient The HTTP client to use to resolve includes
+   */
+  public Ableron(@Nonnull AbleronConfig ableronConfig, HttpClient httpClient) {
     this.ableronConfig = Objects.requireNonNull(ableronConfig, "ableronConfig must not be null");
     this.transclusionProcessor = new TransclusionProcessor(httpClient);
   }

@@ -1,10 +1,8 @@
 package io.github.ableron;
 
-import jakarta.annotation.Nonnull;
 import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -12,22 +10,35 @@ import java.util.stream.Collectors;
 public class TransclusionProcessor {
 
   /**
-   * Regular expression matching ableron includes.
+   * Regular expression for matching ableron includes.
    */
   private static final Pattern INCLUDE_PATTERN =
     Pattern.compile("<(ableron-include)\\s(([^\">]|\"[^\"]*\")*?)(/>|>(.*?)</\\1>)", Pattern.DOTALL);
 
   /**
-   * Regular expression used to parse include tag attributes.
+   * Regular expression for parsing include tag attributes.
    */
   private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)=\"([^\"]+)\"");
 
   private static final long NANO_2_MILLIS = 1000000L;
 
+  /**
+   * The HTTP client used to resolve includes.
+   */
   private final HttpClient httpClient;
 
-  public TransclusionProcessor(@Nonnull HttpClient httpClient) {
-    this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
+  /**
+   * Cache for HTTP responses.
+   */
+  private final ResponseCache responseCache;
+
+  public TransclusionProcessor(HttpClient httpClient) {
+    this(httpClient, null);
+  }
+
+  public TransclusionProcessor(HttpClient httpClient, ResponseCache responseCache) {
+    this.httpClient = (httpClient != null) ? httpClient : HttpClient.newHttpClient();
+    this.responseCache = (responseCache != null) ? responseCache : new ResponseCache();
   }
 
   /**
@@ -41,6 +52,7 @@ public class TransclusionProcessor {
 
     return (firstIncludePosition == -1) ? Set.of() : INCLUDE_PATTERN.matcher(content.substring(firstIncludePosition))
       .results()
+      .parallel()
       .map(matchResult -> new Include(matchResult.group(0), parseAttributes(matchResult.group(2)), matchResult.group(5), httpClient))
       .collect(Collectors.toSet());
   }
