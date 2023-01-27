@@ -95,10 +95,10 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of(), null, httpClient),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of(), null, httpClient),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of(), null, httpClient),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of(), null, httpClient)
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of(), null),
+      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of(), null),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of(), null),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of(), null)
     ] as Set
   }
 
@@ -119,9 +119,9 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of(), null, httpClient),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of(), null, httpClient),
-      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of(), null, httpClient)
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of(), null),
+      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of(), null),
+      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of(), null)
     ] as Set
   }
 

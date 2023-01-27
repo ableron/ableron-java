@@ -53,7 +53,7 @@ public class TransclusionProcessor {
     return (firstIncludePosition == -1) ? Set.of() : INCLUDE_PATTERN.matcher(content.substring(firstIncludePosition))
       .results()
       .parallel()
-      .map(matchResult -> new Include(matchResult.group(0), parseAttributes(matchResult.group(2)), matchResult.group(5), httpClient))
+      .map(matchResult -> new Include(matchResult.group(0), parseAttributes(matchResult.group(2)), matchResult.group(5)))
       .collect(Collectors.toSet());
   }
 
@@ -69,7 +69,7 @@ public class TransclusionProcessor {
     var includes = findIncludes(content);
 
     for (Include include : includes) {
-      content = content.replace(include.getRawInclude(), include.resolve());
+      content = content.replace(include.getRawInclude(), include.resolve(httpClient, responseCache));
     }
 
     transclusionResult.setProcessedIncludesCount(includes.size());
