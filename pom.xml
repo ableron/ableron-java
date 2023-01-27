@@ -57,6 +57,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <caffeine.version>3.1.2</caffeine.version>
     <groovy.version>4.0.7</groovy.version>
     <jakarta-annotation.version>2.1.1</jakarta-annotation.version>
     <java.version>11</java.version>
@@ -71,6 +72,11 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+      <version>${caffeine.version}</version>
+    </dependency>
     <dependency>
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>

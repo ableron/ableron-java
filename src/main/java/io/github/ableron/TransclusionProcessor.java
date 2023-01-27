@@ -1,9 +1,13 @@
 package io.github.ableron;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -30,15 +34,15 @@ public class TransclusionProcessor {
   /**
    * Cache for HTTP responses.
    */
-  private final ResponseCache responseCache;
+  private final Cache<String, HttpResponse> responseCache;
 
   public TransclusionProcessor(HttpClient httpClient) {
     this(httpClient, null);
   }
 
-  public TransclusionProcessor(HttpClient httpClient, ResponseCache responseCache) {
+  public TransclusionProcessor(HttpClient httpClient, Cache<String, HttpResponse> responseCache) {
     this.httpClient = (httpClient != null) ? httpClient : HttpClient.newHttpClient();
-    this.responseCache = (responseCache != null) ? responseCache : new ResponseCache();
+    this.responseCache = (responseCache != null) ? responseCache : buildDefaultCache();
   }
 
   /**
@@ -76,6 +80,28 @@ public class TransclusionProcessor {
     transclusionResult.setContent(content);
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
+  }
+
+  private Cache<String, HttpResponse> buildDefaultCache() {
+    return Caffeine.newBuilder()
+      //TODO: Make maximumWeight() configurable (max size in MB)
+      .maximumWeight(1024 * 1024 * 10)
+      .weigher((String url, HttpResponse response) -> response.getResponseBody().length())
+      .expireAfter(new Expiry<String, HttpResponse>() {
+        public long expireAfterCreate(String url, HttpResponse response, long currentTime) {
+          long milliseconds = response.getExpirationTime()
+            .minusMillis(System.currentTimeMillis())
+            .toEpochMilli();
+          return TimeUnit.MILLISECONDS.toNanos(milliseconds);
+        }
+        public long expireAfterUpdate(String url, HttpResponse response, long currentTime, long currentDuration) {
+          return currentDuration;
+        }
+        public long expireAfterRead(String url, HttpResponse response, long currentTime, long currentDuration) {
+          return currentDuration;
+        }
+      })
+      .build();
   }
 
   /**

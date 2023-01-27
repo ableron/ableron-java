@@ -1,5 +1,7 @@
 package io.github.ableron
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import spock.lang.Shared
@@ -11,6 +13,9 @@ class IncludeSpec extends Specification {
 
   @Shared
   def httpClient = HttpClient.newHttpClient()
+
+  @Shared
+  Cache<String, HttpResponse> cache = Caffeine.newBuilder().build()
 
   def "should throw exception if rawInclude is not provided"() {
     when:
@@ -88,7 +93,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString()), null).resolve(httpClient, new ResponseCache())
+    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString()), null).resolve(httpClient, cache)
 
     then:
     resolvedInclude == "response"
@@ -109,7 +114,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), null).resolve(httpClient, new ResponseCache())
+    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), null).resolve(httpClient, cache)
 
     then:
     resolvedInclude == "response from fallback-src"
@@ -131,7 +136,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(500))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), "fallback content").resolve(httpClient, new ResponseCache())
+    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), "fallback content").resolve(httpClient, cache)
 
     then:
     resolvedInclude == "fallback content"
