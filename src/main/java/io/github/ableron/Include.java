@@ -52,24 +52,17 @@ public class Include {
   private String resolvedInclude = null;
 
   /**
-   * HTTP client used to resolve this include.
-   */
-  private final HttpClient httpClient;
-
-  /**
    * Constructs a new Include.
    *
    * @param rawInclude Raw include string
    * @param attributes Attributes of the include tag
    * @param fallbackContent Fallback content to use in case the include could not be resolved
-   * @param httpClient HTTP client used to resolve the includes
    */
-  public Include(@Nonnull String rawInclude, @Nonnull Map<String, String> attributes, String fallbackContent, @Nonnull HttpClient httpClient) {
+  public Include(@Nonnull String rawInclude, @Nonnull Map<String, String> attributes, String fallbackContent) {
     this.rawInclude = Objects.requireNonNull(rawInclude, "rawInclude must not be null");
     this.src = Objects.requireNonNull(attributes, "attributes must not be null").get(ATTR_SOURCE);
     this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
     this.fallbackContent = fallbackContent;
-    this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
   }
 
   /**
@@ -103,41 +96,37 @@ public class Include {
   /**
    * Resolves this include.
    *
+   * @param httpClient HTTP client used to resolve this include
+   * @param responseCache Cache for HTTP responses
    * @return Content of the resolved include
    */
-  public String resolve() {
+  public String resolve(@Nonnull HttpClient httpClient, @Nonnull ResponseCache responseCache) {
     if (resolvedInclude == null) {
-      resolvedInclude = loadSrc()
-        .or(this::loadFallbackSrc)
+      resolvedInclude = loadUri(src, httpClient, responseCache)
+        .or(() -> loadUri(fallbackSrc, httpClient, responseCache))
         .orElse(fallbackContent);
     }
 
     return resolvedInclude;
   }
 
-  private Optional<String> loadSrc() {
-    return (src == null) ? Optional.empty() : loadUri(src);
-  }
+  private Optional<String> loadUri(String uri, @Nonnull HttpClient httpClient, @Nonnull ResponseCache responseCache) {
+    if (uri != null) {
+      try {
+        HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(uri))
+          .GET()
+          .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-  private Optional<String> loadFallbackSrc() {
-    return (fallbackSrc == null) ? Optional.empty() : loadUri(fallbackSrc);
-  }
+        if (response.statusCode() == 200) {
+          return Optional.of(response.body());
+        }
 
-  private Optional<String> loadUri(String uri) {
-    try {
-      HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create(uri))
-        .GET()
-        .build();
-      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() == 200) {
-        return Optional.of(response.body());
+        logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
+      } catch (Exception e) {
+        logger.error("Unable to load uri {} of ableron-include", uri, e);
       }
-
-      logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
-    } catch (Exception e) {
-      logger.error("Unable to load uri {} of ableron-include", uri, e);
     }
 
     return Optional.empty();

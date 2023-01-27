@@ -13,15 +13,6 @@ class TransclusionProcessorSpec extends Specification {
   @Shared
   def transclusionProcessor = new TransclusionProcessor(httpClient)
 
-  def "should throw exception if httpClient is not provided"() {
-    when:
-    new TransclusionProcessor(null)
-
-    then:
-    def exception = thrown(NullPointerException)
-    exception.message == "httpClient must not be null"
-  }
-
   def "should recognize includes of different forms"() {
     expect:
     transclusionProcessor.findIncludes(content).first().rawInclude == expectedRawInclude
@@ -104,10 +95,10 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of(), null, httpClient),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of(), null, httpClient),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of(), null, httpClient),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of(), null, httpClient)
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of(), null),
+      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of(), null),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of(), null),
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of(), null)
     ] as Set
   }
 
@@ -128,9 +119,9 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of(), null, httpClient),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of(), null, httpClient),
-      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of(), null, httpClient)
+      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of(), null),
+      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of(), null),
+      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of(), null)
     ] as Set
   }
 
