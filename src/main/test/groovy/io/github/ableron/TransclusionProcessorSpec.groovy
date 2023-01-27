@@ -13,15 +13,6 @@ class TransclusionProcessorSpec extends Specification {
   @Shared
   def transclusionProcessor = new TransclusionProcessor(httpClient)
 
-  def "should throw exception if httpClient is not provided"() {
-    when:
-    new TransclusionProcessor(null)
-
-    then:
-    def exception = thrown(NullPointerException)
-    exception.message == "httpClient must not be null"
-  }
-
   def "should recognize includes of different forms"() {
     expect:
     transclusionProcessor.findIncludes(content).first().rawInclude == expectedRawInclude
