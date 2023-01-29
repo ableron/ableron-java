@@ -108,7 +108,7 @@ public class TransclusionProcessor {
    * Parses the given include tag attributes string.
    *
    * @param attributesString Attributes string to parse
-   * @return A key-value map of the include tag attributes
+   * @return A key-value map of the attributes
    */
   private Map<String, String> parseAttributes(String attributesString) {
     Map<String, String> attributes = new HashMap<>();
@@ -116,7 +116,7 @@ public class TransclusionProcessor {
     if (attributesString != null) {
       ATTRIBUTES_PATTERN.matcher(attributesString)
         .results()
-        .forEach(matchResult -> attributes.put(matchResult.group(1), matchResult.group(2)));
+        .forEach(match -> attributes.put(match.group(1), match.group(2)));
     }
 
     return attributes;

@@ -8,6 +8,8 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import java.net.http.HttpClient
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class IncludeSpec extends Specification {
 
@@ -93,7 +95,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString()), null).resolve(httpClient, cache)
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/fragment").toString()), null).resolve(httpClient, cache)
 
     then:
     resolvedInclude == "response"
@@ -114,7 +116,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), null).resolve(httpClient, cache)
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), null).resolve(httpClient, cache)
 
     then:
     resolvedInclude == "response from fallback-src"
@@ -136,7 +138,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(500))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), "fallback content").resolve(httpClient, cache)
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), "fallback content").resolve(httpClient, cache)
 
     then:
     resolvedInclude == "fallback content"
@@ -145,5 +147,57 @@ class IncludeSpec extends Specification {
 
     cleanup:
     mockWebServer.shutdown()
+  }
+
+  def "should use cached http response if available"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    def includeSrcUrl = mockWebServer.url("/fragment").toString()
+    Cache<String, HttpResponse> cache = Caffeine.newBuilder().build()
+    cache.put(includeSrcUrl, new HttpResponse("from cache", Instant.now().plus(1, ChronoUnit.MINUTES)))
+
+    when:
+    def resolvedInclude = new Include("...", Map.of("src", includeSrcUrl), null).resolve(httpClient, cache)
+
+    then:
+    resolvedInclude == "from cache"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should cache http response only if status code is 200"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    Cache<String, HttpResponse> cache = Caffeine.newBuilder().build()
+
+    when:
+    mockWebServer.enqueue(new MockResponse()
+      .setBody(responseBody)
+      .setResponseCode(responsStatus))
+    def includeSrcUrl = mockWebServer.url(UUID.randomUUID().toString()).toString()
+    def resolvedInclude = new Include("...", Map.of("src", includeSrcUrl), ":(").resolve(httpClient, cache)
+
+    then:
+    resolvedInclude == expectedResolvedIncludeContent
+    if (expectedResponseCached) {
+      cache.getIfPresent(includeSrcUrl) != null
+      cache.getIfPresent(includeSrcUrl).responseBody == responseBody
+    } else {
+      cache.getIfPresent(includeSrcUrl) == null
+    }
+
+    cleanup:
+    mockWebServer.shutdown()
+
+    where:
+    responsStatus | responseBody | expectedResponseCached | expectedResolvedIncludeContent
+    100           | "..."        | false                  | ":("
+    200           | "response"   | true                   | "response"
+    202           | "..."        | false                  | ":("
+    204           | "..."        | false                  | ":("
+    302           | "..."        | false                  | ":("
+    400           | "..."        | false                  | ":("
+    500           | "..."        | false                  | ":("
   }
 }

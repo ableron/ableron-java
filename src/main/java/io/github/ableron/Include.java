@@ -115,8 +115,7 @@ public class Include {
 
   private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache) {
     return Optional.ofNullable(uri)
-      .map(u -> responseCache)
-      .map(cache -> cache.get(uri, key -> loadUri(key, httpClient)
+      .map(uri1 -> responseCache.get(uri1, uri2 -> loadUri(uri2, httpClient)
         .filter(response -> {
           if (response.statusCode() == 200) {
             return true;
