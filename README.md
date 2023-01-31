@@ -56,6 +56,7 @@ dependencies {
 * Attributes
    * `src`: URL to load the include content from
    * `fallback-src`: URL to load the include content from in case the request to `src` failed
+* Precedence for resolving: `src` -> `fallback-src` -> fallback content
 
 ## Library Development
 
