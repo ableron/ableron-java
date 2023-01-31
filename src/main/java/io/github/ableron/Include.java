@@ -104,12 +104,13 @@ public class Include {
    *
    * @param httpClient HTTP client used to resolve this include
    * @param responseCache Cache for HTTP responses
+   * @param ableronConfig Global ableron configuration
    * @return Content of the resolved include
    */
-  public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache) {
+  public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     if (resolvedInclude == null) {
-      resolvedInclude = load(src, httpClient, responseCache)
-        .or(() -> load(fallbackSrc, httpClient, responseCache))
+      resolvedInclude = load(src, httpClient, responseCache, ableronConfig)
+        .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig))
         .or(() -> Optional.ofNullable(fallbackContent))
         .orElse("");
     }
@@ -117,7 +118,7 @@ public class Include {
     return resolvedInclude;
   }
 
-  private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache) {
+  private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     return Optional.ofNullable(uri)
       .map(uri1 -> responseCache.get(uri1, uri2 -> loadUri(uri2, httpClient)
         .filter(response -> {

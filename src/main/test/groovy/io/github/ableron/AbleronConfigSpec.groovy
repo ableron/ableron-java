@@ -13,8 +13,7 @@ class AbleronConfigSpec extends Specification {
     then:
     with(config) {
       enabled
-      connectTimeout == Duration.ofSeconds(2)
-      readTimeout == Duration.ofSeconds(5)
+      requestTimeout == Duration.ofSeconds(5)
     }
   }
 
@@ -22,37 +21,24 @@ class AbleronConfigSpec extends Specification {
     when:
     def config = AbleronConfig.builder()
       .enabled(false)
-      .connectTimeout(Duration.ofSeconds(3))
-      .readTimeout(Duration.ofMillis(500))
+      .requestTimeout(Duration.ofMillis(200))
       .build()
 
     then:
     with(config) {
       !enabled
-      connectTimeout == Duration.ofSeconds(3)
-      readTimeout == Duration.ofMillis(500)
+      requestTimeout == Duration.ofMillis(200)
     }
   }
 
-  def "should throw exception if connectTimeout is tried to be set to null"() {
+  def "should throw exception if requestTimeout is tried to be set to null"() {
     when:
     AbleronConfig.builder()
-      .connectTimeout(null)
+      .requestTimeout(null)
       .build()
 
     then:
     def exception = thrown(NullPointerException)
-    exception.message == "connectTimeout must not be null"
-  }
-
-  def "should throw exception if readTimeout is tried to be set to null"() {
-    when:
-    AbleronConfig.builder()
-      .readTimeout(null)
-      .build()
-
-    then:
-    def exception = thrown(NullPointerException)
-    exception.message == "readTimeout must not be null"
+    exception.message == "requestTimeout must not be null"
   }
 }
