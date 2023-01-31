@@ -120,7 +120,7 @@ public class Include {
 
   private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     return Optional.ofNullable(uri)
-      .map(uri1 -> responseCache.get(uri1, uri2 -> loadUri(uri2, httpClient)
+      .map(uri1 -> responseCache.get(uri1, uri2 -> loadUri(uri2, httpClient, ableronConfig)
         .filter(response -> {
           if (response.statusCode() == 200) {
             return true;
@@ -136,7 +136,7 @@ public class Include {
       .map(io.github.ableron.HttpResponse::getResponseBody);
   }
 
-  private Optional<HttpResponse<String>> loadUri(@Nonnull String uri, @Nonnull HttpClient httpClient) {
+  private Optional<HttpResponse<String>> loadUri(@Nonnull String uri, @Nonnull HttpClient httpClient, @Nonnull AbleronConfig ableronConfig) {
     try {
       return Optional.of(CompletableFuture.supplyAsync(() -> {
         try {
@@ -148,7 +148,7 @@ public class Include {
           logger.error("Unable to load uri {} of ableron-include", uri, e);
           return null;
         }
-      }).get(3, TimeUnit.SECONDS)); //TODO: Use value from config and optimize tests to not take that much time
+      }).get(ableronConfig.getRequestTimeout().toMillis(), TimeUnit.MILLISECONDS));
     } catch (Exception e) {
       logger.error("Unable to load uri {} of ableron-include", uri, e);
       return Optional.empty();

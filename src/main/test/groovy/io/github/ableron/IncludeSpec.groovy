@@ -7,6 +7,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import java.net.http.HttpClient
+import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
@@ -18,7 +19,7 @@ class IncludeSpec extends Specification {
   Cache<String, HttpResponse> cache = new TransclusionProcessor().getResponseCache()
 
   @Shared
-  def config = AbleronConfig.builder().build()
+  def config = AbleronConfig.builder().requestTimeout(Duration.ofSeconds(1)).build()
 
   def "should throw exception if rawInclude is not provided"() {
     when:
@@ -168,7 +169,7 @@ class IncludeSpec extends Specification {
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
       .setBody("response from src")
-      .setHeadersDelay(4, TimeUnit.SECONDS)
+      .setHeadersDelay(2, TimeUnit.SECONDS)
       .setResponseCode(200))
 
     when:
@@ -188,7 +189,7 @@ class IncludeSpec extends Specification {
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
       .setBody("response from src")
-      .setBodyDelay(4, TimeUnit.SECONDS)
+      .setBodyDelay(2, TimeUnit.SECONDS)
       .setResponseCode(200))
 
     when:
