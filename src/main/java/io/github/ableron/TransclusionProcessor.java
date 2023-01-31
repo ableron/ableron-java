@@ -39,23 +39,15 @@ public class TransclusionProcessor {
   private final Cache<String, HttpResponse> responseCache;
 
   public TransclusionProcessor() {
-    this(null, null, null);
+    this(null);
   }
 
   public TransclusionProcessor(AbleronConfig ableronConfig) {
-    this(ableronConfig, null, null);
-  }
-
-  public TransclusionProcessor(AbleronConfig ableronConfig, HttpClient httpClient) {
-    this(ableronConfig, httpClient, null);
-  }
-
-  public TransclusionProcessor(AbleronConfig ableronConfig, HttpClient httpClient, Cache<String, HttpResponse> responseCache) {
     this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
-    this.httpClient = (httpClient != null) ? httpClient : HttpClient.newBuilder()
+    this.httpClient = HttpClient.newBuilder()
       .connectTimeout(this.ableronConfig.getConnectTimeout())
       .build();
-    this.responseCache = (responseCache != null) ? responseCache : buildDefaultCache();
+    this.responseCache = buildDefaultCache();
   }
 
   public Cache<String, HttpResponse> getResponseCache() {

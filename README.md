@@ -24,23 +24,27 @@ dependencies {
 ```
 
 ## Usage
-* Check whether response body is suitable to be handled, e.g.
-  * HTTP response status 2xx, 4xx or 5xx
-  * Response content type is non-binary
-* Apply transclusion
-```java
-var ableronConfig = AbleronConfig.builder()
-  .enabled(true)
-  .readTimeout(Duration.ofMillis(500))
-  .build();
-var ableron = new Ableron(ableronConfig, java.net.http.HttpClient.newHttpClient());
-TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
-String processedResponseBody = transclusionResult.getBody();
-```
-* Use includes in response body
-```html
-<ableron-include src="https://your-include-url" />
-```
+1. Init ableron
+   ```java
+   var ableronConfig = AbleronConfig.builder().build();
+   var ableron = new Ableron(ableronConfig);
+   ```
+1. Use includes in response body
+   ```html
+   <html>
+     <head>
+       <ableron-include src="https://load-head-fragment-from-here" />
+     </head>
+     <body>
+       <ableron-include src="https://load-body-fragment-from-here" />
+     </body>
+   </html>
+   ```
+1. Apply transclusion to response if applicable (HTTP response status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
+   ```java
+   TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
+   String processedResponseBody = transclusionResult.getContent();
+   ```
 
 ## Library Development
 

@@ -16,8 +16,7 @@ class IncludeSpec extends Specification {
   @Shared
   def httpClient = HttpClient.newHttpClient()
 
-  @Shared
-  Cache<String, HttpResponse> cache = Caffeine.newBuilder().build()
+  Cache<String, HttpResponse> cache = new TransclusionProcessor().getResponseCache()
 
   def "should throw exception if rawInclude is not provided"() {
     when:
@@ -197,7 +196,6 @@ class IncludeSpec extends Specification {
       .setBody("response from src")
       .setResponseCode(200))
     def includeSrcUrl = mockWebServer.url("/").toString()
-    var cache = new TransclusionProcessor().getResponseCache()
 
     when:
     cache.put(includeSrcUrl, new HttpResponse("from cache", expirationTime))
@@ -218,7 +216,6 @@ class IncludeSpec extends Specification {
   def "should cache http response only if status code is 200"() {
     given:
     def mockWebServer = new MockWebServer()
-    Cache<String, HttpResponse> cache = Caffeine.newBuilder().build()
 
     when:
     mockWebServer.enqueue(new MockResponse()
