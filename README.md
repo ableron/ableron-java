@@ -51,10 +51,9 @@ dependencies {
 * `requestTimeout`: Timeout for HTTP requests. Defaults to `5 seconds`
 
 ### Include Tag
-All you need to know about the `<ableron-include>`-tag:
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
 * Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
-* Has the following attributes
+* Attributes
    * `src`: URL to load the include content from
    * `fallback-src`: URL to load the include content from in case the request to `src` failed
 
