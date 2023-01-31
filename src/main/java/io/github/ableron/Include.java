@@ -137,14 +137,12 @@ public class Include {
 
   private Optional<HttpResponse<String>> loadUri(@Nonnull String uri, @Nonnull HttpClient httpClient) {
     try {
-      HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create(uri))
-        .GET()
-        .build();
-
       return Optional.of(CompletableFuture.supplyAsync(() -> {
         try {
-          return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+          return httpClient.send(HttpRequest.newBuilder()
+                                   .uri(URI.create(uri))
+                                   .GET()
+                                   .build(), HttpResponse.BodyHandlers.ofString());
         } catch (IOException | InterruptedException e) {
           logger.error("Unable to load uri {} of ableron-include", uri, e);
           return null;
