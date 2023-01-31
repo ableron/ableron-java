@@ -1,13 +1,19 @@
 package io.github.ableron;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.annotation.Nonnull;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,36 +106,52 @@ public class Include {
    * @param responseCache Cache for HTTP responses
    * @return Content of the resolved include
    */
-  public String resolve(@Nonnull HttpClient httpClient, @Nonnull ResponseCache responseCache) {
+  public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache) {
     if (resolvedInclude == null) {
-      resolvedInclude = loadUri(src, httpClient, responseCache)
-        .or(() -> loadUri(fallbackSrc, httpClient, responseCache))
-        .orElse(fallbackContent);
+      resolvedInclude = load(src, httpClient, responseCache)
+        .or(() -> load(fallbackSrc, httpClient, responseCache))
+        .or(() -> Optional.ofNullable(fallbackContent))
+        .orElse("");
     }
 
     return resolvedInclude;
   }
 
-  private Optional<String> loadUri(String uri, @Nonnull HttpClient httpClient, @Nonnull ResponseCache responseCache) {
-    if (uri != null) {
-      try {
-        HttpRequest request = HttpRequest.newBuilder()
-          .uri(URI.create(uri))
-          .GET()
-          .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+  private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache) {
+    return Optional.ofNullable(uri)
+      .map(uri1 -> responseCache.get(uri1, uri2 -> loadUri(uri2, httpClient)
+        .filter(response -> {
+          if (response.statusCode() == 200) {
+            return true;
+          } else {
+            logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
+            return false;
+          }
+        })
+        //TODO: Use correct value for lifetime based on Cache-Control, Max-Age and Expires headers
+        .map(httpResponse -> new io.github.ableron.HttpResponse(httpResponse.body(), Instant.now().plus(5, ChronoUnit.MINUTES)))
+        .orElse(null)
+      ))
+      .map(io.github.ableron.HttpResponse::getResponseBody);
+  }
 
-        if (response.statusCode() == 200) {
-          return Optional.of(response.body());
+  private Optional<HttpResponse<String>> loadUri(@Nonnull String uri, @Nonnull HttpClient httpClient) {
+    try {
+      return Optional.of(CompletableFuture.supplyAsync(() -> {
+        try {
+          return httpClient.send(HttpRequest.newBuilder()
+                                   .uri(URI.create(uri))
+                                   .GET()
+                                   .build(), HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+          logger.error("Unable to load uri {} of ableron-include", uri, e);
+          return null;
         }
-
-        logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
-      } catch (Exception e) {
-        logger.error("Unable to load uri {} of ableron-include", uri, e);
-      }
+      }).get(3, TimeUnit.SECONDS)); //TODO: Use value from config and optimize tests to not take that much time
+    } catch (Exception e) {
+      logger.error("Unable to load uri {} of ableron-include", uri, e);
+      return Optional.empty();
     }
-
-    return Optional.empty();
   }
 
   @Override

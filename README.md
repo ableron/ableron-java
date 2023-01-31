@@ -24,33 +24,39 @@ dependencies {
 ```
 
 ## Usage
-* Check whether response body is suitable to be handled, e.g.
-  * HTTP response status 2xx, 4xx or 5xx
-  * Response content type is non-binary
-* Apply transclusion
-```java
-var ableronConfig = new AbleronConfig();
-ableronConfig.put(AbleronConfigParams.ENABLED, true);
-var ableron = new Ableron(ableronConfig, java.net.http.HttpClient.newHttpClient());
-TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
-String processedResponseBody = transclusionResult.getBody();
-```
-* Use includes in response body
-```html
-<ableron-include src="https://your-include-url" />
-```
+1. Init ableron
+   ```java
+   var ableronConfig = AbleronConfig.builder().build();
+   var ableron = new Ableron(ableronConfig);
+   ```
+1. Use includes in response body
+   ```html
+   <html>
+     <head>
+       <ableron-include src="https://load-head-fragment-from-here" />
+     </head>
+     <body>
+       <ableron-include src="https://load-body-fragment-from-here" />
+     </body>
+   </html>
+   ```
+1. Apply transclusion to response if applicable (HTTP response status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
+   ```java
+   TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
+   String processedResponseBody = transclusionResult.getContent();
+   ```
 
 ## Library Development
 
 ### Quick Start
 * Install to local `.m2` repository
-  ```console
-  $ ./mvnw clean install
-  ```
+   ```console
+   $ ./mvnw clean install
+   ```
 * Check for outdated dependencies via [Versions Maven Plugin](https://www.mojohaus.org/versions/versions-maven-plugin/index.html)
-  ```console
-  $ ./mvnw versions:display-dependency-updates
-  ```
+   ```console
+   $ ./mvnw versions:display-dependency-updates
+   ```
 
 ### Tooling
 * See Artifacts in [nexus repository manager](https://s01.oss.sonatype.org/index.html#nexus-search;gav~io.github.ableron~ableron~~~)

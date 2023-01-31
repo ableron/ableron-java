@@ -1,16 +1,22 @@
 package io.github.ableron
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import spock.lang.Shared
 import spock.lang.Specification
 
 import java.net.http.HttpClient
+import java.time.Instant
+import java.util.concurrent.TimeUnit
 
 class IncludeSpec extends Specification {
 
   @Shared
   def httpClient = HttpClient.newHttpClient()
+
+  Cache<String, HttpResponse> cache = new TransclusionProcessor().getResponseCache()
 
   def "should throw exception if rawInclude is not provided"() {
     when:
@@ -88,7 +94,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString()), null).resolve(httpClient, new ResponseCache())
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/fragment").toString()), null).resolve(httpClient, cache)
 
     then:
     resolvedInclude == "response"
@@ -109,7 +115,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), null).resolve(httpClient, new ResponseCache())
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), null).resolve(httpClient, cache)
 
     then:
     resolvedInclude == "response from fallback-src"
@@ -131,7 +137,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(500))
 
     when:
-    def resolvedInclude = new Include("<ableron-include />", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), "fallback content").resolve(httpClient, new ResponseCache())
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/fragment").toString(), "fallback-src", mockWebServer.url("/fallback-fragment").toString()), "fallback content").resolve(httpClient, cache)
 
     then:
     resolvedInclude == "fallback content"
@@ -140,5 +146,104 @@ class IncludeSpec extends Specification {
 
     cleanup:
     mockWebServer.shutdown()
+  }
+
+  def "should resolve include to empty string if src, fallback src and fallback content are not present"() {
+    expect:
+    new Include("...", Map.of(), null).resolve(httpClient, cache) == ""
+  }
+
+  def "should apply request timeout for delayed header"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setHeadersDelay(4, TimeUnit.SECONDS)
+      .setResponseCode(200))
+
+    when:
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/").toString()), null).resolve(httpClient, cache)
+
+    then:
+    resolvedInclude == ""
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should apply request timeout for delayed body"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setBodyDelay(4, TimeUnit.SECONDS)
+      .setResponseCode(200))
+
+    when:
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/").toString()), null).resolve(httpClient, cache)
+
+    then:
+    resolvedInclude == ""
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should use cached http response if not expired"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setResponseCode(200))
+    def includeSrcUrl = mockWebServer.url("/").toString()
+
+    when:
+    cache.put(includeSrcUrl, new HttpResponse("from cache", expirationTime))
+    def resolvedInclude = new Include("...", Map.of("src", includeSrcUrl), null).resolve(httpClient, cache)
+
+    then:
+    resolvedInclude == expectedResolvedInclude
+
+    cleanup:
+    mockWebServer.shutdown()
+
+    where:
+    expirationTime                | expectedResolvedInclude
+    Instant.now().plusSeconds(5)  | "from cache"
+    Instant.now().minusSeconds(5) | "response from src"
+  }
+
+  def "should cache http response only if status code is 200"() {
+    given:
+    def mockWebServer = new MockWebServer()
+
+    when:
+    mockWebServer.enqueue(new MockResponse()
+      .setBody(responseBody)
+      .setResponseCode(responsStatus))
+    def includeSrcUrl = mockWebServer.url(UUID.randomUUID().toString()).toString()
+    def resolvedInclude = new Include("...", Map.of("src", includeSrcUrl), ":(").resolve(httpClient, cache)
+
+    then:
+    resolvedInclude == expectedResolvedIncludeContent
+    if (expectedResponseCached) {
+      cache.getIfPresent(includeSrcUrl) != null
+      cache.getIfPresent(includeSrcUrl).responseBody == responseBody
+    } else {
+      cache.getIfPresent(includeSrcUrl) == null
+    }
+
+    cleanup:
+    mockWebServer.shutdown()
+
+    where:
+    responsStatus | responseBody | expectedResponseCached | expectedResolvedIncludeContent
+    100           | "..."        | false                  | ":("
+    200           | "response"   | true                   | "response"
+    202           | "..."        | false                  | ":("
+    204           | "..."        | false                  | ":("
+    302           | "..."        | false                  | ":("
+    400           | "..."        | false                  | ":("
+    500           | "..."        | false                  | ":("
   }
 }

@@ -1,9 +1,13 @@
 package io.github.ableron;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -22,6 +26,8 @@ public class TransclusionProcessor {
 
   private static final long NANO_2_MILLIS = 1000000L;
 
+  private final AbleronConfig ableronConfig;
+
   /**
    * The HTTP client used to resolve includes.
    */
@@ -30,15 +36,22 @@ public class TransclusionProcessor {
   /**
    * Cache for HTTP responses.
    */
-  private final ResponseCache responseCache;
+  private final Cache<String, HttpResponse> responseCache;
 
-  public TransclusionProcessor(HttpClient httpClient) {
-    this(httpClient, null);
+  public TransclusionProcessor() {
+    this(null);
   }
 
-  public TransclusionProcessor(HttpClient httpClient, ResponseCache responseCache) {
-    this.httpClient = (httpClient != null) ? httpClient : HttpClient.newHttpClient();
-    this.responseCache = (responseCache != null) ? responseCache : new ResponseCache();
+  public TransclusionProcessor(AbleronConfig ableronConfig) {
+    this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
+    this.httpClient = HttpClient.newBuilder()
+      .connectTimeout(this.ableronConfig.getConnectTimeout())
+      .build();
+    this.responseCache = buildDefaultCache();
+  }
+
+  public Cache<String, HttpResponse> getResponseCache() {
+    return responseCache;
   }
 
   /**
@@ -53,7 +66,7 @@ public class TransclusionProcessor {
     return (firstIncludePosition == -1) ? Set.of() : INCLUDE_PATTERN.matcher(content.substring(firstIncludePosition))
       .results()
       .parallel()
-      .map(matchResult -> new Include(matchResult.group(0), parseAttributes(matchResult.group(2)), matchResult.group(5)))
+      .map(match -> new Include(match.group(0), parseAttributes(match.group(2)), match.group(5)))
       .collect(Collectors.toSet());
   }
 
@@ -68,6 +81,9 @@ public class TransclusionProcessor {
     var transclusionResult = new TransclusionResult();
     var includes = findIncludes(content);
 
+    //TODO: Improve performance: Resolve all includes in parallel immediately after finding them
+    //TODO: Improve performance: Replace include tags in the order of finished resolving. First resolved include should be replaced first
+
     for (Include include : includes) {
       content = content.replace(include.getRawInclude(), include.resolve(httpClient, responseCache));
     }
@@ -78,11 +94,33 @@ public class TransclusionProcessor {
     return transclusionResult;
   }
 
+  private Cache<String, HttpResponse> buildDefaultCache() {
+    return Caffeine.newBuilder()
+      //TODO: Make maximumWeight() configurable (max size in MB)
+      .maximumWeight(1024 * 1024 * 10)
+      .weigher((String url, HttpResponse response) -> response.getResponseBody().length())
+      .expireAfter(new Expiry<String, HttpResponse>() {
+        public long expireAfterCreate(String url, HttpResponse response, long currentTime) {
+          long milliseconds = response.getExpirationTime()
+            .minusMillis(System.currentTimeMillis())
+            .toEpochMilli();
+          return TimeUnit.MILLISECONDS.toNanos(milliseconds);
+        }
+        public long expireAfterUpdate(String url, HttpResponse response, long currentTime, long currentDuration) {
+          return expireAfterCreate(url, response, currentTime);
+        }
+        public long expireAfterRead(String url, HttpResponse response, long currentTime, long currentDuration) {
+          return currentDuration;
+        }
+      })
+      .build();
+  }
+
   /**
    * Parses the given include tag attributes string.
    *
    * @param attributesString Attributes string to parse
-   * @return A key-value map of the include tag attributes
+   * @return A key-value map of the attributes
    */
   private Map<String, String> parseAttributes(String attributesString) {
     Map<String, String> attributes = new HashMap<>();
@@ -90,7 +128,7 @@ public class TransclusionProcessor {
     if (attributesString != null) {
       ATTRIBUTES_PATTERN.matcher(attributesString)
         .results()
-        .forEach(matchResult -> attributes.put(matchResult.group(1), matchResult.group(2)));
+        .forEach(match -> attributes.put(match.group(1), match.group(2)));
     }
 
     return attributes;
