@@ -50,13 +50,13 @@ dependencies {
 
 ### Quick Start
 * Install to local `.m2` repository
-  ```console
-  $ ./mvnw clean install
-  ```
+   ```console
+   $ ./mvnw clean install
+   ```
 * Check for outdated dependencies via [Versions Maven Plugin](https://www.mojohaus.org/versions/versions-maven-plugin/index.html)
-  ```console
-  $ ./mvnw versions:display-dependency-updates
-  ```
+   ```console
+   $ ./mvnw versions:display-dependency-updates
+   ```
 
 ### Tooling
 * See Artifacts in [nexus repository manager](https://s01.oss.sonatype.org/index.html#nexus-search;gav~io.github.ableron~ableron~~~)
