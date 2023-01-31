@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -107,7 +108,8 @@ public class Include {
     if (resolvedInclude == null) {
       resolvedInclude = load(src, httpClient, responseCache)
         .or(() -> load(fallbackSrc, httpClient, responseCache))
-        .orElse(fallbackContent);
+        .or(() -> Optional.ofNullable(fallbackContent))
+        .orElse("");
     }
 
     return resolvedInclude;
@@ -135,6 +137,8 @@ public class Include {
     try {
       HttpRequest request = HttpRequest.newBuilder()
         .uri(URI.create(uri))
+        //TODO: This is Time-To-First-Byte timeout only. If headers have been received, this timeout does not apply anymore
+        .timeout(Duration.ofSeconds(3))
         .GET()
         .build();
       return Optional.of(httpClient.send(request, HttpResponse.BodyHandlers.ofString()));

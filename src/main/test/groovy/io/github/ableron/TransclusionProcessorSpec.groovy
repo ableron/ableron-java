@@ -3,15 +3,10 @@ package io.github.ableron
 import spock.lang.Shared
 import spock.lang.Specification
 
-import java.net.http.HttpClient
-
 class TransclusionProcessorSpec extends Specification {
 
   @Shared
-  def httpClient = HttpClient.newHttpClient()
-
-  @Shared
-  def transclusionProcessor = new TransclusionProcessor(httpClient)
+  def transclusionProcessor = new TransclusionProcessor()
 
   def "should recognize includes of different forms"() {
     expect:

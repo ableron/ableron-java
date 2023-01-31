@@ -29,8 +29,10 @@ dependencies {
   * Response content type is non-binary
 * Apply transclusion
 ```java
-var ableronConfig = new AbleronConfig();
-ableronConfig.put(AbleronConfigParams.ENABLED, true);
+var ableronConfig = AbleronConfig.builder()
+  .enabled(true)
+  .readTimeout(Duration.ofMillis(500))
+  .build();
 var ableron = new Ableron(ableronConfig, java.net.http.HttpClient.newHttpClient());
 TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
 String processedResponseBody = transclusionResult.getBody();

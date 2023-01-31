@@ -8,8 +8,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import java.net.http.HttpClient
-import java.time.Instant
-import java.time.temporal.ChronoUnit
+import java.util.concurrent.TimeUnit
 
 class IncludeSpec extends Specification {
 
@@ -149,18 +148,24 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  def "should use cached http response if available"() {
+  def "should resolve include to empty string if src, fallback src and fallback content are not present"() {
+    expect:
+    new Include("...", Map.of(), null).resolve(httpClient, cache) == ""
+  }
+
+  def "should apply request timeout for delayed header"() {
     given:
     def mockWebServer = new MockWebServer()
-    def includeSrcUrl = mockWebServer.url("/fragment").toString()
-    Cache<String, HttpResponse> cache = Caffeine.newBuilder().build()
-    cache.put(includeSrcUrl, new HttpResponse("from cache", Instant.now().plus(1, ChronoUnit.MINUTES)))
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setHeadersDelay(4, TimeUnit.SECONDS)
+      .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("...", Map.of("src", includeSrcUrl), null).resolve(httpClient, cache)
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/").toString()), null).resolve(httpClient, cache)
 
     then:
-    resolvedInclude == "from cache"
+    resolvedInclude == ""
 
     cleanup:
     mockWebServer.shutdown()

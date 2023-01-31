@@ -26,6 +26,8 @@ public class TransclusionProcessor {
 
   private static final long NANO_2_MILLIS = 1000000L;
 
+  private final AbleronConfig ableronConfig;
+
   /**
    * The HTTP client used to resolve includes.
    */
@@ -36,12 +38,23 @@ public class TransclusionProcessor {
    */
   private final Cache<String, HttpResponse> responseCache;
 
-  public TransclusionProcessor(HttpClient httpClient) {
-    this(httpClient, null);
+  public TransclusionProcessor() {
+    this(null, null, null);
   }
 
-  public TransclusionProcessor(HttpClient httpClient, Cache<String, HttpResponse> responseCache) {
-    this.httpClient = (httpClient != null) ? httpClient : HttpClient.newHttpClient();
+  public TransclusionProcessor(AbleronConfig ableronConfig) {
+    this(ableronConfig, null, null);
+  }
+
+  public TransclusionProcessor(AbleronConfig ableronConfig, HttpClient httpClient) {
+    this(ableronConfig, httpClient, null);
+  }
+
+  public TransclusionProcessor(AbleronConfig ableronConfig, HttpClient httpClient, Cache<String, HttpResponse> responseCache) {
+    this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
+    this.httpClient = (httpClient != null) ? httpClient : HttpClient.newBuilder()
+      .connectTimeout(this.ableronConfig.getConnectTimeout())
+      .build();
     this.responseCache = (responseCache != null) ? responseCache : buildDefaultCache();
   }
 
@@ -72,6 +85,9 @@ public class TransclusionProcessor {
     var transclusionResult = new TransclusionResult();
     var includes = findIncludes(content);
 
+    //TODO: Improve performance: Resolve all includes in parallel immediately after finding them
+    //TODO: Improve performance: Replace include tags in the order of finished resolving. First resolved include should be replaced first
+
     for (Include include : includes) {
       content = content.replace(include.getRawInclude(), include.resolve(httpClient, responseCache));
     }
@@ -95,7 +111,7 @@ public class TransclusionProcessor {
           return TimeUnit.MILLISECONDS.toNanos(milliseconds);
         }
         public long expireAfterUpdate(String url, HttpResponse response, long currentTime, long currentDuration) {
-          return currentDuration;
+          return expireAfterCreate(url, response, currentTime);
         }
         public long expireAfterRead(String url, HttpResponse response, long currentTime, long currentDuration) {
           return currentDuration;
