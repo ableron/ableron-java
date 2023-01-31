@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 public class Ableron {
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
+  private final AbleronConfig ableronConfig;
   private final TransclusionProcessor transclusionProcessor;
 
   /**
@@ -16,7 +17,7 @@ public class Ableron {
    * @param ableronConfig The Ableron configuration
    */
   public Ableron(@Nonnull AbleronConfig ableronConfig) {
-    Objects.requireNonNull(ableronConfig, "ableronConfig must not be null");
+    this.ableronConfig = Objects.requireNonNull(ableronConfig, "ableronConfig must not be null");
     this.transclusionProcessor = new TransclusionProcessor(ableronConfig);
   }
 
@@ -24,8 +25,20 @@ public class Ableron {
    * @see TransclusionProcessor#resolveIncludes(String)
    */
   public TransclusionResult resolveIncludes(String content) {
-    var transclusionResult = transclusionProcessor.resolveIncludes(content);
-    logger.debug("Ableron UI composition processed {} includes in {}ms", transclusionResult.getProcessedIncludesCount(), transclusionResult.getProcessingTimeMillis());
-    return transclusionResult;
+    if (ableronConfig.isEnabled()) {
+      var transclusionResult = transclusionProcessor.resolveIncludes(content);
+      logger.debug("Ableron UI composition processed {} includes in {}ms", transclusionResult.getProcessedIncludesCount(), transclusionResult.getProcessingTimeMillis());
+      return transclusionResult;
+    }
+
+    return getNoOpResult(content);
+  }
+
+  private TransclusionResult getNoOpResult(String content) {
+    var result = new TransclusionResult();
+    result.setContent(content);
+    result.setProcessedIncludesCount(0);
+    result.setProcessingTimeMillis(0);
+    return result;
   }
 }
