@@ -44,9 +44,7 @@ public class TransclusionProcessor {
 
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
-    this.httpClient = HttpClient.newBuilder()
-      .connectTimeout(this.ableronConfig.getConnectTimeout())
-      .build();
+    this.httpClient = HttpClient.newBuilder().build();
     this.responseCache = buildDefaultCache();
   }
 
@@ -85,7 +83,7 @@ public class TransclusionProcessor {
     //TODO: Improve performance: Replace include tags in the order of finished resolving. First resolved include should be replaced first
 
     for (Include include : includes) {
-      content = content.replace(include.getRawInclude(), include.resolve(httpClient, responseCache));
+      content = content.replace(include.getRawInclude(), include.resolve(httpClient, responseCache, ableronConfig));
     }
 
     transclusionResult.setProcessedIncludesCount(includes.size());

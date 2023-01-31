@@ -46,6 +46,18 @@ dependencies {
    String processedResponseBody = transclusionResult.getContent();
    ```
 
+### Configuration Options
+* `enabled`: Whether UI composition is enabled. Defaults to `true`
+* `requestTimeout`: Timeout for HTTP requests. Defaults to `5 seconds`
+
+### Include Tag
+* Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
+* Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
+* Attributes
+   * `src`: URL to load the include content from
+   * `fallback-src`: URL to load the include content from in case the request to `src` failed
+* Precedence for resolving: `src` -> `fallback-src` -> fallback content
+
 ## Library Development
 
 ### Quick Start
