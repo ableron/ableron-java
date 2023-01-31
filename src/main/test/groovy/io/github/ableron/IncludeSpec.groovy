@@ -8,6 +8,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import java.net.http.HttpClient
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 class IncludeSpec extends Specification {
@@ -187,6 +188,31 @@ class IncludeSpec extends Specification {
 
     cleanup:
     mockWebServer.shutdown()
+  }
+
+  def "should use cached http response if not expired"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setResponseCode(200))
+    def includeSrcUrl = mockWebServer.url("/").toString()
+    var cache = new TransclusionProcessor().getResponseCache()
+
+    when:
+    cache.put(includeSrcUrl, new HttpResponse("from cache", expirationTime))
+    def resolvedInclude = new Include("...", Map.of("src", includeSrcUrl), null).resolve(httpClient, cache)
+
+    then:
+    resolvedInclude == expectedResolvedInclude
+
+    cleanup:
+    mockWebServer.shutdown()
+
+    where:
+    expirationTime                | expectedResolvedInclude
+    Instant.now().plusSeconds(5) | "from cache"
+    Instant.now().minusSeconds(5) | "response from src"
   }
 
   def "should cache http response only if status code is 200"() {

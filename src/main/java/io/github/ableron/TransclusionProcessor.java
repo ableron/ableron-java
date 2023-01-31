@@ -58,6 +58,10 @@ public class TransclusionProcessor {
     this.responseCache = (responseCache != null) ? responseCache : buildDefaultCache();
   }
 
+  public Cache<String, HttpResponse> getResponseCache() {
+    return responseCache;
+  }
+
   /**
    * Finds all includes in the given content.
    *
