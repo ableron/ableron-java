@@ -171,6 +171,24 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
+  def "should apply request timeout for delayed body"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setBodyDelay(4, TimeUnit.SECONDS)
+      .setResponseCode(200))
+
+    when:
+    def resolvedInclude = new Include("...", Map.of("src", mockWebServer.url("/").toString()), null).resolve(httpClient, cache)
+
+    then:
+    resolvedInclude == ""
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
   def "should cache http response only if status code is 200"() {
     given:
     def mockWebServer = new MockWebServer()

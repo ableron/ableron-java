@@ -2,16 +2,18 @@ package io.github.ableron;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.annotation.Nonnull;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,11 +139,17 @@ public class Include {
     try {
       HttpRequest request = HttpRequest.newBuilder()
         .uri(URI.create(uri))
-        //TODO: This is Time-To-First-Byte timeout only. If headers have been received, this timeout does not apply anymore
-        .timeout(Duration.ofSeconds(3))
         .GET()
         .build();
-      return Optional.of(httpClient.send(request, HttpResponse.BodyHandlers.ofString()));
+
+      return Optional.of(CompletableFuture.supplyAsync(() -> {
+        try {
+          return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+          logger.error("Unable to load uri {} of ableron-include", uri, e);
+          return null;
+        }
+      }).get(3, TimeUnit.SECONDS)); //TODO: Use value from config and optimize tests to not take that much time
     } catch (Exception e) {
       logger.error("Unable to load uri {} of ableron-include", uri, e);
       return Optional.empty();
