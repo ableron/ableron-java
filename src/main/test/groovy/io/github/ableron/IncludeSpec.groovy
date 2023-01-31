@@ -209,7 +209,7 @@ class IncludeSpec extends Specification {
 
     where:
     expirationTime                | expectedResolvedInclude
-    Instant.now().plusSeconds(5) | "from cache"
+    Instant.now().plusSeconds(5)  | "from cache"
     Instant.now().minusSeconds(5) | "response from src"
   }
 
