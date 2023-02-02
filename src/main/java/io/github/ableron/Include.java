@@ -7,13 +7,19 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.ZonedDateTime;
+import java.time.chrono.ChronoZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +113,7 @@ public class Include {
    * @param ableronConfig Global ableron configuration
    * @return Content of the resolved include
    */
-  public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
+  public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     if (resolvedInclude == null) {
       resolvedInclude = load(src, httpClient, responseCache, ableronConfig)
         .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig))
@@ -118,7 +124,7 @@ public class Include {
     return resolvedInclude;
   }
 
-  private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
+  private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     return Optional.ofNullable(uri)
       .map(uri1 -> responseCache.get(uri1, uri2 -> loadUri(uri2, httpClient, ableronConfig)
         .filter(response -> {
@@ -129,11 +135,10 @@ public class Include {
             return false;
           }
         })
-        //TODO: Use correct value for lifetime based on Cache-Control, Max-Age and Expires headers
-        .map(httpResponse -> new io.github.ableron.HttpResponse(httpResponse.body(), Instant.now().plus(5, ChronoUnit.MINUTES)))
+        .map(httpResponse -> new CachedResponse(httpResponse.body(), calculateResponseCacheExpirationTime(httpResponse, ableronConfig.getFallbackResponseCacheTime())))
         .orElse(null)
       ))
-      .map(io.github.ableron.HttpResponse::getResponseBody);
+      .map(CachedResponse::getResponseBody);
   }
 
   private Optional<HttpResponse<String>> loadUri(@Nonnull String uri, @Nonnull HttpClient httpClient, @Nonnull AbleronConfig ableronConfig) {
@@ -153,6 +158,82 @@ public class Include {
       logger.error("Unable to load uri {} of ableron-include", uri, e);
       return Optional.empty();
     }
+  }
+
+  private Instant calculateResponseCacheExpirationTime(HttpResponse<String> response, Duration fallbackResponseCacheTime) {
+
+    var cacheControlDirectives = response.headers()
+      .firstValue("Cache-Control")
+      .stream()
+      .flatMap(value -> Arrays.stream(value.split(",")))
+      .map(String::trim)
+      .collect(Collectors.toList());
+
+    // If the cache is shared and the s-maxage response directive (Section 5.2.2.10) is present, use its value, or
+    //    Cache-Control: s-maxage=604800
+    var sharedCacheMaxAgeValueStartIndex = "s-maxage=".length();
+    var sharedCacheMaxAge = cacheControlDirectives.stream()
+      .filter(directive -> directive.matches("^s-maxage=[1-9][0-9]*$"))
+      .findFirst()
+      .map(directive -> Duration.ofSeconds(Long.parseLong(directive.substring(sharedCacheMaxAgeValueStartIndex))));
+
+    if (sharedCacheMaxAge.isPresent()) {
+      return sharedCacheMaxAge
+        .map(duration -> Instant.now().plusSeconds(duration.toSeconds()))
+        .get();
+    }
+
+
+    // If the max-age response directive (Section 5.2.2.1) is present, use its value, or
+    var maxAgeValueStartIndex = "max-age=".length();
+    var maxAge = cacheControlDirectives.stream()
+      .filter(directive -> directive.matches("^max-age=[1-9][0-9]*$"))
+      .findFirst()
+      .map(directive -> Duration.ofSeconds(Long.parseLong(directive.substring(maxAgeValueStartIndex))));
+
+    if (maxAge.isPresent()) {
+      var age = response.headers()
+        .firstValue("Age")
+        .map(Long::parseLong)
+        .map(Math::abs)
+        .orElse(0L);
+
+      return maxAge
+        .map(duration -> Instant.now().plusSeconds(duration.toSeconds()).minusSeconds(age))
+        .get();
+    }
+
+
+
+    // If the Expires response header field (Section 5.3) is present, use its value
+    // --- minus the value of the Date response header field (using the time the message was received if it is not present, as per Section 6.6.1 of [HTTP]), or
+    var formatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O").withLocale(Locale.ENGLISH);
+    var expires = response.headers()
+      .firstValue("Expires")
+      .map(value -> value.equals("0") ? Instant.EPOCH : ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant());
+
+    if (expires.isPresent()) {
+      var date = response.headers()
+        .firstValue("Date")
+        .map(value -> ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME))
+        .map(ChronoZonedDateTime::toInstant);
+
+      if (date.isPresent()) {
+        return Instant.now().plusMillis(expires.get().toEpochMilli() - date.get().toEpochMilli());
+      }
+
+      return expires.get();
+    }
+
+
+    // if Cache-Control header is set and does not contain max-age, do not cache
+    if (response.headers().firstValue("Cache-Control").isPresent()) {
+      return Instant.EPOCH;
+    }
+
+    return Instant.now().plusSeconds(fallbackResponseCacheTime.toSeconds());
+
+    // When a cache receives a request that can be satisfied by a stored response and that stored response contains a Vary header field (Section 12.5.5 of [HTTP]), the cache MUST NOT use that stored response without revalidation unless all the presented request header fields nominated by that Vary field value match those fields in the original request (i.e., the request that caused the cached response to be stored).
   }
 
   @Override

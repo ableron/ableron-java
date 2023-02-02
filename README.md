@@ -49,6 +49,7 @@ dependencies {
 ### Configuration Options
 * `enabled`: Whether UI composition is enabled. Defaults to `true`
 * `requestTimeout`: Timeout for HTTP requests. Defaults to `5 seconds`
+* `fallbackResponseCacheTime`: Duration to cache HTTP responses in case neither Cache-Control nor Expire header is present. Defaults to `5 minutes`
 
 ### Include Tag
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`

@@ -36,7 +36,7 @@ public class TransclusionProcessor {
   /**
    * Cache for HTTP responses.
    */
-  private final Cache<String, HttpResponse> responseCache;
+  private final Cache<String, CachedResponse> responseCache;
 
   public TransclusionProcessor() {
     this(null);
@@ -48,7 +48,7 @@ public class TransclusionProcessor {
     this.responseCache = buildDefaultCache();
   }
 
-  public Cache<String, HttpResponse> getResponseCache() {
+  public Cache<String, CachedResponse> getResponseCache() {
     return responseCache;
   }
 
@@ -92,22 +92,22 @@ public class TransclusionProcessor {
     return transclusionResult;
   }
 
-  private Cache<String, HttpResponse> buildDefaultCache() {
+  private Cache<String, CachedResponse> buildDefaultCache() {
     return Caffeine.newBuilder()
       //TODO: Make maximumWeight() configurable (max size in MB)
       .maximumWeight(1024 * 1024 * 10)
-      .weigher((String url, HttpResponse response) -> response.getResponseBody().length())
-      .expireAfter(new Expiry<String, HttpResponse>() {
-        public long expireAfterCreate(String url, HttpResponse response, long currentTime) {
+      .weigher((String url, CachedResponse response) -> response.getResponseBody().length())
+      .expireAfter(new Expiry<String, CachedResponse>() {
+        public long expireAfterCreate(String url, CachedResponse response, long currentTime) {
           long milliseconds = response.getExpirationTime()
             .minusMillis(System.currentTimeMillis())
             .toEpochMilli();
           return TimeUnit.MILLISECONDS.toNanos(milliseconds);
         }
-        public long expireAfterUpdate(String url, HttpResponse response, long currentTime, long currentDuration) {
+        public long expireAfterUpdate(String url, CachedResponse response, long currentTime, long currentDuration) {
           return expireAfterCreate(url, response, currentTime);
         }
-        public long expireAfterRead(String url, HttpResponse response, long currentTime, long currentDuration) {
+        public long expireAfterRead(String url, CachedResponse response, long currentTime, long currentDuration) {
           return currentDuration;
         }
       })
