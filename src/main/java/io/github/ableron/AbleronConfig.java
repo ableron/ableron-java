@@ -12,12 +12,20 @@ public class AbleronConfig {
   private boolean enabled = true;
 
   /**
-   * Maximum amount of time to wait for a successful and complete response of an include
-   * source or fallback URL.
+   * Maximum duration to wait for a successful and complete response of an include source
+   * or fallback URL.
    *
    * Defaults to 5 seconds.
    */
   private Duration requestTimeout = Duration.ofMillis(5000);
+
+  /**
+   * Duration to cache HTTP responses in case there is no caching information provided
+   * along the response, i.e. neither Cache-Control nor Expire header.
+   *
+   * Defaults to 5 minutes.
+   */
+  private Duration fallbackResponseCacheTime = Duration.ofSeconds(300);
 
   private AbleronConfig() {}
 
@@ -33,6 +41,10 @@ public class AbleronConfig {
     return requestTimeout;
   }
 
+  public Duration getFallbackResponseCacheTime() {
+    return fallbackResponseCacheTime;
+  }
+
   public static class Builder {
 
     private final AbleronConfig ableronConfig = new AbleronConfig();
@@ -44,6 +56,11 @@ public class AbleronConfig {
 
     public Builder requestTimeout(Duration requestTimeout) {
       ableronConfig.requestTimeout = Objects.requireNonNull(requestTimeout, "requestTimeout must not be null");
+      return this;
+    }
+
+    public Builder fallbackResponseCacheTime(Duration fallbackResponseCacheTime) {
+      ableronConfig.fallbackResponseCacheTime = Objects.requireNonNull(fallbackResponseCacheTime, "fallbackResponseCacheTime must not be null");
       return this;
     }
 
