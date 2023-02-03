@@ -7,13 +7,18 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +34,11 @@ public class Include {
    * source URL could not be loaded.
    */
   private static final String ATTR_FALLBACK_SOURCE = "fallback-src";
+
+  private static final String HEADER_AGE = "Age";
+  private static final String HEADER_CACHE_CONTROL = "Cache-Control";
+  private static final String HEADER_DATE = "Date";
+  private static final String HEADER_EXPIRES = "Expires";
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -107,7 +117,7 @@ public class Include {
    * @param ableronConfig Global ableron configuration
    * @return Content of the resolved include
    */
-  public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
+  public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     if (resolvedInclude == null) {
       resolvedInclude = load(src, httpClient, responseCache, ableronConfig)
         .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig))
@@ -118,7 +128,7 @@ public class Include {
     return resolvedInclude;
   }
 
-  private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, io.github.ableron.HttpResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
+  private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     return Optional.ofNullable(uri)
       .map(uri1 -> responseCache.get(uri1, uri2 -> loadUri(uri2, httpClient, ableronConfig)
         .filter(response -> {
@@ -129,11 +139,10 @@ public class Include {
             return false;
           }
         })
-        //TODO: Use correct value for lifetime based on Cache-Control, Max-Age and Expires headers
-        .map(httpResponse -> new io.github.ableron.HttpResponse(httpResponse.body(), Instant.now().plus(5, ChronoUnit.MINUTES)))
+        .map(httpResponse -> new CachedResponse(httpResponse.body(), calculateResponseCacheExpirationTime(httpResponse, ableronConfig.getFallbackResponseCacheTime())))
         .orElse(null)
       ))
-      .map(io.github.ableron.HttpResponse::getResponseBody);
+      .map(CachedResponse::getResponseBody);
   }
 
   private Optional<HttpResponse<String>> loadUri(@Nonnull String uri, @Nonnull HttpClient httpClient, @Nonnull AbleronConfig ableronConfig) {
@@ -153,6 +162,57 @@ public class Include {
       logger.error("Unable to load uri {} of ableron-include", uri, e);
       return Optional.empty();
     }
+  }
+
+  private Instant calculateResponseCacheExpirationTime(HttpResponse<String> response, Duration fallbackResponseCacheTime) {
+    var cacheControlDirectives = response.headers()
+      .firstValue(HEADER_CACHE_CONTROL)
+      .stream()
+      .flatMap(value -> Arrays.stream(value.split(",")))
+      .map(String::trim)
+      .collect(Collectors.toList());
+
+    return getCacheLifetimeBySharedCacheMaxAge(cacheControlDirectives)
+      .or(() -> getCacheLifetimeByMaxAge(
+        cacheControlDirectives,
+        response.headers().firstValue(HEADER_AGE).orElse(null)))
+      .or(() -> getCacheLifetimeByExpiresHeader(
+        response.headers().firstValue(HEADER_EXPIRES).orElse(null),
+        response.headers().firstValue(HEADER_DATE).orElse(null)))
+      .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
+      .orElse(Instant.now().plusSeconds(fallbackResponseCacheTime.toSeconds()));
+  }
+
+  private Optional<Instant> getCacheLifetimeBySharedCacheMaxAge(List<String> cacheControlDirectives) {
+    return cacheControlDirectives.stream()
+      .filter(directive -> directive.matches("^s-maxage=[1-9][0-9]*$"))
+      .findFirst()
+      .map(sMaxAge -> sMaxAge.substring("s-maxage=".length()))
+      .map(Long::parseLong)
+      .map(seconds -> Instant.now().plusSeconds(seconds));
+  }
+
+  private Optional<Instant> getCacheLifetimeByMaxAge(List<String> cacheControlDirectives, String ageHeaderValue) {
+    return cacheControlDirectives.stream()
+      .filter(directive -> directive.matches("^max-age=[1-9][0-9]*$"))
+      .findFirst()
+      .map(maxAge -> maxAge.substring("max-age=".length()))
+      .map(Long::parseLong)
+      .map(seconds -> seconds - Optional.ofNullable(ageHeaderValue)
+        .map(Long::parseLong)
+        .map(Math::abs)
+        .orElse(0L))
+      .map(seconds -> Instant.now().plusSeconds(seconds));
+  }
+
+  private Optional<Instant> getCacheLifetimeByExpiresHeader(String expiresHeaderValue, String dateHeaderValue) {
+    return Optional.ofNullable(expiresHeaderValue)
+      .map(value -> value.equals("0") ? Instant.EPOCH : parseHttpDate(value))
+      .map(expires -> (dateHeaderValue != null) ? Instant.now().plusMillis(expires.toEpochMilli() - parseHttpDate(dateHeaderValue).toEpochMilli()) : expires);
+  }
+
+  private Instant parseHttpDate(String httpDate) {
+    return ZonedDateTime.parse(httpDate, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
   }
 
   @Override
