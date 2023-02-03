@@ -21,11 +21,11 @@ public class AbleronConfig {
 
   /**
    * Duration to cache HTTP responses in case there is no caching information provided
-   * along the response, i.e. neither Cache-Control nor Expire header.
+   * along the response, i.e. neither Cache-Control nor Expires header.
    *
    * Defaults to 5 minutes.
    */
-  private Duration fallbackResponseCacheTime = Duration.ofSeconds(300);
+  private Duration fallbackResponseCacheTime = Duration.ofMinutes(5);
 
   private AbleronConfig() {}
 

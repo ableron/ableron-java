@@ -175,12 +175,10 @@ public class Include {
     return getCacheLifetimeBySharedCacheMaxAge(cacheControlDirectives)
       .or(() -> getCacheLifetimeByMaxAge(
         cacheControlDirectives,
-        response.headers().firstValue(HEADER_AGE).orElse(null))
-      )
+        response.headers().firstValue(HEADER_AGE).orElse(null)))
       .or(() -> getCacheLifetimeByExpiresHeader(
         response.headers().firstValue(HEADER_EXPIRES).orElse(null),
-        response.headers().firstValue(HEADER_DATE).orElse(null)
-      ))
+        response.headers().firstValue(HEADER_DATE).orElse(null)))
       .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
       .orElse(Instant.now().plusSeconds(fallbackResponseCacheTime.toSeconds()));
   }
@@ -189,7 +187,8 @@ public class Include {
     return cacheControlDirectives.stream()
       .filter(directive -> directive.matches("^s-maxage=[1-9][0-9]*$"))
       .findFirst()
-      .map(directive -> Long.parseLong(directive.substring("s-maxage=".length())))
+      .map(sMaxAge -> sMaxAge.substring("s-maxage=".length()))
+      .map(Long::parseLong)
       .map(seconds -> Instant.now().plusSeconds(seconds));
   }
 
@@ -197,7 +196,8 @@ public class Include {
     return cacheControlDirectives.stream()
       .filter(directive -> directive.matches("^max-age=[1-9][0-9]*$"))
       .findFirst()
-      .map(directive -> Long.parseLong(directive.substring("max-age=".length())))
+      .map(maxAge -> maxAge.substring("max-age=".length()))
+      .map(Long::parseLong)
       .map(seconds -> seconds - Optional.ofNullable(ageHeaderValue)
         .map(Long::parseLong)
         .map(Math::abs)
