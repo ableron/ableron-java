@@ -233,6 +233,36 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
+  def "should favor include tag specific request timeout over global one"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setBodyDelay(1500, TimeUnit.MILLISECONDS)
+      .setResponseCode(200))
+
+    when:
+    def attributes = new HashMap()
+    attributes.put(srcAttribute, mockWebServer.url("/").toString())
+    attributes.putAll(localTimeout)
+
+    then:
+    new Include("...", attributes, null)
+      .resolve(httpClient, cache, config) == expectedResolvedInclude
+
+    cleanup:
+    mockWebServer.shutdown()
+
+    where:
+    srcAttribute   | localTimeout                                  | expectedResolvedInclude
+    "src"          | Map.of()                                      | ""
+    "src"          | Map.of("src-timeout-millis", "2000")          | "response"
+    "src"          | Map.of("fallback-src-timeout-millis", "2000") | ""
+    "fallback-src" | Map.of()                                      | ""
+    "fallback-src" | Map.of("fallback-src-timeout-millis", "2000") | "response"
+    "fallback-src" | Map.of("src-timeout-millis", "2000")          | ""
+  }
+
   def "should use cached http response if not expired"() {
     given:
     def mockWebServer = new MockWebServer()
