@@ -59,6 +59,9 @@ dependencies {
    * `fallback-src`: URL to load the include content from in case the request to `src` failed
 * Precedence for resolving: `src` -> `fallback-src` -> fallback content
 
+### Redirects
+Redirects will be followed when resolving includes except they redirect from `https` to `http`.
+
 ## Library Development
 
 ### Quick Start

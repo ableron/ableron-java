@@ -6,7 +6,6 @@ import okhttp3.mockwebserver.MockWebServer
 import spock.lang.Shared
 import spock.lang.Specification
 
-import java.net.http.HttpClient
 import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -22,7 +21,7 @@ class IncludeSpec extends Specification {
     .build()
 
   @Shared
-  def httpClient = HttpClient.newHttpClient()
+  def httpClient = new TransclusionProcessor().getHttpClient()
 
   Cache<String, CachedResponse> cache = new TransclusionProcessor().getResponseCache()
 
@@ -167,6 +166,31 @@ class IncludeSpec extends Specification {
   def "should resolve include to empty string if src, fallback src and fallback content are not present"() {
     expect:
     new Include("...", Map.of(), null).resolve(httpClient, cache, config) == ""
+  }
+
+  def "should follow redirects when resolving URLs"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setHeader("Location", "foo")
+      .setResponseCode(302))
+    mockWebServer.enqueue(new MockResponse()
+      .setHeader("Location", "bar")
+      .setResponseCode(302))
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response after redirect")
+      .setResponseCode(200))
+
+    when:
+    def resolvedInclude = new Include("...", Map.of(
+      "src", mockWebServer.url("/").toString()
+    ), null).resolve(httpClient, cache, config)
+
+    then:
+    resolvedInclude == "response after redirect"
+
+    cleanup:
+    mockWebServer.shutdown()
   }
 
   def "should apply request timeout for delayed header"() {

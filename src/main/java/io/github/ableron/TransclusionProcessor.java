@@ -44,8 +44,12 @@ public class TransclusionProcessor {
 
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
-    this.httpClient = HttpClient.newBuilder().build();
-    this.responseCache = buildDefaultCache();
+    this.httpClient = buildHttpClient();
+    this.responseCache = buildCache();
+  }
+
+  public HttpClient getHttpClient() {
+    return httpClient;
   }
 
   public Cache<String, CachedResponse> getResponseCache() {
@@ -92,7 +96,13 @@ public class TransclusionProcessor {
     return transclusionResult;
   }
 
-  private Cache<String, CachedResponse> buildDefaultCache() {
+  private HttpClient buildHttpClient() {
+    return HttpClient.newBuilder()
+      .followRedirects(HttpClient.Redirect.NORMAL)
+      .build();
+  }
+
+  private Cache<String, CachedResponse> buildCache() {
     return Caffeine.newBuilder()
       //TODO: Make maximumWeight() configurable (max size in MB)
       .maximumWeight(1024 * 1024 * 10)
