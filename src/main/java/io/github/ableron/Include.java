@@ -10,10 +10,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.time.chrono.ChronoZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,6 +34,11 @@ public class Include {
    * source URL could not be loaded.
    */
   private static final String ATTR_FALLBACK_SOURCE = "fallback-src";
+
+  private static final String HEADER_AGE = "Age";
+  private static final String HEADER_CACHE_CONTROL = "Cache-Control";
+  private static final String HEADER_DATE = "Date";
+  private static final String HEADER_EXPIRES = "Expires";
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -161,79 +165,54 @@ public class Include {
   }
 
   private Instant calculateResponseCacheExpirationTime(HttpResponse<String> response, Duration fallbackResponseCacheTime) {
-
     var cacheControlDirectives = response.headers()
-      .firstValue("Cache-Control")
+      .firstValue(HEADER_CACHE_CONTROL)
       .stream()
       .flatMap(value -> Arrays.stream(value.split(",")))
       .map(String::trim)
       .collect(Collectors.toList());
 
-    // If the cache is shared and the s-maxage response directive (Section 5.2.2.10) is present, use its value, or
-    //    Cache-Control: s-maxage=604800
-    var sharedCacheMaxAgeValueStartIndex = "s-maxage=".length();
-    var sharedCacheMaxAge = cacheControlDirectives.stream()
+    return getCacheLifetimeBySharedCacheMaxAge(cacheControlDirectives)
+      .or(() -> getCacheLifetimeByMaxAge(
+        cacheControlDirectives,
+        response.headers().firstValue(HEADER_AGE).orElse(null))
+      )
+      .or(() -> getCacheLifetimeByExpiresHeader(
+        response.headers().firstValue(HEADER_EXPIRES).orElse(null),
+        response.headers().firstValue(HEADER_DATE).orElse(null)
+      ))
+      .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
+      .orElse(Instant.now().plusSeconds(fallbackResponseCacheTime.toSeconds()));
+  }
+
+  private Optional<Instant> getCacheLifetimeBySharedCacheMaxAge(List<String> cacheControlDirectives) {
+    return cacheControlDirectives.stream()
       .filter(directive -> directive.matches("^s-maxage=[1-9][0-9]*$"))
       .findFirst()
-      .map(directive -> Duration.ofSeconds(Long.parseLong(directive.substring(sharedCacheMaxAgeValueStartIndex))));
+      .map(directive -> Long.parseLong(directive.substring("s-maxage=".length())))
+      .map(seconds -> Instant.now().plusSeconds(seconds));
+  }
 
-    if (sharedCacheMaxAge.isPresent()) {
-      return sharedCacheMaxAge
-        .map(duration -> Instant.now().plusSeconds(duration.toSeconds()))
-        .get();
-    }
-
-
-    // If the max-age response directive (Section 5.2.2.1) is present, use its value, or
-    var maxAgeValueStartIndex = "max-age=".length();
-    var maxAge = cacheControlDirectives.stream()
+  private Optional<Instant> getCacheLifetimeByMaxAge(List<String> cacheControlDirectives, String ageHeaderValue) {
+    return cacheControlDirectives.stream()
       .filter(directive -> directive.matches("^max-age=[1-9][0-9]*$"))
       .findFirst()
-      .map(directive -> Duration.ofSeconds(Long.parseLong(directive.substring(maxAgeValueStartIndex))));
-
-    if (maxAge.isPresent()) {
-      var age = response.headers()
-        .firstValue("Age")
+      .map(directive -> Long.parseLong(directive.substring("max-age=".length())))
+      .map(seconds -> seconds - Optional.ofNullable(ageHeaderValue)
         .map(Long::parseLong)
         .map(Math::abs)
-        .orElse(0L);
+        .orElse(0L))
+      .map(seconds -> Instant.now().plusSeconds(seconds));
+  }
 
-      return maxAge
-        .map(duration -> Instant.now().plusSeconds(duration.toSeconds()).minusSeconds(age))
-        .get();
-    }
+  private Optional<Instant> getCacheLifetimeByExpiresHeader(String expiresHeaderValue, String dateHeaderValue) {
+    return Optional.ofNullable(expiresHeaderValue)
+      .map(value -> value.equals("0") ? Instant.EPOCH : parseHttpDate(value))
+      .map(expires -> (dateHeaderValue != null) ? Instant.now().plusMillis(expires.toEpochMilli() - parseHttpDate(dateHeaderValue).toEpochMilli()) : expires);
+  }
 
-
-
-    // If the Expires response header field (Section 5.3) is present, use its value
-    // --- minus the value of the Date response header field (using the time the message was received if it is not present, as per Section 6.6.1 of [HTTP]), or
-    var formatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O").withLocale(Locale.ENGLISH);
-    var expires = response.headers()
-      .firstValue("Expires")
-      .map(value -> value.equals("0") ? Instant.EPOCH : ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant());
-
-    if (expires.isPresent()) {
-      var date = response.headers()
-        .firstValue("Date")
-        .map(value -> ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME))
-        .map(ChronoZonedDateTime::toInstant);
-
-      if (date.isPresent()) {
-        return Instant.now().plusMillis(expires.get().toEpochMilli() - date.get().toEpochMilli());
-      }
-
-      return expires.get();
-    }
-
-
-    // if Cache-Control header is set and does not contain max-age, do not cache
-    if (response.headers().firstValue("Cache-Control").isPresent()) {
-      return Instant.EPOCH;
-    }
-
-    return Instant.now().plusSeconds(fallbackResponseCacheTime.toSeconds());
-
-    // When a cache receives a request that can be satisfied by a stored response and that stored response contains a Vary header field (Section 12.5.5 of [HTTP]), the cache MUST NOT use that stored response without revalidation unless all the presented request header fields nominated by that Vary field value match those fields in the original request (i.e., the request that caused the cached response to be stored).
+  private Instant parseHttpDate(String httpDate) {
+    return ZonedDateTime.parse(httpDate, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
   }
 
   @Override
