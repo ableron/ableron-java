@@ -97,15 +97,9 @@ public class Include {
   public Include(@Nonnull String rawInclude, @Nonnull Map<String, String> attributes, String fallbackContent) {
     this.rawInclude = Objects.requireNonNull(rawInclude, "rawInclude must not be null");
     this.src = Objects.requireNonNull(attributes, "attributes must not be null").get(ATTR_SOURCE);
-    this.srcTimeout = Optional.ofNullable(attributes.get(ATTR_SOURCE_TIMEOUT_MILLIS))
-      .map(Long::parseLong)
-      .map(Duration::ofMillis)
-      .orElse(null);
+    this.srcTimeout = parseTimeout(attributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
     this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
-    this.fallbackSrcTimeout = Optional.ofNullable(attributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS))
-      .map(Long::parseLong)
-      .map(Duration::ofMillis)
-      .orElse(null);
+    this.fallbackSrcTimeout = parseTimeout(attributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS));
     this.fallbackContent = fallbackContent;
   }
 
@@ -168,6 +162,20 @@ public class Include {
     }
 
     return resolvedInclude;
+  }
+
+  private Duration parseTimeout(String timeoutAsString) {
+    return Optional.ofNullable(timeoutAsString)
+      .map(timeout -> {
+        try {
+          return Long.parseLong(timeout);
+        } catch (NumberFormatException e) {
+          logger.error("Unable to parse request timeout", e);
+          return null;
+        }
+      })
+      .map(Duration::ofMillis)
+      .orElse(null);
   }
 
   private Duration getRequestTimeout(Duration localTimeout, AbleronConfig ableronConfig) {
@@ -241,22 +249,30 @@ public class Include {
   }
 
   private Optional<Instant> getCacheLifetimeByMaxAge(List<String> cacheControlDirectives, String ageHeaderValue) {
-    return cacheControlDirectives.stream()
-      .filter(directive -> directive.matches("^max-age=[1-9][0-9]*$"))
-      .findFirst()
-      .map(maxAge -> maxAge.substring("max-age=".length()))
-      .map(Long::parseLong)
-      .map(seconds -> seconds - Optional.ofNullable(ageHeaderValue)
+    try {
+      return cacheControlDirectives.stream()
+        .filter(directive -> directive.matches("^max-age=[1-9][0-9]*$"))
+        .findFirst()
+        .map(maxAge -> maxAge.substring("max-age=".length()))
         .map(Long::parseLong)
-        .map(Math::abs)
-        .orElse(0L))
-      .map(seconds -> Instant.now().plusSeconds(seconds));
+        .map(seconds -> seconds - Optional.ofNullable(ageHeaderValue)
+          .map(Long::parseLong)
+          .map(Math::abs)
+          .orElse(0L))
+        .map(seconds -> Instant.now().plusSeconds(seconds));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
   }
 
   private Optional<Instant> getCacheLifetimeByExpiresHeader(String expiresHeaderValue, String dateHeaderValue) {
-    return Optional.ofNullable(expiresHeaderValue)
-      .map(value -> value.equals("0") ? Instant.EPOCH : parseHttpDate(value))
-      .map(expires -> (dateHeaderValue != null) ? Instant.now().plusMillis(expires.toEpochMilli() - parseHttpDate(dateHeaderValue).toEpochMilli()) : expires);
+    try {
+      return Optional.ofNullable(expiresHeaderValue)
+        .map(value -> value.equals("0") ? Instant.EPOCH : parseHttpDate(value))
+        .map(expires -> (dateHeaderValue != null) ? Instant.now().plusMillis(expires.toEpochMilli() - parseHttpDate(dateHeaderValue).toEpochMilli()) : expires);
+    } catch (Exception e) {
+      return Optional.empty();
+    }
   }
 
   private Instant parseHttpDate(String httpDate) {

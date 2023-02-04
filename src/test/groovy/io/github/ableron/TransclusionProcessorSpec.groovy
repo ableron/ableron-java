@@ -186,4 +186,19 @@ class TransclusionProcessorSpec extends Specification {
       <!-- #2 -->
     """
   }
+
+  def "should not crash due to include tag #scenarioName"() {
+    when:
+    def result = transclusionProcessor
+      .resolveIncludes("<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>")
+
+    then:
+    result.content == "before" + expectedResult + "after"
+
+    where:
+    scenarioName                   | includeTag                                                                     | expectedResult
+    "invalid src url"              | '<ableron-include src=",._">fallback</ableron-include>'                        | "fallback"
+    "invalid src timeout"          | '<ableron-include src-timeout-millis="5s">fallback</ableron-include>'          | "fallback"
+    "invalid fallback-src timeout" | '<ableron-include fallback-src-timeout-millis="5s">fallback</ableron-include>' | "fallback"
+  }
 }
