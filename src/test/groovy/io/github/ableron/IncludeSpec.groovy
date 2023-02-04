@@ -512,6 +512,35 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
+  def "should not crash when cache headers contain invalid values"() {
+    given:
+    def mockWebServer = new MockWebServer()
+
+    when:
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setHeader(header1Name, header1Value)
+      .setHeader(header2Name, header2Value)
+      .setResponseCode(200))
+    def resolvedInclude = new Include("...", Map.of(
+      "src", mockWebServer.url("/").toString()
+    ), null).resolve(httpClient, cache, config)
+
+    then:
+    resolvedInclude == "response"
+
+    cleanup:
+    mockWebServer.shutdown()
+
+    where:
+    header1Name     | header1Value                    | header2Name | header2Value
+    "Cache-Control" | "s-maxage=not-numeric"          | "X-Dummy"   | "dummy"
+    "Cache-Control" | "max-age=not-numeric"           | "X-Dummy"   | "dummy"
+    "Cache-Control" | "max-age=3600"                  | "Age"       | "600"
+    "Expires"       | "not-numeric"                   | "X-Dummy"   | "dummy"
+    "Expires"       | "Wed, 12 Oct 2050 07:28:00 GMT" | "Date"      | "not-a-date"
+  }
+
   def "should cache response for a configurable duration if no expiration time is indicated via response header"() {
     given:
     def mockWebServer = new MockWebServer()
