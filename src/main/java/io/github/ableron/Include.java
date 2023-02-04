@@ -30,10 +30,20 @@ public class Include {
   private static final String ATTR_SOURCE = "src";
 
   /**
+   * Name of the attribute which contains the timeout for requesting the src URL.
+   */
+  private static final String ATTR_SOURCE_TIMEOUT_MILLIS = "src-timeout-millis";
+
+  /**
    * Name of the attribute which contains the fallback URL to resolve the include to in case the
    * source URL could not be loaded.
    */
   private static final String ATTR_FALLBACK_SOURCE = "fallback-src";
+
+  /**
+   * Name of the attribute which contains the timeout for requesting the fallback-src URL.
+   */
+  private static final String ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS = "fallback-src-timeout-millis";
 
   private static final String HEADER_AGE = "Age";
   private static final String HEADER_CACHE_CONTROL = "Cache-Control";
@@ -53,9 +63,19 @@ public class Include {
   private final String src;
 
   /**
+   * Timeout for requesting the src URL.
+   */
+  private final Duration srcTimeout;
+
+  /**
    * Fallback URL to resolve the include to in case the source URL could not be loaded.
    */
   private final String fallbackSrc;
+
+  /**
+   * Timeout for requesting the fallback-src URL.
+   */
+  private final Duration fallbackSrcTimeout;
 
   /**
    * Fallback content to use in case the include could not be resolved.
@@ -77,7 +97,15 @@ public class Include {
   public Include(@Nonnull String rawInclude, @Nonnull Map<String, String> attributes, String fallbackContent) {
     this.rawInclude = Objects.requireNonNull(rawInclude, "rawInclude must not be null");
     this.src = Objects.requireNonNull(attributes, "attributes must not be null").get(ATTR_SOURCE);
+    this.srcTimeout = Optional.ofNullable(attributes.get(ATTR_SOURCE_TIMEOUT_MILLIS))
+      .map(Long::parseLong)
+      .map(Duration::ofMillis)
+      .orElse(null);
     this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
+    this.fallbackSrcTimeout = Optional.ofNullable(attributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS))
+      .map(Long::parseLong)
+      .map(Duration::ofMillis)
+      .orElse(null);
     this.fallbackContent = fallbackContent;
   }
 
@@ -96,10 +124,24 @@ public class Include {
   }
 
   /**
+   * @return The timeout for requesting the src URL
+   */
+  public Duration getSrcTimeout() {
+    return srcTimeout;
+  }
+
+  /**
    * @return The fallback URL to resolve the include to in case the source URL could not be loaded.
    */
   public String getFallbackSrc() {
     return fallbackSrc;
+  }
+
+  /**
+   * @return The timeout for requesting the fallback-src URL
+   */
+  public Duration getFallbackSrcTimeout() {
+    return fallbackSrcTimeout;
   }
 
   /**
@@ -119,8 +161,8 @@ public class Include {
    */
   public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     if (resolvedInclude == null) {
-      resolvedInclude = load(src, httpClient, responseCache, ableronConfig)
-        .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig))
+      resolvedInclude = load(src, httpClient, responseCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
+        .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig, getRequestTimeout(fallbackSrcTimeout, ableronConfig)))
         .or(() -> Optional.ofNullable(fallbackContent))
         .orElse("");
     }
@@ -128,9 +170,14 @@ public class Include {
     return resolvedInclude;
   }
 
-  private Optional<String> load(String uri, @Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
+  private Duration getRequestTimeout(Duration localTimeout, AbleronConfig ableronConfig) {
+    return Optional.ofNullable(localTimeout)
+      .orElse(ableronConfig.getRequestTimeout());
+  }
+
+  private Optional<String> load(String uri, HttpClient httpClient, Cache<String, CachedResponse> responseCache, AbleronConfig ableronConfig, Duration requestTimeout) {
     return Optional.ofNullable(uri)
-      .map(uri1 -> responseCache.get(uri1, uri2 -> loadUri(uri2, httpClient, ableronConfig)
+      .map(uri1 -> responseCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestTimeout)
         .filter(response -> {
           if (response.statusCode() == 200) {
             return true;
@@ -145,9 +192,9 @@ public class Include {
       .map(CachedResponse::getResponseBody);
   }
 
-  private Optional<HttpResponse<String>> loadUri(@Nonnull String uri, @Nonnull HttpClient httpClient, @Nonnull AbleronConfig ableronConfig) {
+  private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Duration requestTimeout) {
     try {
-      return Optional.of(CompletableFuture.supplyAsync(() -> {
+      var httpResponse = CompletableFuture.supplyAsync(() -> {
         try {
           return httpClient.send(HttpRequest.newBuilder()
                                    .uri(URI.create(uri))
@@ -157,7 +204,8 @@ public class Include {
           logger.error("Unable to load uri {} of ableron-include", uri, e);
           return null;
         }
-      }).get(ableronConfig.getRequestTimeout().toMillis(), TimeUnit.MILLISECONDS));
+      }).get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS);
+      return Optional.ofNullable(httpResponse);
     } catch (Exception e) {
       logger.error("Unable to load uri {} of ableron-include", uri, e);
       return Optional.empty();

@@ -56,7 +56,9 @@ dependencies {
 * Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
 * Attributes
    * `src`: URL to load the include content from
+   * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
    * `fallback-src`: URL to load the include content from in case the request to `src` failed
+   * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
 * Precedence for resolving: `src` -> `fallback-src` -> fallback content
 
 ### Redirects

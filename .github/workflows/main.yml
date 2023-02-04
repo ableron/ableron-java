@@ -16,7 +16,7 @@ jobs:
           java-version: ${{ matrix.javaVersion }}
           distribution: temurin
           cache: maven
-      - run: mvn --batch-mode --update-snapshots verify
+      - run: mvn --version --batch-mode --update-snapshots verify
   release:
     if: github.ref == 'refs/heads/main'
     needs: build_and_test
