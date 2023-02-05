@@ -289,7 +289,7 @@ class IncludeSpec extends Specification {
     Instant.now().minusSeconds(5) | "response from src"
   }
 
-  def "should cache http response only if status code is 200"() {
+  def "should cache http response if status code is defined as cacheable in RFC 7231 - Status Code #responsStatus"() {
     given:
     def mockWebServer = new MockWebServer()
 
@@ -316,13 +316,32 @@ class IncludeSpec extends Specification {
 
     where:
     responsStatus | responseBody | expectedResponseCached | expectedResolvedIncludeContent
-    100           | "..."        | false                  | ":("
+    100           | "response"   | false                  | ":("
     200           | "response"   | true                   | "response"
-    202           | "..."        | false                  | ":("
-    204           | "..."        | false                  | ":("
-    302           | "..."        | false                  | ":("
-    400           | "..."        | false                  | ":("
-    500           | "..."        | false                  | ":("
+    202           | "response"   | false                  | ":("
+    203           | "response"   | false                  | "response"
+    204           | ""           | false                  | ""
+    205           | "response"   | false                  | ":("
+    206           | "response"   | false                  | "response"
+    300           | "response"   | false                  | "response"
+    302           | "response"   | false                  | ":("
+    400           | "response"   | false                  | ":("
+    404           | "response"   | false                  | "response"
+    405           | "response"   | false                  | "response"
+    410           | "response"   | false                  | "response"
+    414           | "response"   | false                  | "response"
+    500           | "response"   | false                  | ":("
+    501           | "response"   | false                  | "response"
+    502           | "response"   | false                  | ":("
+    503           | "response"   | false                  | ":("
+    504           | "response"   | false                  | ":("
+    505           | "response"   | false                  | ":("
+    506           | "response"   | false                  | ":("
+    507           | "response"   | false                  | ":("
+    508           | "response"   | false                  | ":("
+    509           | "response"   | false                  | ":("
+    510           | "response"   | false                  | ":("
+    511           | "response"   | false                  | ":("
   }
 
   def "should cache response for s-maxage seconds if directive is present"() {
