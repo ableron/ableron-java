@@ -50,6 +50,18 @@ public class Include {
   private static final String HEADER_DATE = "Date";
   private static final String HEADER_EXPIRES = "Expires";
 
+  /**
+   * List of HTTP response codes delivering responses that may be cached.
+   *
+   * @link https://www.rfc-editor.org/rfc/rfc7231#section-6.1
+   */
+  private static final List<Integer> CACHEABLE_HTTP_STATUS_CODES = Arrays.asList(
+    200, 203, 204, 206,
+    300,
+    404, 405, 410, 414,
+    501
+  );
+
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   /**
@@ -187,7 +199,7 @@ public class Include {
     return Optional.ofNullable(uri)
       .map(uri1 -> responseCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestTimeout)
         .filter(response -> {
-          if (response.statusCode() == 200) {
+          if (CACHEABLE_HTTP_STATUS_CODES.contains(response.statusCode())) {
             return true;
           } else {
             logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());

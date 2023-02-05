@@ -64,6 +64,14 @@ dependencies {
 ### Redirects
 Redirects will be followed when resolving includes except they redirect from `https` to `http`.
 
+### Caching
+HTTP responses (either from `src` or `fallback-src`) are considered to be cacheable if they
+have HTTP status code
+   * `200`, `203`, `204`, `206`,
+   * `300`,
+   * `404`, `405`, `410`, `414`,
+   * `501`
+
 ## Library Development
 
 ### Quick Start
