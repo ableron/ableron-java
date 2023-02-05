@@ -336,12 +336,13 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
+    resolvedInclude == "response"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(604800).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(604800).minusSeconds(1))
 
@@ -360,12 +361,37 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
+    resolvedInclude == "response"
+    cacheExpirationTime.isBefore(Instant.now().plusSeconds(3600).plusSeconds(1))
+    cacheExpirationTime.isAfter(Instant.now().plusSeconds(3600).minusSeconds(1))
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should treat http header names as case insensitive"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setHeader("cache-control", "max-age=3600")
+      .setResponseCode(200))
+    def includeSrcUrl = mockWebServer.url("/").toString()
+
+    when:
+    def resolvedInclude = new Include("...", Map.of(
+      "src", includeSrcUrl
+    ), null).resolve(httpClient, cache, config)
+    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
+
+    then:
+    resolvedInclude == "response"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(3600).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(3600).minusSeconds(1))
 
@@ -385,12 +411,13 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
+    resolvedInclude == "response"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(3000).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(3000).minusSeconds(1))
 
@@ -410,12 +437,13 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
+    resolvedInclude == "response"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(3500).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(3500).minusSeconds(1))
 
@@ -434,12 +462,13 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
+    resolvedInclude == "response"
     cacheExpirationTime == ZonedDateTime.parse("Wed, 12 Oct 2050 07:28:00 GMT", DateTimeFormatter.RFC_1123_DATE_TIME).toInstant()
 
     cleanup:
@@ -456,11 +485,12 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
 
     then:
+    resolvedInclude == "response"
     cache.getIfPresent(includeSrcUrl) == null
 
     cleanup:
@@ -478,12 +508,13 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
+    resolvedInclude == "response"
     cacheExpirationTime.isBefore(Instant.now().plus(7, ChronoUnit.DAYS).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plus(7, ChronoUnit.DAYS).minusSeconds(1))
 
@@ -501,11 +532,12 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
 
     then:
+    resolvedInclude == "response"
     cache.getIfPresent(includeSrcUrl) == null
 
     cleanup:
@@ -553,12 +585,13 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    new Include("...", Map.of(
+    def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
+    resolvedInclude == "response"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(30).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(30).minusSeconds(1))
 
