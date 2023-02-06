@@ -216,7 +216,11 @@ public class Include {
           logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
           return false;
         })
-        .map(httpResponse -> new CachedResponse(httpResponse.statusCode(), httpResponse.body(), calculateResponseCacheExpirationTime(httpResponse, ableronConfig.getFallbackResponseCacheTime())))
+        .map(response -> new CachedResponse(
+          response.statusCode(),
+          HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.statusCode()) ? response.body() : "",
+          calculateResponseCacheExpirationTime(response, ableronConfig.getFallbackResponseCacheTime())
+        ))
         .orElse(null)
       ))
       .filter(response -> HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.getStatusCode()))

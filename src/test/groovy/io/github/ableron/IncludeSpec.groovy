@@ -305,10 +305,10 @@ class IncludeSpec extends Specification {
     ), ":(").resolve(httpClient, cache, config)
 
     then:
-    resolvedInclude == expectedResolvedIncludeContent
+    resolvedInclude == expectedResolvedInclude
     if (expectedResponseCached) {
       assert cache.getIfPresent(includeSrcUrl) != null
-      assert cache.getIfPresent(includeSrcUrl).body == responseBody
+      assert cache.getIfPresent(includeSrcUrl).body == expectedCachedBody
     } else {
       assert cache.getIfPresent(includeSrcUrl) == null
     }
@@ -317,33 +317,33 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
 
     where:
-    responsStatus | responseBody | expectedResponseCached | expectedResolvedIncludeContent
-    100           | "response"   | false                  | ":("
-    200           | "response"   | true                   | "response"
-    202           | "response"   | false                  | ":("
-    203           | "response"   | true                   | "response"
-    204           | ""           | true                   | ""
-    205           | "response"   | false                  | ":("
-    206           | "response"   | true                   | "response"
-    300           | "response"   | true                   | ":("
-    302           | "response"   | false                  | ":("
-    400           | "response"   | false                  | ":("
-    404           | "response"   | true                   | ":("
-    405           | "response"   | true                   | ":("
-    410           | "response"   | true                   | ":("
-    414           | "response"   | true                   | ":("
-    500           | "response"   | false                  | ":("
-    501           | "response"   | true                   | ":("
-    502           | "response"   | false                  | ":("
-    503           | "response"   | false                  | ":("
-    504           | "response"   | false                  | ":("
-    505           | "response"   | false                  | ":("
-    506           | "response"   | false                  | ":("
-    507           | "response"   | false                  | ":("
-    508           | "response"   | false                  | ":("
-    509           | "response"   | false                  | ":("
-    510           | "response"   | false                  | ":("
-    511           | "response"   | false                  | ":("
+    responsStatus | responseBody | expectedResponseCached | expectedCachedBody | expectedResolvedInclude
+    100           | "response"   | false                  | null               | ":("
+    200           | "response"   | true                   | "response"         | "response"
+    202           | "response"   | false                  | null               | ":("
+    203           | "response"   | true                   | "response"         | "response"
+    204           | ""           | true                   | ""                 | ""
+    205           | "response"   | false                  | null               | ":("
+    206           | "response"   | true                   | "response"         | "response"
+    300           | "response"   | true                   | ""                 | ":("
+    302           | "response"   | false                  | null               | ":("
+    400           | "response"   | false                  | null               | ":("
+    404           | "response"   | true                   | ""                 | ":("
+    405           | "response"   | true                   | ""                 | ":("
+    410           | "response"   | true                   | ""                 | ":("
+    414           | "response"   | true                   | ""                 | ":("
+    500           | "response"   | false                  | null               | ":("
+    501           | "response"   | true                   | ""                 | ":("
+    502           | "response"   | false                  | null               | ":("
+    503           | "response"   | false                  | null               | ":("
+    504           | "response"   | false                  | null               | ":("
+    505           | "response"   | false                  | null               | ":("
+    506           | "response"   | false                  | null               | ":("
+    507           | "response"   | false                  | null               | ":("
+    508           | "response"   | false                  | null               | ":("
+    509           | "response"   | false                  | null               | ":("
+    510           | "response"   | false                  | null               | ":("
+    511           | "response"   | false                  | null               | ":("
   }
 
   def "should cache response for s-maxage seconds if directive is present"() {
