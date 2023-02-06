@@ -346,6 +346,28 @@ class IncludeSpec extends Specification {
     511           | "response"   | false                  | null               | ":("
   }
 
+  def "investigate whether status code 300 let test fail"() {
+    given:
+    def mockWebServer = new MockWebServer()
+
+    when:
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(300))
+    def includeSrcUrl = mockWebServer.url(UUID.randomUUID().toString()).toString()
+    def resolvedInclude = new Include("...", Map.of(
+      "src", includeSrcUrl
+    ), ":(").resolve(httpClient, cache, config)
+
+    then:
+    resolvedInclude == ":("
+    cache.getIfPresent(includeSrcUrl) != null
+    cache.getIfPresent(includeSrcUrl).body == ""
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
   def "should cache response for s-maxage seconds if directive is present"() {
     given:
     def mockWebServer = new MockWebServer()
