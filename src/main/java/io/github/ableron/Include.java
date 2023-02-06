@@ -2,7 +2,6 @@ package io.github.ableron;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.annotation.Nonnull;
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -16,8 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,7 +191,7 @@ public class Include {
         try {
           return Long.parseLong(timeout);
         } catch (NumberFormatException e) {
-          logger.error("Unable to parse request timeout", e);
+          logger.error("Invalid request timeout provided: {}", timeout);
           return null;
         }
       })
@@ -213,7 +212,7 @@ public class Include {
             return true;
           }
 
-          logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
+          logger.error("Unable to load URL {}: Response status {}", uri, response.statusCode());
           return false;
         })
         .map(response -> new CachedResponse(
@@ -228,7 +227,7 @@ public class Include {
           return true;
         }
 
-        logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.getStatusCode());
+        logger.error("Unable to load URL {}: Response status {}", uri, response.getStatusCode());
         return false;
       })
       .map(CachedResponse::getBody);
@@ -236,20 +235,17 @@ public class Include {
 
   private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Duration requestTimeout) {
     try {
-      var httpResponse = CompletableFuture.supplyAsync(() -> {
-        try {
-          return httpClient.send(HttpRequest.newBuilder()
-                                   .uri(URI.create(uri))
-                                   .GET()
-                                   .build(), HttpResponse.BodyHandlers.ofString());
-        } catch (IOException | InterruptedException e) {
-          logger.error("Unable to load uri {} of ableron-include", uri, e);
-          return null;
-        }
-      }).get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS);
-      return Optional.ofNullable(httpResponse);
+      var httpRequest = HttpRequest.newBuilder()
+        .uri(URI.create(uri))
+        .GET()
+        .build();
+      var httpResponse = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString());
+      return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
+    } catch (TimeoutException e) {
+      logger.error("Unable to load URL {} within {}ms", uri, requestTimeout.toMillis());
+      return Optional.empty();
     } catch (Exception e) {
-      logger.error("Unable to load uri {} of ableron-include", uri, e);
+      logger.error("Unable to load URL {}: {}", uri, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
       return Optional.empty();
     }
   }
@@ -265,10 +261,12 @@ public class Include {
     return getCacheLifetimeBySharedCacheMaxAge(cacheControlDirectives)
       .or(() -> getCacheLifetimeByMaxAge(
         cacheControlDirectives,
-        response.headers().firstValue(HEADER_AGE).orElse(null)))
+        response.headers().firstValue(HEADER_AGE).orElse(null)
+      ))
       .or(() -> getCacheLifetimeByExpiresHeader(
         response.headers().firstValue(HEADER_EXPIRES).orElse(null),
-        response.headers().firstValue(HEADER_DATE).orElse(null)))
+        response.headers().firstValue(HEADER_DATE).orElse(null)
+      ))
       .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
       .orElse(Instant.now().plusSeconds(fallbackResponseCacheExpirationTime.toSeconds()));
   }
