@@ -106,7 +106,7 @@ public class TransclusionProcessor {
     return Caffeine.newBuilder()
       //TODO: Make maximumWeight() configurable (max size in MB)
       .maximumWeight(1024 * 1024 * 10)
-      .weigher((String url, CachedResponse response) -> response.getResponseBody().length())
+      .weigher((String url, CachedResponse response) -> response.getBody().length())
       .expireAfter(new Expiry<String, CachedResponse>() {
         public long expireAfterCreate(String url, CachedResponse response, long currentTime) {
           long milliseconds = response.getExpirationTime()

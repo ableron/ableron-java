@@ -51,11 +51,21 @@ public class Include {
   private static final String HEADER_EXPIRES = "Expires";
 
   /**
+   * List of HTTP response codes considered to be delivering responses that may be used to
+   * substitute include tags with.
+   *
+   * All successful responses are considered to be cacheable.
+   */
+  private static final List<Integer> HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES = Arrays.asList(
+    200, 203, 204, 206
+  );
+
+  /**
    * List of HTTP response codes delivering responses that may be cached.
    *
    * @link https://www.rfc-editor.org/rfc/rfc7231#section-6.1
    */
-  private static final List<Integer> CACHEABLE_HTTP_STATUS_CODES = Arrays.asList(
+  private static final List<Integer> HTTP_STATUS_CODES_CACHEABLE = Arrays.asList(
     200, 203, 204, 206,
     300,
     404, 405, 410, 414,
@@ -199,17 +209,22 @@ public class Include {
     return Optional.ofNullable(uri)
       .map(uri1 -> responseCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestTimeout)
         .filter(response -> {
-          if (CACHEABLE_HTTP_STATUS_CODES.contains(response.statusCode())) {
+          if (HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())) {
             return true;
-          } else {
-            logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
-            return false;
           }
+
+          logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.statusCode());
+          return false;
         })
-        .map(httpResponse -> new CachedResponse(httpResponse.body(), calculateResponseCacheExpirationTime(httpResponse, ableronConfig.getFallbackResponseCacheTime())))
+        .map(response -> new CachedResponse(
+          response.statusCode(),
+          HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.statusCode()) ? response.body() : "",
+          calculateResponseCacheExpirationTime(response, ableronConfig.getFallbackResponseCacheTime())
+        ))
         .orElse(null)
       ))
-      .map(CachedResponse::getResponseBody);
+      .filter(response -> HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.getStatusCode()))
+      .map(CachedResponse::getBody);
   }
 
   private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Duration requestTimeout) {

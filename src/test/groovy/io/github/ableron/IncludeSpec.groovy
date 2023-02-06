@@ -5,6 +5,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.time.Duration
 import java.time.Instant
@@ -272,7 +273,7 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    cache.put(includeSrcUrl, new CachedResponse("from cache", expirationTime))
+    cache.put(includeSrcUrl, new CachedResponse(200, "from cache", expirationTime))
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
@@ -289,7 +290,8 @@ class IncludeSpec extends Specification {
     Instant.now().minusSeconds(5) | "response from src"
   }
 
-  def "should cache http response if status code is defined as cacheable in RFC 7231 - Status Code #responsStatus"() {
+  @Unroll
+  def "should cache http response if status code is defined as cacheable in RFC 7231 - Status #responsStatus"() {
     given:
     def mockWebServer = new MockWebServer()
 
@@ -303,45 +305,46 @@ class IncludeSpec extends Specification {
     ), ":(").resolve(httpClient, cache, config)
 
     then:
-    resolvedInclude == expectedResolvedIncludeContent
+    resolvedInclude == expectedResolvedInclude
     if (expectedResponseCached) {
-      cache.getIfPresent(includeSrcUrl) != null
-      cache.getIfPresent(includeSrcUrl).responseBody == responseBody
+      assert cache.getIfPresent(includeSrcUrl) != null
+      assert cache.getIfPresent(includeSrcUrl).body == expectedCachedBody
     } else {
-      cache.getIfPresent(includeSrcUrl) == null
+      assert cache.getIfPresent(includeSrcUrl) == null
     }
 
     cleanup:
     mockWebServer.shutdown()
 
     where:
-    responsStatus | responseBody | expectedResponseCached | expectedResolvedIncludeContent
-    100           | "response"   | false                  | ":("
-    200           | "response"   | true                   | "response"
-    202           | "response"   | false                  | ":("
-    203           | "response"   | false                  | "response"
-    204           | ""           | false                  | ""
-    205           | "response"   | false                  | ":("
-    206           | "response"   | false                  | "response"
-    300           | "response"   | false                  | "response"
-    302           | "response"   | false                  | ":("
-    400           | "response"   | false                  | ":("
-    404           | "response"   | false                  | "response"
-    405           | "response"   | false                  | "response"
-    410           | "response"   | false                  | "response"
-    414           | "response"   | false                  | "response"
-    500           | "response"   | false                  | ":("
-    501           | "response"   | false                  | "response"
-    502           | "response"   | false                  | ":("
-    503           | "response"   | false                  | ":("
-    504           | "response"   | false                  | ":("
-    505           | "response"   | false                  | ":("
-    506           | "response"   | false                  | ":("
-    507           | "response"   | false                  | ":("
-    508           | "response"   | false                  | ":("
-    509           | "response"   | false                  | ":("
-    510           | "response"   | false                  | ":("
-    511           | "response"   | false                  | ":("
+    responsStatus | responseBody | expectedResponseCached | expectedCachedBody | expectedResolvedInclude
+    100           | "response"   | false                  | null               | ":("
+    200           | "response"   | true                   | "response"         | "response"
+    202           | "response"   | false                  | null               | ":("
+    203           | "response"   | true                   | "response"         | "response"
+    204           | ""           | true                   | ""                 | ""
+    205           | "response"   | false                  | null               | ":("
+    206           | "response"   | true                   | "response"         | "response"
+    // TODO: Testing status code 300 does not work on Java 11 because HttpClient fails with "IOException: Invalid redirection"
+    // 300           | "response"   | true                   | ""                 | ":("
+    302           | "response"   | false                  | null               | ":("
+    400           | "response"   | false                  | null               | ":("
+    404           | "response"   | true                   | ""                 | ":("
+    405           | "response"   | true                   | ""                 | ":("
+    410           | "response"   | true                   | ""                 | ":("
+    414           | "response"   | true                   | ""                 | ":("
+    500           | "response"   | false                  | null               | ":("
+    501           | "response"   | true                   | ""                 | ":("
+    502           | "response"   | false                  | null               | ":("
+    503           | "response"   | false                  | null               | ":("
+    504           | "response"   | false                  | null               | ":("
+    505           | "response"   | false                  | null               | ":("
+    506           | "response"   | false                  | null               | ":("
+    507           | "response"   | false                  | null               | ":("
+    508           | "response"   | false                  | null               | ":("
+    509           | "response"   | false                  | null               | ":("
+    510           | "response"   | false                  | null               | ":("
+    511           | "response"   | false                  | null               | ":("
   }
 
   def "should cache response for s-maxage seconds if directive is present"() {
