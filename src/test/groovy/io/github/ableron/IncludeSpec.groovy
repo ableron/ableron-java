@@ -603,7 +603,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
     def includeSrcUrl = mockWebServer.url("/").toString()
     def config = AbleronConfig.builder()
-      .fallbackResponseCacheTime(Duration.ofSeconds(30))
+      .fallbackResponseCacheExpirationTime(Duration.ofSeconds(30))
       .build()
 
     when:

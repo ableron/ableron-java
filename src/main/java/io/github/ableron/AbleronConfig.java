@@ -25,7 +25,14 @@ public class AbleronConfig {
    *
    * Defaults to 5 minutes.
    */
-  private Duration fallbackResponseCacheTime = Duration.ofMinutes(5);
+  private Duration fallbackResponseCacheExpirationTime = Duration.ofMinutes(5);
+
+  /**
+   * Maximum size in bytes the response cache may have.
+   *
+   * Defaults to 10 MB.
+   */
+  private long maxCacheSizeInBytes = 1024 * 1024 * 10;
 
   private AbleronConfig() {}
 
@@ -41,8 +48,12 @@ public class AbleronConfig {
     return requestTimeout;
   }
 
-  public Duration getFallbackResponseCacheTime() {
-    return fallbackResponseCacheTime;
+  public Duration getFallbackResponseCacheExpirationTime() {
+    return fallbackResponseCacheExpirationTime;
+  }
+
+  public long getMaxCacheSizeInBytes() {
+    return maxCacheSizeInBytes;
   }
 
   public static class Builder {
@@ -59,8 +70,13 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder fallbackResponseCacheTime(Duration fallbackResponseCacheTime) {
-      ableronConfig.fallbackResponseCacheTime = Objects.requireNonNull(fallbackResponseCacheTime, "fallbackResponseCacheTime must not be null");
+    public Builder fallbackResponseCacheExpirationTime(Duration fallbackResponseCacheExpirationTime) {
+      ableronConfig.fallbackResponseCacheExpirationTime = Objects.requireNonNull(fallbackResponseCacheExpirationTime, "fallbackResponseCacheExpirationTime must not be null");
+      return this;
+    }
+
+    public Builder maxCacheSizeInBytes(long maxCacheSizeInBytes) {
+      ableronConfig.maxCacheSizeInBytes = maxCacheSizeInBytes;
       return this;
     }
 

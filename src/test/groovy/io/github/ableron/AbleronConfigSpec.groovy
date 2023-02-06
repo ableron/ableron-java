@@ -14,7 +14,8 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       enabled
       requestTimeout == Duration.ofSeconds(5)
-      fallbackResponseCacheTime == Duration.ofMinutes(5)
+      fallbackResponseCacheExpirationTime == Duration.ofMinutes(5)
+      maxCacheSizeInBytes == 1024 * 1024 * 10
     }
   }
 
@@ -23,14 +24,16 @@ class AbleronConfigSpec extends Specification {
     def config = AbleronConfig.builder()
       .enabled(false)
       .requestTimeout(Duration.ofMillis(200))
-      .fallbackResponseCacheTime(Duration.ofMinutes(15))
+      .fallbackResponseCacheExpirationTime(Duration.ofMinutes(15))
+      .maxCacheSizeInBytes(1024 * 100)
       .build()
 
     then:
     with(config) {
       !enabled
       requestTimeout == Duration.ofMillis(200)
-      fallbackResponseCacheTime == Duration.ofMinutes(15)
+      fallbackResponseCacheExpirationTime == Duration.ofMinutes(15)
+      maxCacheSizeInBytes == 1024 * 100
     }
   }
 
@@ -45,14 +48,14 @@ class AbleronConfigSpec extends Specification {
     exception.message == "requestTimeout must not be null"
   }
 
-  def "should throw exception if fallbackResponseCacheTime is tried to be set to null"() {
+  def "should throw exception if fallbackResponseCacheExpirationTime is tried to be set to null"() {
     when:
     AbleronConfig.builder()
-      .fallbackResponseCacheTime(null)
+      .fallbackResponseCacheExpirationTime(null)
       .build()
 
     then:
     def exception = thrown(NullPointerException)
-    exception.message == "fallbackResponseCacheTime must not be null"
+    exception.message == "fallbackResponseCacheExpirationTime must not be null"
   }
 }
