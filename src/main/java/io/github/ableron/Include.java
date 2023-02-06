@@ -223,7 +223,14 @@ public class Include {
         ))
         .orElse(null)
       ))
-      .filter(response -> HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.getStatusCode()))
+      .filter(response -> {
+        if (HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.getStatusCode())) {
+          return true;
+        }
+
+        logger.error("Unable to load uri {} of ableron-include. Response status was {}", uri, response.getStatusCode());
+        return false;
+      })
       .map(CachedResponse::getBody);
   }
 
