@@ -5,6 +5,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.time.Duration
 import java.time.Instant
@@ -272,7 +273,7 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    cache.put(includeSrcUrl, new CachedResponse("from cache", expirationTime))
+    cache.put(includeSrcUrl, new CachedResponse(200, "from cache", expirationTime))
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
     ), null).resolve(httpClient, cache, config)
@@ -289,7 +290,8 @@ class IncludeSpec extends Specification {
     Instant.now().minusSeconds(5) | "response from src"
   }
 
-  def "should cache http response if status code is defined as cacheable in RFC 7231 - Status Code #responsStatus"() {
+  @Unroll
+  def "should cache http response if status code is defined as cacheable in RFC 7231 - Status #responsStatus"() {
     given:
     def mockWebServer = new MockWebServer()
 
@@ -305,10 +307,10 @@ class IncludeSpec extends Specification {
     then:
     resolvedInclude == expectedResolvedIncludeContent
     if (expectedResponseCached) {
-      cache.getIfPresent(includeSrcUrl) != null
-      cache.getIfPresent(includeSrcUrl).responseBody == responseBody
+      assert cache.getIfPresent(includeSrcUrl) != null
+      assert cache.getIfPresent(includeSrcUrl).body == responseBody
     } else {
-      cache.getIfPresent(includeSrcUrl) == null
+      assert cache.getIfPresent(includeSrcUrl) == null
     }
 
     cleanup:
@@ -319,19 +321,19 @@ class IncludeSpec extends Specification {
     100           | "response"   | false                  | ":("
     200           | "response"   | true                   | "response"
     202           | "response"   | false                  | ":("
-    203           | "response"   | false                  | "response"
-    204           | ""           | false                  | ""
+    203           | "response"   | true                   | "response"
+    204           | ""           | true                   | ""
     205           | "response"   | false                  | ":("
-    206           | "response"   | false                  | "response"
-    300           | "response"   | false                  | "response"
+    206           | "response"   | true                   | "response"
+    300           | "response"   | true                   | ":("
     302           | "response"   | false                  | ":("
     400           | "response"   | false                  | ":("
-    404           | "response"   | false                  | "response"
-    405           | "response"   | false                  | "response"
-    410           | "response"   | false                  | "response"
-    414           | "response"   | false                  | "response"
+    404           | "response"   | true                   | ":("
+    405           | "response"   | true                   | ":("
+    410           | "response"   | true                   | ":("
+    414           | "response"   | true                   | ":("
     500           | "response"   | false                  | ":("
-    501           | "response"   | false                  | "response"
+    501           | "response"   | true                   | ":("
     502           | "response"   | false                  | ":("
     503           | "response"   | false                  | ":("
     504           | "response"   | false                  | ":("

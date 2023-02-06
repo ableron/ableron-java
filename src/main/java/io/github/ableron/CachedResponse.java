@@ -6,16 +6,22 @@ import java.util.Objects;
 
 public class CachedResponse {
 
-  private final String responseBody;
+  private final int statusCode;
+  private final String body;
   private final Instant expirationTime;
 
-  public CachedResponse(@Nonnull String responseBody, @Nonnull Instant expirationTime) {
-    this.responseBody = Objects.requireNonNull(responseBody, "responseBody must not be null");
+  public CachedResponse(int statusCode, @Nonnull String body, @Nonnull Instant expirationTime) {
+    this.statusCode = statusCode;
+    this.body = Objects.requireNonNull(body, "body must not be null");
     this.expirationTime = Objects.requireNonNull(expirationTime, "expirationTime must not be null");
   }
 
-  public String getResponseBody() {
-    return responseBody;
+  public int getStatusCode() {
+    return statusCode;
+  }
+
+  public String getBody() {
+    return body;
   }
 
   public Instant getExpirationTime() {
