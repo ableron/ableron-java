@@ -45,7 +45,7 @@ public class TransclusionProcessor {
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
     this.httpClient = buildHttpClient();
-    this.responseCache = buildCache();
+    this.responseCache = buildCache(this.ableronConfig.getMaxCacheSizeInBytes());
   }
 
   public HttpClient getHttpClient() {
@@ -102,10 +102,9 @@ public class TransclusionProcessor {
       .build();
   }
 
-  private Cache<String, CachedResponse> buildCache() {
+  private Cache<String, CachedResponse> buildCache(long maxCacheSizeInBytes) {
     return Caffeine.newBuilder()
-      //TODO: Make maximumWeight() configurable (max size in MB)
-      .maximumWeight(1024 * 1024 * 10)
+      .maximumWeight(maxCacheSizeInBytes)
       .weigher((String url, CachedResponse response) -> response.getBody().length())
       .expireAfter(new Expiry<String, CachedResponse>() {
         public long expireAfterCreate(String url, CachedResponse response, long currentTime) {
