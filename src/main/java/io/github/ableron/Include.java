@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -106,7 +107,7 @@ public class Include {
   /**
    * Resolved include content.
    */
-  private String resolvedInclude = null;
+  private CompletableFuture<String> resolvedInclude = null;
 
   /**
    * Constructs a new Include.
@@ -174,12 +175,14 @@ public class Include {
    * @param ableronConfig Global ableron configuration
    * @return Content of the resolved include
    */
-  public String resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
+  public CompletableFuture<String> resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
     if (resolvedInclude == null) {
-      resolvedInclude = load(src, httpClient, responseCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
-        .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig, getRequestTimeout(fallbackSrcTimeout, ableronConfig)))
-        .or(() -> Optional.ofNullable(fallbackContent))
-        .orElse("");
+      resolvedInclude = CompletableFuture.supplyAsync(
+        () -> load(src, httpClient, responseCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
+          .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig, getRequestTimeout(fallbackSrcTimeout, ableronConfig)))
+          .or(() -> Optional.ofNullable(fallbackContent))
+          .orElse("")
+      );
     }
 
     return resolvedInclude;

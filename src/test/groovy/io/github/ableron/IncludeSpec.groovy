@@ -104,7 +104,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", mockWebServer.url("/fragment").toString()
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "response"
@@ -128,7 +128,7 @@ class IncludeSpec extends Specification {
     def resolvedInclude = new Include("...", Map.of(
       "src", mockWebServer.url("/fragment").toString(),
       "fallback-src", mockWebServer.url("/fallback-fragment").toString()
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "response from fallback-src"
@@ -153,7 +153,7 @@ class IncludeSpec extends Specification {
     def resolvedInclude = new Include("...", Map.of(
       "src", mockWebServer.url("/fragment").toString(),
       "fallback-src", mockWebServer.url("/fallback-fragment").toString()
-    ), "fallback content").resolve(httpClient, cache, config)
+    ), "fallback content").resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "fallback content"
@@ -166,7 +166,7 @@ class IncludeSpec extends Specification {
 
   def "should resolve include to empty string if src, fallback src and fallback content are not present"() {
     expect:
-    new Include("...", Map.of(), null).resolve(httpClient, cache, config) == ""
+    new Include("...", Map.of(), null).resolve(httpClient, cache, config).get() == ""
   }
 
   def "should follow redirects when resolving URLs"() {
@@ -185,7 +185,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "response after redirect"
@@ -205,7 +205,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", mockWebServer.url("/").toString()
-    ), "fallback").resolve(httpClient, cache, config)
+    ), "fallback").resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "fallback"
@@ -225,7 +225,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", mockWebServer.url("/").toString()
-    ), "fallback").resolve(httpClient, cache, config)
+    ), "fallback").resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "fallback"
@@ -249,7 +249,7 @@ class IncludeSpec extends Specification {
 
     then:
     new Include("...", attributes, null)
-      .resolve(httpClient, cache, config) == expectedResolvedInclude
+      .resolve(httpClient, cache, config).get() == expectedResolvedInclude
 
     cleanup:
     mockWebServer.shutdown()
@@ -276,7 +276,7 @@ class IncludeSpec extends Specification {
     cache.put(includeSrcUrl, new CachedResponse(200, "from cache", expirationTime))
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == expectedResolvedInclude
@@ -302,7 +302,7 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url(UUID.randomUUID().toString()).toString()
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), ":(").resolve(httpClient, cache, config)
+    ), ":(").resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == expectedResolvedInclude
@@ -360,7 +360,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -385,7 +385,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -409,7 +409,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -435,7 +435,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -461,7 +461,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -486,7 +486,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -509,7 +509,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "response"
@@ -532,7 +532,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -556,7 +556,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "response"
@@ -578,7 +578,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
     def resolvedInclude = new Include("...", Map.of(
       "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
 
     then:
     resolvedInclude == "response"
@@ -609,7 +609,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config)
+    ), null).resolve(httpClient, cache, config).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:

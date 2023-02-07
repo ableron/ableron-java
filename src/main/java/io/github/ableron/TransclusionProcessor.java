@@ -7,9 +7,13 @@ import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransclusionProcessor {
 
@@ -25,6 +29,8 @@ public class TransclusionProcessor {
   private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)=\"([^\"]+)\"");
 
   private static final long NANO_2_MILLIS = 1000000L;
+
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   private final AbleronConfig ableronConfig;
 
@@ -81,13 +87,16 @@ public class TransclusionProcessor {
   public TransclusionResult resolveIncludes(String content) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult();
-    var includes = findIncludes(content);
+    var includes = findIncludes(content)
+      .stream()
+      .collect(Collectors.toMap(include -> include, include -> include.resolve(httpClient, responseCache, ableronConfig)));
 
-    //TODO: Improve performance: Resolve all includes in parallel immediately after finding them
-    //TODO: Improve performance: Replace include tags in the order of finished resolving. First resolved include should be replaced first
-
-    for (Include include : includes) {
-      content = content.replace(include.getRawInclude(), include.resolve(httpClient, responseCache, ableronConfig));
+    for (Map.Entry<Include, CompletableFuture<String>> include : includes.entrySet()) {
+      try {
+        content = content.replace(include.getKey().getRawInclude(), include.getValue().get());
+      } catch (InterruptedException | ExecutionException e) {
+        logger.error("Resolving include failed", e);
+      }
     }
 
     transclusionResult.setProcessedIncludesCount(includes.size());
