@@ -7,9 +7,14 @@ import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransclusionProcessor {
 
@@ -26,6 +31,8 @@ public class TransclusionProcessor {
 
   private static final long NANO_2_MILLIS = 1000000L;
 
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+
   private final AbleronConfig ableronConfig;
 
   /**
@@ -37,6 +44,11 @@ public class TransclusionProcessor {
    * Cache for HTTP responses.
    */
   private final Cache<String, CachedResponse> responseCache;
+
+  /**
+   * Thread pool used to resolve includes in parallel.
+   */
+  private final ExecutorService resolveThreadPool = Executors.newFixedThreadPool(64);
 
   public TransclusionProcessor() {
     this(null);
@@ -78,20 +90,25 @@ public class TransclusionProcessor {
    * @param content The content to resolve the includes of
    * @return Content with resolved includes
    */
-  public TransclusionResult resolveIncludes(String content) {
+  public TransclusionResult resolveIncludes(Content content) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult();
-    var includes = findIncludes(content);
-
-    //TODO: Improve performance: Resolve all includes in parallel immediately after finding them
-    //TODO: Improve performance: Replace include tags in the order of finished resolving. First resolved include should be replaced first
-
-    for (Include include : includes) {
-      content = content.replace(include.getRawInclude(), include.resolve(httpClient, responseCache, ableronConfig));
-    }
-
+    var includes = findIncludes(content.get())
+      .stream()
+      .map(include -> include.resolve(httpClient, responseCache, ableronConfig, resolveThreadPool)
+        .thenApplyAsync(s -> {
+          content.replace(include.getRawInclude(), s);
+          return s;
+        })
+        .exceptionally(throwable -> {
+          logger.error("Resolving include failed", throwable);
+          return null;
+        })
+      )
+      .collect(Collectors.toList());
+    CompletableFuture.allOf(includes.toArray(new CompletableFuture[0])).join();
     transclusionResult.setProcessedIncludesCount(includes.size());
-    transclusionResult.setContent(content);
+    transclusionResult.setContent(content.get());
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
   }

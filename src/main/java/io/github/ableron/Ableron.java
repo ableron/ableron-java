@@ -22,11 +22,11 @@ public class Ableron {
   }
 
   /**
-   * @see TransclusionProcessor#resolveIncludes(String)
+   * @see TransclusionProcessor#resolveIncludes(Content)
    */
   public TransclusionResult resolveIncludes(String content) {
     if (ableronConfig.isEnabled()) {
-      var transclusionResult = transclusionProcessor.resolveIncludes(content);
+      var transclusionResult = transclusionProcessor.resolveIncludes(Content.of(content));
       logger.debug("Ableron UI composition processed {} includes in {}ms", transclusionResult.getProcessedIncludesCount(), transclusionResult.getProcessingTimeMillis());
       return transclusionResult;
     }
