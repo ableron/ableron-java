@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -173,15 +174,16 @@ public class Include {
    * @param httpClient HTTP client used to resolve this include
    * @param responseCache Cache for HTTP responses
    * @param ableronConfig Global ableron configuration
+   * @param resolveThreadPool Thread pool to use for resolving
    * @return Content of the resolved include
    */
-  public CompletableFuture<String> resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig) {
+  public CompletableFuture<String> resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
       resolvedInclude = CompletableFuture.supplyAsync(
         () -> load(src, httpClient, responseCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
           .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig, getRequestTimeout(fallbackSrcTimeout, ableronConfig)))
           .or(() -> Optional.ofNullable(fallbackContent))
-          .orElse("")
+          .orElse(""), resolveThreadPool
       );
     }
 

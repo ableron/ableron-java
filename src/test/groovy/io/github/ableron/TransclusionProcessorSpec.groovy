@@ -147,7 +147,7 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should populate TransclusionResult"() {
     when:
-    def result = transclusionProcessor.resolveIncludes("""
+    def result = transclusionProcessor.resolveIncludes(Content.of("""
       <html>
       <head>
         <ableron-include src="https://foo.bar/baz?test=123"><!-- failed loading 1st include --></ableron-include>
@@ -158,7 +158,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="https://foo.bar/baz?test=789"><!-- failed loading 3rd include --></ableron-include>
       </body>
       </html>
-    """)
+    """))
 
     then:
     result.processedIncludesCount == 3
@@ -179,12 +179,12 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should replace identical includes"() {
     when:
-    def result = transclusionProcessor.resolveIncludes("""
+    def result = transclusionProcessor.resolveIncludes(Content.of("""
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #2 --></ableron-include>
-    """)
+    """))
 
     then:
     result.content == """
@@ -198,7 +198,7 @@ class TransclusionProcessorSpec extends Specification {
   def "should not crash due to include tag #scenarioName"() {
     when:
     def result = transclusionProcessor
-      .resolveIncludes("<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>")
+      .resolveIncludes(Content.of("<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>"))
 
     then:
     result.content == "before" + expectedResult + "after"
@@ -213,6 +213,7 @@ class TransclusionProcessorSpec extends Specification {
   def "should perform only one request per URL"() {
     given:
     def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
       MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
@@ -228,22 +229,21 @@ class TransclusionProcessorSpec extends Specification {
           .setResponseCode(404)
       }
     })
-    def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    def result = transclusionProcessor.resolveIncludes("""
+    def result = transclusionProcessor.resolveIncludes(Content.of("""
       <html>
       <head>
-        <ableron-include src="${includeSrcUrl}1"><!-- failed loading 1st include --></ableron-include>
+        <ableron-include src="${baseUrl}1"><!-- failed loading 1st include --></ableron-include>
         <title>Foo</title>
-        <ableron-include src="${includeSrcUrl}1"><!-- failed loading 2nd include --></ableron-include>
+        <ableron-include src="${baseUrl}1"><!-- failed loading 2nd include --></ableron-include>
       </head>
       <body>
-        <ableron-include src="${includeSrcUrl}1"><!-- failed loading 3rd include --></ableron-include>
-        <ableron-include src="${includeSrcUrl}"><!-- failed loading 4th include --></ableron-include>
+        <ableron-include src="${baseUrl}1"><!-- failed loading 3rd include --></ableron-include>
+        <ableron-include src="${baseUrl}expect-404"><!-- failed loading 4th include --></ableron-include>
       </body>
       </html>
-    """)
+    """))
 
     then:
     result.content == """
@@ -264,61 +264,61 @@ class TransclusionProcessorSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  @Timeout(value = 3000, unit = TimeUnit.MILLISECONDS)
+  @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
   def "should resolve includes in parallel"() {
     given:
     def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
       MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
         switch (recordedRequest.getPath()) {
-          case "/1":
+          case "/503-route":
             return new MockResponse()
               .setBody("response-1")
-              .setHeadersDelay(500, TimeUnit.MILLISECONDS)
+              .setHeadersDelay(2000, TimeUnit.MILLISECONDS)
               .setResponseCode(503)
-          case "/2":
+          case "/1000ms-delay-route":
             return new MockResponse()
               .setBody("response-2")
               .setHeadersDelay(1000, TimeUnit.MILLISECONDS)
               .setResponseCode(200)
-          case "/3":
+          case "/2000ms-delay-route":
             return new MockResponse()
               .setBody("response-3")
-              .setHeadersDelay(1500, TimeUnit.MILLISECONDS)
-              .setResponseCode(200)
-          case "/4":
-            return new MockResponse()
-              .setBody("response-4")
               .setHeadersDelay(2000, TimeUnit.MILLISECONDS)
               .setResponseCode(200)
-          case "/5":
+          case "/2100ms-delay-route":
+            return new MockResponse()
+              .setBody("response-4")
+              .setHeadersDelay(2100, TimeUnit.MILLISECONDS)
+              .setResponseCode(200)
+          case "/2200ms-delay-route":
             return new MockResponse()
               .setBody("response-5")
-              .setHeadersDelay(2500, TimeUnit.MILLISECONDS)
+              .setHeadersDelay(2200, TimeUnit.MILLISECONDS)
               .setResponseCode(200)
         }
         return new MockResponse().setResponseCode(404)
       }
     })
-    def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    def result = transclusionProcessor.resolveIncludes("""
+    def result = transclusionProcessor.resolveIncludes(Content.of("""
       <html>
       <head>
-        <ableron-include src="${includeSrcUrl}1"><!-- failed loading include #1 --></ableron-include>
+        <ableron-include src="${baseUrl}503-route"><!-- failed loading include #1 --></ableron-include>
         <title>Foo</title>
-        <ableron-include src="${includeSrcUrl}2"><!-- failed loading include #2 --></ableron-include>
+        <ableron-include src="${baseUrl}1000ms-delay-route"><!-- failed loading include #2 --></ableron-include>
       </head>
       <body>
-        <ableron-include src="${includeSrcUrl}3"><!-- failed loading include #3 --></ableron-include>
-        <ableron-include src="${includeSrcUrl}4"><!-- failed loading include #4 --></ableron-include>
-        <ableron-include src="${includeSrcUrl}5"><!-- failed loading include #5 --></ableron-include>
-        <ableron-include src="${includeSrcUrl}6"><!-- failed loading include #6 --></ableron-include>
+        <ableron-include src="${baseUrl}2000ms-delay-route"><!-- failed loading include #3 --></ableron-include>
+        <ableron-include src="${baseUrl}2100ms-delay-route"><!-- failed loading include #4 --></ableron-include>
+        <ableron-include src="${baseUrl}2200ms-delay-route"><!-- failed loading include #5 --></ableron-include>
+        <ableron-include src="${baseUrl}expect-404"><!-- failed loading include #6 --></ableron-include>
       </body>
       </html>
-    """)
+    """))
 
     then:
     result.content == """

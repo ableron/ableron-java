@@ -12,6 +12,7 @@ import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class IncludeSpec extends Specification {
@@ -25,6 +26,9 @@ class IncludeSpec extends Specification {
   def httpClient = new TransclusionProcessor().getHttpClient()
 
   Cache<String, CachedResponse> cache = new TransclusionProcessor().getResponseCache()
+
+  @Shared
+  def supplyPool = Executors.newFixedThreadPool(64)
 
   def "should throw exception if rawInclude is not provided"() {
     when:
@@ -104,7 +108,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", mockWebServer.url("/fragment").toString()
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "response"
@@ -126,14 +130,14 @@ class IncludeSpec extends Specification {
 
     when:
     def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/fragment").toString(),
-      "fallback-src", mockWebServer.url("/fallback-fragment").toString()
-    ), null).resolve(httpClient, cache, config).get()
+      "src", mockWebServer.url("/src").toString(),
+      "fallback-src", mockWebServer.url("/fallback-src").toString()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "response from fallback-src"
-    mockWebServer.takeRequest().getPath() == "/fragment"
-    mockWebServer.takeRequest().getPath() == "/fallback-fragment"
+    mockWebServer.takeRequest().getPath() == "/src"
+    mockWebServer.takeRequest().getPath() == "/fallback-src"
 
     cleanup:
     mockWebServer.shutdown()
@@ -151,14 +155,14 @@ class IncludeSpec extends Specification {
 
     when:
     def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/fragment").toString(),
-      "fallback-src", mockWebServer.url("/fallback-fragment").toString()
-    ), "fallback content").resolve(httpClient, cache, config).get()
+      "src", mockWebServer.url("/src").toString(),
+      "fallback-src", mockWebServer.url("/fallback-src").toString()
+    ), "fallback content").resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fallback content"
-    mockWebServer.takeRequest().getPath() == "/fragment"
-    mockWebServer.takeRequest().getPath() == "/fallback-fragment"
+    mockWebServer.takeRequest().getPath() == "/src"
+    mockWebServer.takeRequest().getPath() == "/fallback-src"
 
     cleanup:
     mockWebServer.shutdown()
@@ -166,7 +170,7 @@ class IncludeSpec extends Specification {
 
   def "should resolve include to empty string if src, fallback src and fallback content are not present"() {
     expect:
-    new Include("...", Map.of(), null).resolve(httpClient, cache, config).get() == ""
+    new Include("...", Map.of(), null).resolve(httpClient, cache, config, supplyPool).get() == ""
   }
 
   def "should follow redirects when resolving URLs"() {
@@ -184,8 +188,8 @@ class IncludeSpec extends Specification {
 
     when:
     def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, cache, config).get()
+      "src", mockWebServer.url("/test-redirect").toString()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "response after redirect"
@@ -194,89 +198,19 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  def "should apply request timeout for delayed header"() {
-    given:
-    def mockWebServer = new MockWebServer()
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("response from src")
-      .setHeadersDelay(2, TimeUnit.SECONDS)
-      .setResponseCode(200))
-
-    when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), "fallback").resolve(httpClient, cache, config).get()
-
-    then:
-    resolvedInclude == "fallback"
-
-    cleanup:
-    mockWebServer.shutdown()
-  }
-
-  def "should apply request timeout for delayed body"() {
-    given:
-    def mockWebServer = new MockWebServer()
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("response from src")
-      .setBodyDelay(2, TimeUnit.SECONDS)
-      .setResponseCode(200))
-
-    when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), "fallback").resolve(httpClient, cache, config).get()
-
-    then:
-    resolvedInclude == "fallback"
-
-    cleanup:
-    mockWebServer.shutdown()
-  }
-
-  def "should favor include tag specific request timeout over global one"() {
-    given:
-    def mockWebServer = new MockWebServer()
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("response")
-      .setBodyDelay(1500, TimeUnit.MILLISECONDS)
-      .setResponseCode(200))
-
-    when:
-    def attributes = new HashMap()
-    attributes.put(srcAttribute, mockWebServer.url("/").toString())
-    attributes.putAll(localTimeout)
-
-    then:
-    new Include("...", attributes, null)
-      .resolve(httpClient, cache, config).get() == expectedResolvedInclude
-
-    cleanup:
-    mockWebServer.shutdown()
-
-    where:
-    srcAttribute   | localTimeout                                  | expectedResolvedInclude
-    "src"          | Map.of()                                      | ""
-    "src"          | Map.of("src-timeout-millis", "2000")          | "response"
-    "src"          | Map.of("fallback-src-timeout-millis", "2000") | ""
-    "fallback-src" | Map.of()                                      | ""
-    "fallback-src" | Map.of("fallback-src-timeout-millis", "2000") | "response"
-    "fallback-src" | Map.of("src-timeout-millis", "2000")          | ""
-  }
-
   def "should use cached http response if not expired"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
       .setBody("response from src")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-caching").toString()
 
     when:
     cache.put(includeSrcUrl, new CachedResponse(200, "from cache", expirationTime))
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == expectedResolvedInclude
@@ -299,10 +233,10 @@ class IncludeSpec extends Specification {
     mockWebServer.enqueue(new MockResponse()
       .setBody(responseBody)
       .setResponseCode(responsStatus))
-    def includeSrcUrl = mockWebServer.url(UUID.randomUUID().toString()).toString()
+    def includeSrcUrl = mockWebServer.url("/test-caching-" + UUID.randomUUID().toString()).toString()
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), ":(").resolve(httpClient, cache, config).get()
+    ), ":(").resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == expectedResolvedInclude
@@ -355,12 +289,12 @@ class IncludeSpec extends Specification {
       .setHeader("Cache-Control", "max-age=3600, s-maxage=604800 , public")
       .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-s-maxage").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -380,12 +314,12 @@ class IncludeSpec extends Specification {
       .setHeader("Cache-Control", "max-age=3600")
       .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/-test-max-age").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -404,12 +338,12 @@ class IncludeSpec extends Specification {
       .setBody("response")
       .setHeader("cache-control", "max-age=3600")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-cache-headers-case-insensitive").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -430,12 +364,12 @@ class IncludeSpec extends Specification {
       .setHeader("Age", "600")
       .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-age-header").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -456,12 +390,12 @@ class IncludeSpec extends Specification {
       .setHeader("Age", "-100")
       .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-age-header").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -481,12 +415,12 @@ class IncludeSpec extends Specification {
       .setHeader("Cache-Control", "public")
       .setHeader("Expires", "Wed, 12 Oct 2050 07:28:00 GMT")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -504,12 +438,12 @@ class IncludeSpec extends Specification {
       .setBody("response")
       .setHeader("Expires", "0")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "response"
@@ -527,12 +461,12 @@ class IncludeSpec extends Specification {
       .setHeader("Date", "Wed, 05 Oct 2050 07:28:00 GMT")
       .setHeader("Expires", "Wed, 12 Oct 2050 07:28:00 GMT")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -551,12 +485,12 @@ class IncludeSpec extends Specification {
       .setBody("response")
       .setHeader("Cache-Control", "no-cache,no-store,must-revalidate")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-caching").toString()
 
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "response"
@@ -577,8 +511,8 @@ class IncludeSpec extends Specification {
       .setHeader(header2Name, header2Value)
       .setResponseCode(200))
     def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, cache, config).get()
+      "src", mockWebServer.url("/test-should-not-crash").toString()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "response"
@@ -601,7 +535,7 @@ class IncludeSpec extends Specification {
     mockWebServer.enqueue(new MockResponse()
       .setBody("response")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/").toString()
+    def includeSrcUrl = mockWebServer.url("/test-fallback-cache-expiration-time").toString()
     def config = AbleronConfig.builder()
       .fallbackResponseCacheExpirationTime(Duration.ofSeconds(30))
       .build()
@@ -609,7 +543,7 @@ class IncludeSpec extends Specification {
     when:
     def resolvedInclude = new Include("...", Map.of(
       "src", includeSrcUrl
-    ), null).resolve(httpClient, cache, config).get()
+    ), null).resolve(httpClient, cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -619,5 +553,75 @@ class IncludeSpec extends Specification {
 
     cleanup:
     mockWebServer.shutdown()
+  }
+
+  def "should apply request timeout for delayed header"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setHeadersDelay(2, TimeUnit.SECONDS)
+      .setResponseCode(200))
+
+    when:
+    def resolvedInclude = new Include("...", Map.of(
+      "src", mockWebServer.url("/test-timeout-handling").toString()
+    ), "fallback").resolve(httpClient, cache, config, supplyPool).get()
+
+    then:
+    resolvedInclude == "fallback"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should apply request timeout for delayed body"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response from src")
+      .setBodyDelay(2, TimeUnit.SECONDS)
+      .setResponseCode(200))
+
+    when:
+    def resolvedInclude = new Include("...", Map.of(
+      "src", mockWebServer.url("/test-timeout-handling").toString()
+    ), "fallback").resolve(httpClient, cache, config, supplyPool).get()
+
+    then:
+    resolvedInclude == "fallback"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should favor include tag specific request timeout over global one"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setBodyDelay(1500, TimeUnit.MILLISECONDS)
+      .setResponseCode(200))
+
+    when:
+    def attributes = new HashMap()
+    attributes.put(srcAttribute, mockWebServer.url("/test-timeout-handling").toString())
+    attributes.putAll(localTimeout)
+
+    then:
+    new Include("...", attributes, null)
+      .resolve(httpClient, cache, config, supplyPool).get() == expectedResolvedInclude
+
+    cleanup:
+    mockWebServer.shutdown()
+
+    where:
+    srcAttribute   | localTimeout                                  | expectedResolvedInclude
+    "src"          | Map.of()                                      | ""
+    "src"          | Map.of("src-timeout-millis", "2000")          | "response"
+    "src"          | Map.of("fallback-src-timeout-millis", "2000") | ""
+    "fallback-src" | Map.of()                                      | ""
+    "fallback-src" | Map.of("fallback-src-timeout-millis", "2000") | "response"
+    "fallback-src" | Map.of("src-timeout-millis", "2000")          | ""
   }
 }

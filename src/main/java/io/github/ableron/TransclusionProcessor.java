@@ -8,7 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -43,6 +44,11 @@ public class TransclusionProcessor {
    * Cache for HTTP responses.
    */
   private final Cache<String, CachedResponse> responseCache;
+
+  /**
+   * Thread pool used to resolve includes in parallel.
+   */
+  private final ExecutorService resolveThreadPool = Executors.newFixedThreadPool(64);
 
   public TransclusionProcessor() {
     this(null);
@@ -84,23 +90,25 @@ public class TransclusionProcessor {
    * @param content The content to resolve the includes of
    * @return Content with resolved includes
    */
-  public TransclusionResult resolveIncludes(String content) {
+  public TransclusionResult resolveIncludes(Content content) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult();
-    var includes = findIncludes(content)
+    var includes = findIncludes(content.get())
       .stream()
-      .collect(Collectors.toMap(include -> include, include -> include.resolve(httpClient, responseCache, ableronConfig)));
-
-    for (Map.Entry<Include, CompletableFuture<String>> include : includes.entrySet()) {
-      try {
-        content = content.replace(include.getKey().getRawInclude(), include.getValue().get());
-      } catch (InterruptedException | ExecutionException e) {
-        logger.error("Resolving include failed", e);
-      }
-    }
-
+      .map(include -> include.resolve(httpClient, responseCache, ableronConfig, resolveThreadPool)
+        .thenApplyAsync(s -> {
+          content.replace(include.getRawInclude(), s);
+          return s;
+        })
+        .exceptionally(throwable -> {
+          logger.error("Resolving include failed", throwable);
+          return null;
+        })
+      )
+      .collect(Collectors.toList());
+    CompletableFuture.allOf(includes.toArray(new CompletableFuture[0])).join();
     transclusionResult.setProcessedIncludesCount(includes.size());
-    transclusionResult.setContent(content);
+    transclusionResult.setContent(content.get());
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
   }
