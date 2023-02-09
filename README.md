@@ -13,13 +13,13 @@ Maven:
 <dependency>
   <groupId>io.github.ableron</groupId>
   <artifactId>ableron</artifactId>
-  <version>0.0.1</version>
+  <version>1.0.0</version>
 </dependency>
 ```
 Gradle:
 ```groovy
 dependencies {
-  implementation 'io.github.ableron:ableron:0.0.1'
+  implementation 'io.github.ableron:ableron:1.0.0'
 }
 ```
 
@@ -36,13 +36,13 @@ dependencies {
        <ableron-include src="https://load-head-fragment-from-here" />
      </head>
      <body>
-       <ableron-include src="https://load-body-fragment-from-here" />
+       <ableron-include src="https://load-body-fragment-from-here" fallback-src="https://load-body-fragment-fallback-from-here"><!-- Fallback content goes here --></ableron-include>
      </body>
    </html>
    ```
 1. Apply transclusion to response if applicable (HTTP response status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
    ```java
-   TransclusionResult transclusionResult = ableron.applyTransclusion(originalResponseBody);
+   TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody);
    String processedResponseBody = transclusionResult.getContent();
    ```
 
