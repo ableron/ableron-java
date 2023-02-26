@@ -1,6 +1,5 @@
 package io.github.ableron;
 
-import jakarta.annotation.Nonnull;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +15,7 @@ public class Ableron {
    *
    * @param ableronConfig The Ableron configuration
    */
-  public Ableron(@Nonnull AbleronConfig ableronConfig) {
+  public Ableron(AbleronConfig ableronConfig) {
     this.ableronConfig = Objects.requireNonNull(ableronConfig, "ableronConfig must not be null");
     this.transclusionProcessor = new TransclusionProcessor(ableronConfig);
   }

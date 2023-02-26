@@ -12,13 +12,13 @@ Maven:
 <dependency>
   <groupId>io.github.ableron</groupId>
   <artifactId>ableron</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 Gradle:
 ```groovy
 dependencies {
-  implementation 'io.github.ableron:ableron:1.0.0'
+  implementation 'io.github.ableron:ableron:1.0.1'
 }
 ```
 

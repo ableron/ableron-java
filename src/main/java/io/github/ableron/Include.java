@@ -1,7 +1,6 @@
 package io.github.ableron;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import jakarta.annotation.Nonnull;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -117,7 +116,7 @@ public class Include {
    * @param attributes Attributes of the include tag
    * @param fallbackContent Fallback content to use in case the include could not be resolved
    */
-  public Include(@Nonnull String rawInclude, @Nonnull Map<String, String> attributes, String fallbackContent) {
+  public Include(String rawInclude, Map<String, String> attributes, String fallbackContent) {
     this.rawInclude = Objects.requireNonNull(rawInclude, "rawInclude must not be null");
     this.src = Objects.requireNonNull(attributes, "attributes must not be null").get(ATTR_SOURCE);
     this.srcTimeout = parseTimeout(attributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
@@ -177,7 +176,7 @@ public class Include {
    * @param resolveThreadPool Thread pool to use for resolving
    * @return Content of the resolved include
    */
-  public CompletableFuture<String> resolve(@Nonnull HttpClient httpClient, @Nonnull Cache<String, CachedResponse> responseCache, @Nonnull AbleronConfig ableronConfig, ExecutorService resolveThreadPool) {
+  public CompletableFuture<String> resolve(HttpClient httpClient, Cache<String, CachedResponse> responseCache, AbleronConfig ableronConfig, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
       resolvedInclude = CompletableFuture.supplyAsync(
         () -> load(src, httpClient, responseCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
