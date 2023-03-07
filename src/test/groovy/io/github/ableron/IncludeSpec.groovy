@@ -524,7 +524,7 @@ class IncludeSpec extends Specification {
     header1Name     | header1Value                    | header2Name | header2Value
     "Cache-Control" | "s-maxage=not-numeric"          | "X-Dummy"   | "dummy"
     "Cache-Control" | "max-age=not-numeric"           | "X-Dummy"   | "dummy"
-    "Cache-Control" | "max-age=3600"                  | "Age"       | "600"
+    "Cache-Control" | "max-age=3600"                  | "Age"       | "not-numeric"
     "Expires"       | "not-numeric"                   | "X-Dummy"   | "dummy"
     "Expires"       | "Wed, 12 Oct 2050 07:28:00 GMT" | "Date"      | "not-a-date"
   }
