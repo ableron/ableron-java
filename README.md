@@ -1,6 +1,5 @@
 # Ableron Java Library
 [![Build Status](https://github.com/ableron/ableron-java/actions/workflows/main.yml/badge.svg)](https://github.com/ableron/ableron-java/actions/workflows/main.yml)
-[![License](https://img.shields.io/github/license/ableron/ableron-java)](https://github.com/ableron/ableron-java/blob/main/LICENSE)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.ableron/ableron/badge.svg)](https://mvnrepository.com/artifact/io.github.ableron/ableron)
 [![Java Version](https://img.shields.io/badge/Java-11+-4EB1BA.svg)](https://docs.oracle.com/en/java/javase/11/)
 
@@ -59,7 +58,7 @@ dependencies {
    * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
    * `fallback-src`: URL to load the include content from in case the request to `src` failed
    * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
-* Precedence for resolving: `src` -> `fallback-src` -> fallback content
+* Precedence for resolving: `src` → `fallback-src` → fallback content
 
 ### Redirects
 Redirects will be followed when resolving includes except they redirect from `https` to `http`.
