@@ -535,9 +535,9 @@ class IncludeSpec extends Specification {
     mockWebServer.enqueue(new MockResponse()
       .setBody("response")
       .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/test-fallback-cache-expiration-time").toString()
+    def includeSrcUrl = mockWebServer.url("/test-default-cache-duration").toString()
     def config = AbleronConfig.builder()
-      .fallbackResponseCacheExpirationTime(Duration.ofSeconds(30))
+      .defaultResponseCacheDuration(Duration.ofSeconds(30))
       .build()
 
     when:

@@ -222,7 +222,7 @@ public class Include {
         .map(response -> new CachedResponse(
           response.statusCode(),
           HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.statusCode()) ? response.body() : "",
-          calculateResponseCacheExpirationTime(response, ableronConfig.getFallbackResponseCacheExpirationTime())
+          calculateResponseCacheExpirationTime(response, ableronConfig.getDefaultResponseCacheDuration())
         ))
         .orElse(null)
       ))
@@ -254,7 +254,7 @@ public class Include {
     }
   }
 
-  private Instant calculateResponseCacheExpirationTime(HttpResponse<String> response, Duration fallbackResponseCacheExpirationTime) {
+  private Instant calculateResponseCacheExpirationTime(HttpResponse<String> response, Duration defaultResponseCacheDuration) {
     var cacheControlDirectives = response.headers()
       .firstValue(HEADER_CACHE_CONTROL)
       .stream()
@@ -272,7 +272,7 @@ public class Include {
         response.headers().firstValue(HEADER_DATE).orElse(null)
       ))
       .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
-      .orElse(Instant.now().plusSeconds(fallbackResponseCacheExpirationTime.toSeconds()));
+      .orElse(Instant.now().plusSeconds(defaultResponseCacheDuration.toSeconds()));
   }
 
   private Optional<Instant> getCacheLifetimeBySharedCacheMaxAge(List<String> cacheControlDirectives) {
