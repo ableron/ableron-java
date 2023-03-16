@@ -30,13 +30,13 @@ class IncludeSpec extends Specification {
   @Shared
   def supplyPool = Executors.newFixedThreadPool(64)
 
-  def "should throw exception if rawInclude is not provided"() {
+  def "should throw exception if rawIncludeTag is not provided"() {
     when:
     new Include(null, Map.of(), "")
 
     then:
     def exception = thrown(NullPointerException)
-    exception.message == "rawInclude must not be null"
+    exception.message == "rawIncludeTag must not be null"
   }
 
   def "should throw exception if attributes are not provided"() {
@@ -48,12 +48,12 @@ class IncludeSpec extends Specification {
     exception.message == "attributes must not be null"
   }
 
-  def "constructor should set raw include"() {
+  def "constructor should set raw include tag"() {
     when:
     def include = new Include("<ableron-include src=\"https://example.com\"/>", Map.of(), null)
 
     then:
-    include.rawInclude == "<ableron-include src=\"https://example.com\"/>"
+    include.rawIncludeTag == "<ableron-include src=\"https://example.com\"/>"
   }
 
   def "constructor should set src attribute"() {
