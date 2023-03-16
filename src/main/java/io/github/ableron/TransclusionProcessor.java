@@ -97,7 +97,7 @@ public class TransclusionProcessor {
       .stream()
       .map(include -> include.resolve(httpClient, responseCache, ableronConfig, resolveThreadPool)
         .thenApplyAsync(s -> {
-          content.replace(include.getRawInclude(), s);
+          content.replace(include.getRawIncludeTag(), s);
           return s;
         })
         .exceptionally(throwable -> {

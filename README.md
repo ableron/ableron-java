@@ -31,10 +31,10 @@ dependencies {
    ```html
    <html>
      <head>
-       <ableron-include src="https://load-head-fragment-from-here" />
+       <ableron-include src="https://head-fragment-url" />
      </head>
      <body>
-       <ableron-include src="https://load-body-fragment-from-here" fallback-src="https://load-body-fragment-fallback-from-here"><!-- Fallback content goes here --></ableron-include>
+       <ableron-include src="https://body-fragment-url" fallback-src="https://fallback-body-fragment-url"><!-- Fallback content goes here --></ableron-include>
      </body>
    </html>
    ```

@@ -18,10 +18,10 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should recognize includes of different forms"() {
     expect:
-    transclusionProcessor.findIncludes(content).first().rawInclude == expectedRawInclude
+    transclusionProcessor.findIncludes(content).first().rawIncludeTag == expectedRawIncludeTag
 
     where:
-    content                                                         | expectedRawInclude
+    content                                                         | expectedRawIncludeTag
     "<ableron-include src=\"test\"/>"                               | "<ableron-include src=\"test\"/>"
     "<ableron-include src=\"test\" />"                              | "<ableron-include src=\"test\" />"
     "<ableron-include\nsrc=\"test\" />"                             | "<ableron-include\nsrc=\"test\" />"

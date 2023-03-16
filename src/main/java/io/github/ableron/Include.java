@@ -63,7 +63,7 @@ public class Include {
   /**
    * List of HTTP response codes delivering responses that may be cached.
    *
-   * @link https://www.rfc-editor.org/rfc/rfc7231#section-6.1
+   * @link <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.1">RFC 9110 Section 15.1. Overview of Status Codes</a>
    */
   private static final List<Integer> HTTP_STATUS_CODES_CACHEABLE = Arrays.asList(
     200, 203, 204, 206,
@@ -75,9 +75,9 @@ public class Include {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   /**
-   * Raw include string.
+   * Raw include tag.
    */
-  private final String rawInclude;
+  private final String rawIncludeTag;
 
   /**
    * Source URL the include resolves to.
@@ -112,12 +112,12 @@ public class Include {
   /**
    * Constructs a new Include.
    *
-   * @param rawInclude Raw include string
+   * @param rawIncludeTag Raw include tag
    * @param attributes Attributes of the include tag
    * @param fallbackContent Fallback content to use in case the include could not be resolved
    */
-  public Include(String rawInclude, Map<String, String> attributes, String fallbackContent) {
-    this.rawInclude = Objects.requireNonNull(rawInclude, "rawInclude must not be null");
+  public Include(String rawIncludeTag, Map<String, String> attributes, String fallbackContent) {
+    this.rawIncludeTag = Objects.requireNonNull(rawIncludeTag, "rawIncludeTag must not be null");
     this.src = Objects.requireNonNull(attributes, "attributes must not be null").get(ATTR_SOURCE);
     this.srcTimeout = parseTimeout(attributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
     this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
@@ -126,10 +126,10 @@ public class Include {
   }
 
   /**
-   * @return The raw include string
+   * @return The raw include tag
    */
-  public String getRawInclude() {
-    return rawInclude;
+  public String getRawIncludeTag() {
+    return rawIncludeTag;
   }
 
   /**
@@ -326,11 +326,11 @@ public class Include {
 
     Include include = (Include) o;
 
-    return rawInclude.equals(include.rawInclude);
+    return rawIncludeTag.equals(include.rawIncludeTag);
   }
 
   @Override
   public int hashCode() {
-    return rawInclude.hashCode();
+    return rawIncludeTag.hashCode();
   }
 }
