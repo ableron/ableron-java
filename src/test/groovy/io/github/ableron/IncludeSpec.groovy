@@ -529,7 +529,7 @@ class IncludeSpec extends Specification {
     "Expires"       | "Wed, 12 Oct 2050 07:28:00 GMT" | "Date"      | "not-a-date"
   }
 
-  def "should cache response for a configurable duration if no expiration time is indicated via response header"() {
+  def "should cache fragment for a configurable duration if no expiration time is indicated via response header"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
@@ -537,7 +537,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
     def includeSrcUrl = mockWebServer.url("/test-default-cache-duration").toString()
     def config = AbleronConfig.builder()
-      .defaultResponseCacheDuration(Duration.ofSeconds(30))
+      .defaultFragmentCacheDuration(Duration.ofSeconds(30))
       .build()
 
     when:

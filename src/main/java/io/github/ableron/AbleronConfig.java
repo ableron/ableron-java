@@ -12,24 +12,20 @@ public class AbleronConfig {
   private boolean enabled = true;
 
   /**
-   * Maximum duration to wait for a successful and complete response of an include source
-   * or fallback URL.
-   *
+   * Timeout for requesting fragments.
    * Defaults to 5 seconds.
    */
   private Duration requestTimeout = Duration.ofMillis(5000);
 
   /**
-   * Duration to cache HTTP responses in case there is no caching information provided
+   * Duration to cache fragments in case no caching information is provided
    * along the response, i.e. neither Cache-Control nor Expires header.
-   *
    * Defaults to 5 minutes.
    */
-  private Duration defaultResponseCacheDuration = Duration.ofMinutes(5);
+  private Duration defaultFragmentCacheDuration = Duration.ofMinutes(5);
 
   /**
    * Maximum size in bytes the response cache may have.
-   *
    * Defaults to 10 MB.
    */
   private long maxCacheSizeInBytes = 1024 * 1024 * 10;
@@ -48,8 +44,8 @@ public class AbleronConfig {
     return requestTimeout;
   }
 
-  public Duration getDefaultResponseCacheDuration() {
-    return defaultResponseCacheDuration;
+  public Duration getDefaultFragmentCacheDuration() {
+    return defaultFragmentCacheDuration;
   }
 
   public long getMaxCacheSizeInBytes() {
@@ -70,8 +66,8 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder defaultResponseCacheDuration(Duration defaultResponseCacheDuration) {
-      ableronConfig.defaultResponseCacheDuration = Objects.requireNonNull(defaultResponseCacheDuration, "defaultResponseCacheDuration must not be null");
+    public Builder defaultFragmentCacheDuration(Duration defaultFragmentCacheDuration) {
+      ableronConfig.defaultFragmentCacheDuration = Objects.requireNonNull(defaultFragmentCacheDuration, "defaultFragmentCacheDuration must not be null");
       return this;
     }
 

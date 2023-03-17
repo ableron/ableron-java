@@ -133,7 +133,7 @@ public class Include {
   }
 
   /**
-   * @return The source URL the include resolves to
+   * @return URL of the fragment to include
    */
   public String getSrc() {
     return src;
@@ -147,7 +147,7 @@ public class Include {
   }
 
   /**
-   * @return The fallback URL to resolve the include to in case the source URL could not be loaded.
+   * @return URL of the fragment to include in case the source URL could not be loaded
    */
   public String getFallbackSrc() {
     return fallbackSrc;
@@ -222,7 +222,7 @@ public class Include {
         .map(response -> new CachedResponse(
           response.statusCode(),
           HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.statusCode()) ? response.body() : "",
-          calculateResponseCacheExpirationTime(response, ableronConfig.getDefaultResponseCacheDuration())
+          calculateResponseCacheExpirationTime(response, ableronConfig.getDefaultFragmentCacheDuration())
         ))
         .orElse(null)
       ))
@@ -254,7 +254,7 @@ public class Include {
     }
   }
 
-  private Instant calculateResponseCacheExpirationTime(HttpResponse<String> response, Duration defaultResponseCacheDuration) {
+  private Instant calculateResponseCacheExpirationTime(HttpResponse<String> response, Duration defaultFragmentCacheDuration) {
     var cacheControlDirectives = response.headers()
       .firstValue(HEADER_CACHE_CONTROL)
       .stream()
@@ -272,7 +272,7 @@ public class Include {
         response.headers().firstValue(HEADER_DATE).orElse(null)
       ))
       .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
-      .orElse(Instant.now().plusSeconds(defaultResponseCacheDuration.toSeconds()));
+      .orElse(Instant.now().plusSeconds(defaultFragmentCacheDuration.toSeconds()));
   }
 
   private Optional<Instant> getCacheLifetimeBySharedCacheMaxAge(List<String> cacheControlDirectives) {

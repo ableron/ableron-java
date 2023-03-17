@@ -46,17 +46,29 @@ dependencies {
 
 ### Configuration Options
 * `enabled`: Whether UI composition is enabled. Defaults to `true`
-* `requestTimeout`: Timeout for HTTP requests. Defaults to `5 seconds`
-* `defaultResponseCacheDuration`: Duration to cache HTTP responses in case neither `Cache-Control` nor `Expires` header is present. Defaults to `5 minutes`
+* `requestTimeout`: Timeout for requesting fragments. Defaults to `5 seconds`
+* `defaultFragmentCacheDuration`: Duration to cache fragments in case neither `Cache-Control` nor `Expires` header is present. Defaults to `5 minutes`
 * `maxCacheSizeInBytes`: Maximum size in bytes the response cache may have. Defaults to `10 MB`
+* `requestHeadersToPass`: Request headers that are passed to fragment requests if present. Defaults to
+  * `Accept-Language`
+  * `Correlation-ID`
+  * `Forwarded`
+  * `Referer`
+  * `User-Agent`
+  * `X-Correlation-ID`
+  * `X-Forwarded-For`
+  * `X-Forwarded-Proto`
+  * `X-Forwarded-Host`
+  * `X-Real-IP`
+  * `X-Request-ID`
 
 ### Include Tag
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
 * Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
 * Attributes
-   * `src`: URL to load the include content from
+   * `src`: URL of the fragment to include
    * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
-   * `fallback-src`: URL to load the include content from in case the request to `src` failed
+   * `fallback-src`: URL of the fragment to include in case the request to `src` failed
    * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
 * Precedence for resolving: `src` → `fallback-src` → fallback content
 

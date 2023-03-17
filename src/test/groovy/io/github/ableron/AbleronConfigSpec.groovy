@@ -14,7 +14,7 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       enabled
       requestTimeout == Duration.ofSeconds(5)
-      defaultResponseCacheDuration == Duration.ofMinutes(5)
+      defaultFragmentCacheDuration == Duration.ofMinutes(5)
       maxCacheSizeInBytes == 1024 * 1024 * 10
     }
   }
@@ -24,7 +24,7 @@ class AbleronConfigSpec extends Specification {
     def config = AbleronConfig.builder()
       .enabled(false)
       .requestTimeout(Duration.ofMillis(200))
-      .defaultResponseCacheDuration(Duration.ofMinutes(15))
+      .defaultFragmentCacheDuration(Duration.ofMinutes(15))
       .maxCacheSizeInBytes(1024 * 100)
       .build()
 
@@ -32,7 +32,7 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       !enabled
       requestTimeout == Duration.ofMillis(200)
-      defaultResponseCacheDuration == Duration.ofMinutes(15)
+      defaultFragmentCacheDuration == Duration.ofMinutes(15)
       maxCacheSizeInBytes == 1024 * 100
     }
   }
@@ -48,14 +48,14 @@ class AbleronConfigSpec extends Specification {
     exception.message == "requestTimeout must not be null"
   }
 
-  def "should throw exception if defaultResponseCacheDuration is tried to be set to null"() {
+  def "should throw exception if defaultFragmentCacheDuration is tried to be set to null"() {
     when:
     AbleronConfig.builder()
-      .defaultResponseCacheDuration(null)
+      .defaultFragmentCacheDuration(null)
       .build()
 
     then:
     def exception = thrown(NullPointerException)
-    exception.message == "defaultResponseCacheDuration must not be null"
+    exception.message == "defaultFragmentCacheDuration must not be null"
   }
 }
