@@ -38,7 +38,7 @@ dependencies {
      </body>
    </html>
    ```
-1. Apply transclusion to response if applicable (HTTP response status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
+1. Apply transclusion to response if applicable (HTTP status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
    ```java
    TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody);
    String processedResponseBody = transclusionResult.getContent();
@@ -48,7 +48,7 @@ dependencies {
 * `enabled`: Whether UI composition is enabled. Defaults to `true`
 * `requestTimeout`: Timeout for requesting fragments. Defaults to `5 seconds`
 * `defaultFragmentCacheDuration`: Duration to cache fragments in case neither `Cache-Control` nor `Expires` header is present. Defaults to `5 minutes`
-* `maxCacheSizeInBytes`: Maximum size in bytes the response cache may have. Defaults to `10 MB`
+* `maxCacheSizeInBytes`: Maximum size in bytes the fragment cache may have. Defaults to `10 MB`
 * `requestHeadersToPass`: Request headers that are passed to fragment requests if present. Defaults to
   * `Accept-Language`
   * `Correlation-ID`
@@ -76,8 +76,7 @@ dependencies {
 Redirects will be followed when resolving includes except they redirect from `https` to `http`.
 
 ### Caching
-HTTP responses (either from `src` or `fallback-src`) are considered to be cacheable if they
-have HTTP status code
+Fragments are considered cacheable if they have HTTP status code
    * `200`, `203`, `204`, `206`,
    * `300`,
    * `404`, `405`, `410`, `414`,

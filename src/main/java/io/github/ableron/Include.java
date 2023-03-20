@@ -51,17 +51,14 @@ public class Include {
   private static final String HEADER_EXPIRES = "Expires";
 
   /**
-   * List of HTTP response codes considered to be delivering responses that may be used to
-   * substitute include tags with.
-   *
-   * All successful responses are considered to be cacheable.
+   * HTTP status codes indicating successful and cacheable responses.
    */
-  private static final List<Integer> HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES = Arrays.asList(
+  private static final List<Integer> HTTP_STATUS_CODES_SUCCESS = Arrays.asList(
     200, 203, 204, 206
   );
 
   /**
-   * List of HTTP response codes delivering responses that may be cached.
+   * HTTP status codes indicating cacheable responses.
    *
    * @link <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.1">RFC 9110 Section 15.1. Overview of Status Codes</a>
    */
@@ -171,16 +168,16 @@ public class Include {
    * Resolves this include.
    *
    * @param httpClient HTTP client used to resolve this include
-   * @param responseCache Cache for HTTP responses
+   * @param fragmentCache Cache for fragments
    * @param ableronConfig Global ableron configuration
    * @param resolveThreadPool Thread pool to use for resolving
    * @return Content of the resolved include
    */
-  public CompletableFuture<String> resolve(HttpClient httpClient, Cache<String, CachedResponse> responseCache, AbleronConfig ableronConfig, ExecutorService resolveThreadPool) {
+  public CompletableFuture<String> resolve(HttpClient httpClient, Cache<String, Fragment> fragmentCache, AbleronConfig ableronConfig, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
       resolvedInclude = CompletableFuture.supplyAsync(
-        () -> load(src, httpClient, responseCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
-          .or(() -> load(fallbackSrc, httpClient, responseCache, ableronConfig, getRequestTimeout(fallbackSrcTimeout, ableronConfig)))
+        () -> load(src, httpClient, fragmentCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
+          .or(() -> load(fallbackSrc, httpClient, fragmentCache, ableronConfig, getRequestTimeout(fallbackSrcTimeout, ableronConfig)))
           .or(() -> Optional.ofNullable(fallbackContent))
           .orElse(""), resolveThreadPool
       );
@@ -208,33 +205,33 @@ public class Include {
       .orElse(ableronConfig.getRequestTimeout());
   }
 
-  private Optional<String> load(String uri, HttpClient httpClient, Cache<String, CachedResponse> responseCache, AbleronConfig ableronConfig, Duration requestTimeout) {
+  private Optional<String> load(String uri, HttpClient httpClient, Cache<String, Fragment> fragmentCache, AbleronConfig ableronConfig, Duration requestTimeout) {
     return Optional.ofNullable(uri)
-      .map(uri1 -> responseCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestTimeout)
+      .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestTimeout)
         .filter(response -> {
           if (HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())) {
             return true;
           }
 
-          logger.error("Unable to load URL {}: Response status {}", uri, response.statusCode());
+          logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
           return false;
         })
-        .map(response -> new CachedResponse(
+        .map(response -> new Fragment(
           response.statusCode(),
-          HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.statusCode()) ? response.body() : "",
-          calculateResponseCacheExpirationTime(response, ableronConfig.getDefaultFragmentCacheDuration())
+          HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) ? response.body() : "",
+          calculateFragmentExpirationTime(response, ableronConfig.getDefaultFragmentCacheDuration())
         ))
         .orElse(null)
       ))
       .filter(response -> {
-        if (HTTP_STATUS_CODES_SUCCESSFUL_RESPONSES.contains(response.getStatusCode())) {
+        if (HTTP_STATUS_CODES_SUCCESS.contains(response.getStatusCode())) {
           return true;
         }
 
-        logger.error("Unable to load URL {}: Response status {}", uri, response.getStatusCode());
+        logger.error("Unable to load URL {}: Status code {}", uri, response.getStatusCode());
         return false;
       })
-      .map(CachedResponse::getBody);
+      .map(Fragment::getContent);
   }
 
   private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Duration requestTimeout) {
@@ -254,7 +251,7 @@ public class Include {
     }
   }
 
-  private Instant calculateResponseCacheExpirationTime(HttpResponse<String> response, Duration defaultFragmentCacheDuration) {
+  private Instant calculateFragmentExpirationTime(HttpResponse<String> response, Duration defaultFragmentCacheDuration) {
     var cacheControlDirectives = response.headers()
       .firstValue(HEADER_CACHE_CONTROL)
       .stream()

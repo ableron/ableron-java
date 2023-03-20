@@ -25,7 +25,7 @@ public class AbleronConfig {
   private Duration defaultFragmentCacheDuration = Duration.ofMinutes(5);
 
   /**
-   * Maximum size in bytes the response cache may have.
+   * Maximum size in bytes the fragment cache may have.
    * Defaults to 10 MB.
    */
   private long maxCacheSizeInBytes = 1024 * 1024 * 10;
