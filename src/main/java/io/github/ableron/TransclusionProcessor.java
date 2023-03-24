@@ -41,9 +41,9 @@ public class TransclusionProcessor {
   private final HttpClient httpClient;
 
   /**
-   * Cache for HTTP responses.
+   * Cache for fragments.
    */
-  private final Cache<String, CachedResponse> responseCache;
+  private final Cache<String, Fragment> fragmentCache;
 
   /**
    * Thread pool used to resolve includes in parallel.
@@ -57,15 +57,15 @@ public class TransclusionProcessor {
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
     this.httpClient = buildHttpClient();
-    this.responseCache = buildCache(this.ableronConfig.getMaxCacheSizeInBytes());
+    this.fragmentCache = buildFragmentCache(this.ableronConfig.getMaxCacheSizeInBytes());
   }
 
   public HttpClient getHttpClient() {
     return httpClient;
   }
 
-  public Cache<String, CachedResponse> getResponseCache() {
-    return responseCache;
+  public Cache<String, Fragment> getFragmentCache() {
+    return fragmentCache;
   }
 
   /**
@@ -95,7 +95,7 @@ public class TransclusionProcessor {
     var transclusionResult = new TransclusionResult();
     var includes = findIncludes(content.get())
       .stream()
-      .map(include -> include.resolve(httpClient, responseCache, ableronConfig, resolveThreadPool)
+      .map(include -> include.resolve(httpClient, fragmentCache, ableronConfig, resolveThreadPool)
         .thenApplyAsync(s -> {
           content.replace(include.getRawIncludeTag(), s);
           return s;
@@ -119,21 +119,21 @@ public class TransclusionProcessor {
       .build();
   }
 
-  private Cache<String, CachedResponse> buildCache(long maxCacheSizeInBytes) {
+  private Cache<String, Fragment> buildFragmentCache(long maxCacheSizeInBytes) {
     return Caffeine.newBuilder()
       .maximumWeight(maxCacheSizeInBytes)
-      .weigher((String url, CachedResponse response) -> response.getBody().length())
-      .expireAfter(new Expiry<String, CachedResponse>() {
-        public long expireAfterCreate(String url, CachedResponse response, long currentTime) {
-          long milliseconds = response.getExpirationTime()
+      .weigher((String url, Fragment fragment) -> fragment.getContent().length())
+      .expireAfter(new Expiry<String, Fragment>() {
+        public long expireAfterCreate(String url, Fragment fragment, long currentTime) {
+          long milliseconds = fragment.getExpirationTime()
             .minusMillis(System.currentTimeMillis())
             .toEpochMilli();
           return TimeUnit.MILLISECONDS.toNanos(milliseconds);
         }
-        public long expireAfterUpdate(String url, CachedResponse response, long currentTime, long currentDuration) {
-          return expireAfterCreate(url, response, currentTime);
+        public long expireAfterUpdate(String url, Fragment fragment, long currentTime, long currentDuration) {
+          return expireAfterCreate(url, fragment, currentTime);
         }
-        public long expireAfterRead(String url, CachedResponse response, long currentTime, long currentDuration) {
+        public long expireAfterRead(String url, Fragment fragment, long currentTime, long currentDuration) {
           return currentDuration;
         }
       })

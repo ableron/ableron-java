@@ -220,12 +220,12 @@ class TransclusionProcessorSpec extends Specification {
         switch (recordedRequest.getPath()) {
           case "/1":
             return new MockResponse()
-              .setBody("response-1")
+              .setBody("fragment-1")
               .setHeadersDelay(200, TimeUnit.MILLISECONDS)
               .setResponseCode(200)
         }
         return new MockResponse()
-          .setBody("response-2")
+          .setBody("fragment-2")
           .setResponseCode(404)
       }
     })
@@ -234,13 +234,13 @@ class TransclusionProcessorSpec extends Specification {
     def result = transclusionProcessor.resolveIncludes(Content.of("""
       <html>
       <head>
-        <ableron-include src="${baseUrl}1"><!-- failed loading 1st include --></ableron-include>
+        <ableron-include src="${baseUrl}1"><!-- failed loading 1st fragment --></ableron-include>
         <title>Foo</title>
-        <ableron-include src="${baseUrl}1"><!-- failed loading 2nd include --></ableron-include>
+        <ableron-include src="${baseUrl}1"><!-- failed loading 2nd fragment --></ableron-include>
       </head>
       <body>
-        <ableron-include src="${baseUrl}1"><!-- failed loading 3rd include --></ableron-include>
-        <ableron-include src="${baseUrl}expect-404"><!-- failed loading 4th include --></ableron-include>
+        <ableron-include src="${baseUrl}1"><!-- failed loading 3rd fragment --></ableron-include>
+        <ableron-include src="${baseUrl}expect-404"><!-- failed loading 4th fragment --></ableron-include>
       </body>
       </html>
     """))
@@ -249,13 +249,13 @@ class TransclusionProcessorSpec extends Specification {
     result.content == """
       <html>
       <head>
-        response-1
+        fragment-1
         <title>Foo</title>
-        response-1
+        fragment-1
       </head>
       <body>
-        response-1
-        <!-- failed loading 4th include -->
+        fragment-1
+        <!-- failed loading 4th fragment -->
       </body>
       </html>
     """
@@ -275,27 +275,27 @@ class TransclusionProcessorSpec extends Specification {
         switch (recordedRequest.getPath()) {
           case "/503-route":
             return new MockResponse()
-              .setBody("response-1")
+              .setBody("fragment-1")
               .setHeadersDelay(2000, TimeUnit.MILLISECONDS)
               .setResponseCode(503)
           case "/1000ms-delay-route":
             return new MockResponse()
-              .setBody("response-2")
+              .setBody("fragment-2")
               .setHeadersDelay(1000, TimeUnit.MILLISECONDS)
               .setResponseCode(200)
           case "/2000ms-delay-route":
             return new MockResponse()
-              .setBody("response-3")
+              .setBody("fragment-3")
               .setHeadersDelay(2000, TimeUnit.MILLISECONDS)
               .setResponseCode(200)
           case "/2100ms-delay-route":
             return new MockResponse()
-              .setBody("response-4")
+              .setBody("fragment-4")
               .setHeadersDelay(2100, TimeUnit.MILLISECONDS)
               .setResponseCode(200)
           case "/2200ms-delay-route":
             return new MockResponse()
-              .setBody("response-5")
+              .setBody("fragment-5")
               .setHeadersDelay(2200, TimeUnit.MILLISECONDS)
               .setResponseCode(200)
         }
@@ -307,15 +307,15 @@ class TransclusionProcessorSpec extends Specification {
     def result = transclusionProcessor.resolveIncludes(Content.of("""
       <html>
       <head>
-        <ableron-include src="${baseUrl}503-route"><!-- failed loading include #1 --></ableron-include>
+        <ableron-include src="${baseUrl}503-route"><!-- failed loading fragment #1 --></ableron-include>
         <title>Foo</title>
-        <ableron-include src="${baseUrl}1000ms-delay-route"><!-- failed loading include #2 --></ableron-include>
+        <ableron-include src="${baseUrl}1000ms-delay-route"><!-- failed loading fragment #2 --></ableron-include>
       </head>
       <body>
-        <ableron-include src="${baseUrl}2000ms-delay-route"><!-- failed loading include #3 --></ableron-include>
-        <ableron-include src="${baseUrl}2100ms-delay-route"><!-- failed loading include #4 --></ableron-include>
-        <ableron-include src="${baseUrl}2200ms-delay-route"><!-- failed loading include #5 --></ableron-include>
-        <ableron-include src="${baseUrl}expect-404"><!-- failed loading include #6 --></ableron-include>
+        <ableron-include src="${baseUrl}2000ms-delay-route"><!-- failed loading fragment #3 --></ableron-include>
+        <ableron-include src="${baseUrl}2100ms-delay-route"><!-- failed loading fragment #4 --></ableron-include>
+        <ableron-include src="${baseUrl}2200ms-delay-route"><!-- failed loading fragment #5 --></ableron-include>
+        <ableron-include src="${baseUrl}expect-404"><!-- failed loading fragment #6 --></ableron-include>
       </body>
       </html>
     """))
@@ -324,15 +324,15 @@ class TransclusionProcessorSpec extends Specification {
     result.content == """
       <html>
       <head>
-        <!-- failed loading include #1 -->
+        <!-- failed loading fragment #1 -->
         <title>Foo</title>
-        response-2
+        fragment-2
       </head>
       <body>
-        response-3
-        response-4
-        response-5
-        <!-- failed loading include #6 -->
+        fragment-3
+        fragment-4
+        fragment-5
+        <!-- failed loading fragment #6 -->
       </body>
       </html>
     """

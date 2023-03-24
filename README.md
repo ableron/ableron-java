@@ -11,13 +11,13 @@ Maven:
 <dependency>
   <groupId>io.github.ableron</groupId>
   <artifactId>ableron</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
 </dependency>
 ```
 Gradle:
 ```groovy
 dependencies {
-  implementation 'io.github.ableron:ableron:1.0.1'
+  implementation 'io.github.ableron:ableron:1.0.2'
 }
 ```
 
@@ -31,14 +31,14 @@ dependencies {
    ```html
    <html>
      <head>
-       <ableron-include src="https://head-fragment-url" />
+       <ableron-include src="https://head-fragment" />
      </head>
      <body>
-       <ableron-include src="https://body-fragment-url" fallback-src="https://fallback-body-fragment-url"><!-- Fallback content goes here --></ableron-include>
+       <ableron-include src="https://body-fragment" fallback-src="https://fallback-body-fragment"><!-- Static fallback fragment goes here --></ableron-include>
      </body>
    </html>
    ```
-1. Apply transclusion to response if applicable (HTTP response status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
+1. Apply transclusion to response if applicable (HTTP status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
    ```java
    TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody);
    String processedResponseBody = transclusionResult.getContent();
@@ -46,26 +46,37 @@ dependencies {
 
 ### Configuration Options
 * `enabled`: Whether UI composition is enabled. Defaults to `true`
-* `requestTimeout`: Timeout for HTTP requests. Defaults to `5 seconds`
-* `defaultResponseCacheDuration`: Duration to cache HTTP responses in case neither `Cache-Control` nor `Expires` header is present. Defaults to `5 minutes`
-* `maxCacheSizeInBytes`: Maximum size in bytes the response cache may have. Defaults to `10 MB`
+* `requestTimeout`: Timeout for requesting fragments. Defaults to `5 seconds`
+* `defaultFragmentCacheDuration`: Duration to cache fragments in case neither `Cache-Control` nor `Expires` header is present. Defaults to `5 minutes`
+* `maxCacheSizeInBytes`: Maximum size in bytes the fragment cache may have. Defaults to `10 MB`
+* `requestHeadersToPass`: Request headers that are passed to fragment requests if present. Defaults to
+  * `Accept-Language`
+  * `Correlation-ID`
+  * `Forwarded`
+  * `Referer`
+  * `User-Agent`
+  * `X-Correlation-ID`
+  * `X-Forwarded-For`
+  * `X-Forwarded-Proto`
+  * `X-Forwarded-Host`
+  * `X-Real-IP`
+  * `X-Request-ID`
 
 ### Include Tag
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
 * Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
 * Attributes
-   * `src`: URL to load the include content from
+   * `src`: URL of the fragment to include
    * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
-   * `fallback-src`: URL to load the include content from in case the request to `src` failed
+   * `fallback-src`: URL of the fragment to include in case the request to `src` failed
    * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
 * Precedence for resolving: `src` → `fallback-src` → fallback content
 
 ### Redirects
-Redirects will be followed when resolving includes except they redirect from `https` to `http`.
+Redirects will be followed when requesting fragments except they redirect from `https` to `http`.
 
 ### Caching
-HTTP responses (either from `src` or `fallback-src`) are considered to be cacheable if they
-have HTTP status code
+Fragments are considered cacheable if they have HTTP status code
    * `200`, `203`, `204`, `206`,
    * `300`,
    * `404`, `405`, `410`, `414`,
