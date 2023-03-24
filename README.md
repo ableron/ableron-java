@@ -11,13 +11,13 @@ Maven:
 <dependency>
   <groupId>io.github.ableron</groupId>
   <artifactId>ableron</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
 </dependency>
 ```
 Gradle:
 ```groovy
 dependencies {
-  implementation 'io.github.ableron:ableron:1.0.1'
+  implementation 'io.github.ableron:ableron:1.0.2'
 }
 ```
 
@@ -31,10 +31,10 @@ dependencies {
    ```html
    <html>
      <head>
-       <ableron-include src="https://head-fragment-url" />
+       <ableron-include src="https://head-fragment" />
      </head>
      <body>
-       <ableron-include src="https://body-fragment-url" fallback-src="https://fallback-body-fragment-url"><!-- Fallback content goes here --></ableron-include>
+       <ableron-include src="https://body-fragment" fallback-src="https://fallback-body-fragment"><!-- Static fallback fragment goes here --></ableron-include>
      </body>
    </html>
    ```
@@ -73,7 +73,7 @@ dependencies {
 * Precedence for resolving: `src` → `fallback-src` → fallback content
 
 ### Redirects
-Redirects will be followed when resolving includes except they redirect from `https` to `http`.
+Redirects will be followed when requesting fragments except they redirect from `https` to `http`.
 
 ### Caching
 Fragments are considered cacheable if they have HTTP status code
