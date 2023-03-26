@@ -13,7 +13,7 @@ class AbleronConfigSpec extends Specification {
     then:
     with(config) {
       enabled
-      requestTimeout == Duration.ofSeconds(5)
+      requestTimeout == Duration.ofSeconds(3)
       defaultFragmentCacheDuration == Duration.ofMinutes(5)
       maxCacheSizeInBytes == 1024 * 1024 * 10
     }

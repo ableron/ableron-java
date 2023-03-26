@@ -13,9 +13,9 @@ public class AbleronConfig {
 
   /**
    * Timeout for requesting fragments.
-   * Defaults to 5 seconds.
+   * Defaults to 3 seconds.
    */
-  private Duration requestTimeout = Duration.ofMillis(5000);
+  private Duration requestTimeout = Duration.ofMillis(3000);
 
   /**
    * Duration to cache fragments in case no caching information is provided
