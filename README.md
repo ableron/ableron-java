@@ -48,7 +48,6 @@ dependencies {
 * `enabled`: Whether UI composition is enabled. Defaults to `true`
 * `fragmentRequestTimeout`: Timeout for requesting fragments. Defaults to `3 seconds`
 * `fragmentDefaultCacheDuration`: Duration to cache fragments in case neither `Cache-Control` nor `Expires` header is present. Defaults to `5 minutes`
-* `maxCacheSizeInBytes`: Maximum size in bytes the fragment cache may have. Defaults to `10 MB`
 * `fragmentRequestHeadersToPass`: Request headers that are passed to fragment requests if present. Defaults to
   * `Accept-Language`
   * `Correlation-ID`
@@ -61,6 +60,7 @@ dependencies {
   * `X-Forwarded-Host`
   * `X-Real-IP`
   * `X-Request-ID`
+* `cacheMaxSizeInBytes`: Maximum size in bytes the fragment cache may have. Defaults to `10 MB`
 
 ### Include Tag
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`

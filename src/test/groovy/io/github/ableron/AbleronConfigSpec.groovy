@@ -15,7 +15,7 @@ class AbleronConfigSpec extends Specification {
       enabled
       fragmentRequestTimeout == Duration.ofSeconds(3)
       fragmentDefaultCacheDuration == Duration.ofMinutes(5)
-      maxCacheSizeInBytes == 1024 * 1024 * 10
+      cacheMaxSizeInBytes == 1024 * 1024 * 10
     }
   }
 
@@ -25,7 +25,7 @@ class AbleronConfigSpec extends Specification {
       .enabled(false)
       .fragmentRequestTimeout(Duration.ofMillis(200))
       .fragmentDefaultCacheDuration(Duration.ofMinutes(15))
-      .maxCacheSizeInBytes(1024 * 100)
+      .cacheMaxSizeInBytes(1024 * 100)
       .build()
 
     then:
@@ -33,7 +33,7 @@ class AbleronConfigSpec extends Specification {
       !enabled
       fragmentRequestTimeout == Duration.ofMillis(200)
       fragmentDefaultCacheDuration == Duration.ofMinutes(15)
-      maxCacheSizeInBytes == 1024 * 100
+      cacheMaxSizeInBytes == 1024 * 100
     }
   }
 

@@ -28,7 +28,7 @@ public class AbleronConfig {
    * Maximum size in bytes the fragment cache may have.
    * Defaults to 10 MB.
    */
-  private long maxCacheSizeInBytes = 1024 * 1024 * 10;
+  private long cacheMaxSizeInBytes = 1024 * 1024 * 10;
 
   private AbleronConfig() {}
 
@@ -48,8 +48,8 @@ public class AbleronConfig {
     return fragmentDefaultCacheDuration;
   }
 
-  public long getMaxCacheSizeInBytes() {
-    return maxCacheSizeInBytes;
+  public long getCacheMaxSizeInBytes() {
+    return cacheMaxSizeInBytes;
   }
 
   public static class Builder {
@@ -71,8 +71,8 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder maxCacheSizeInBytes(long maxCacheSizeInBytes) {
-      ableronConfig.maxCacheSizeInBytes = maxCacheSizeInBytes;
+    public Builder cacheMaxSizeInBytes(long cacheMaxSizeInBytes) {
+      ableronConfig.cacheMaxSizeInBytes = cacheMaxSizeInBytes;
       return this;
     }
 
