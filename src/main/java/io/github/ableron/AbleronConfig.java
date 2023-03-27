@@ -1,6 +1,7 @@
 package io.github.ableron;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 
 public class AbleronConfig {
@@ -23,6 +24,23 @@ public class AbleronConfig {
    * Defaults to 5 minutes.
    */
   private Duration fragmentDefaultCacheDuration = Duration.ofMinutes(5);
+
+  /**
+   * Request headers that are passed to fragment requests if present.
+   */
+  private List<String> fragmentRequestHeadersToPass = List.of(
+    "Accept-Language",
+    "Correlation-ID",
+    "Forwarded",
+    "Referer",
+    "User-Agent",
+    "X-Correlation-ID",
+    "X-Forwarded-For",
+    "X-Forwarded-Proto",
+    "X-Forwarded-Host",
+    "X-Real-IP",
+    "X-Request-ID"
+  );
 
   /**
    * Maximum size in bytes the fragment cache may have.
@@ -48,6 +66,10 @@ public class AbleronConfig {
     return fragmentDefaultCacheDuration;
   }
 
+  public List<String> getFragmentRequestHeadersToPass() {
+    return fragmentRequestHeadersToPass;
+  }
+
   public long getCacheMaxSizeInBytes() {
     return cacheMaxSizeInBytes;
   }
@@ -68,6 +90,11 @@ public class AbleronConfig {
 
     public Builder fragmentDefaultCacheDuration(Duration fragmentDefaultCacheDuration) {
       ableronConfig.fragmentDefaultCacheDuration = Objects.requireNonNull(fragmentDefaultCacheDuration, "fragmentDefaultCacheDuration must not be null");
+      return this;
+    }
+
+    public Builder fragmentRequestHeadersToPass(List<String> fragmentRequestHeadersToPass) {
+      ableronConfig.fragmentRequestHeadersToPass = Objects.requireNonNull(fragmentRequestHeadersToPass, "fragmentRequestHeadersToPass must not be null");
       return this;
     }
 
