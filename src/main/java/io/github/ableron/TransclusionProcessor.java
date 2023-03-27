@@ -57,7 +57,7 @@ public class TransclusionProcessor {
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
     this.httpClient = buildHttpClient();
-    this.fragmentCache = buildFragmentCache(this.ableronConfig.getMaxCacheSizeInBytes());
+    this.fragmentCache = buildFragmentCache(this.ableronConfig.getCacheMaxSizeInBytes());
   }
 
   public HttpClient getHttpClient() {
@@ -119,9 +119,9 @@ public class TransclusionProcessor {
       .build();
   }
 
-  private Cache<String, Fragment> buildFragmentCache(long maxCacheSizeInBytes) {
+  private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
     return Caffeine.newBuilder()
-      .maximumWeight(maxCacheSizeInBytes)
+      .maximumWeight(cacheMaxSizeInBytes)
       .weigher((String url, Fragment fragment) -> fragment.getContent().length())
       .expireAfter(new Expiry<String, Fragment>() {
         public long expireAfterCreate(String url, Fragment fragment, long currentTime) {

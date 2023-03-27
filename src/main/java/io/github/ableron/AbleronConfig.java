@@ -1,6 +1,7 @@
 package io.github.ableron;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 
 public class AbleronConfig {
@@ -13,22 +14,39 @@ public class AbleronConfig {
 
   /**
    * Timeout for requesting fragments.
-   * Defaults to 5 seconds.
+   * Defaults to 3 seconds.
    */
-  private Duration requestTimeout = Duration.ofMillis(5000);
+  private Duration fragmentRequestTimeout = Duration.ofSeconds(3);
 
   /**
-   * Duration to cache fragments in case no caching information is provided
-   * along the response, i.e. neither Cache-Control nor Expires header.
+   * Duration to cache fragments in case no caching information is provided along
+   * the response, i.e. neither <code>Cache-Control</code> nor <code>Expires</code> header.
    * Defaults to 5 minutes.
    */
-  private Duration defaultFragmentCacheDuration = Duration.ofMinutes(5);
+  private Duration fragmentDefaultCacheDuration = Duration.ofMinutes(5);
+
+  /**
+   * Request headers that are passed to fragment requests if present.
+   */
+  private List<String> fragmentRequestHeadersToPass = List.of(
+    "Accept-Language",
+    "Correlation-ID",
+    "Forwarded",
+    "Referer",
+    "User-Agent",
+    "X-Correlation-ID",
+    "X-Forwarded-For",
+    "X-Forwarded-Proto",
+    "X-Forwarded-Host",
+    "X-Real-IP",
+    "X-Request-ID"
+  );
 
   /**
    * Maximum size in bytes the fragment cache may have.
    * Defaults to 10 MB.
    */
-  private long maxCacheSizeInBytes = 1024 * 1024 * 10;
+  private long cacheMaxSizeInBytes = 1024 * 1024 * 10;
 
   private AbleronConfig() {}
 
@@ -40,16 +58,20 @@ public class AbleronConfig {
     return enabled;
   }
 
-  public Duration getRequestTimeout() {
-    return requestTimeout;
+  public Duration getFragmentRequestTimeout() {
+    return fragmentRequestTimeout;
   }
 
-  public Duration getDefaultFragmentCacheDuration() {
-    return defaultFragmentCacheDuration;
+  public Duration getFragmentDefaultCacheDuration() {
+    return fragmentDefaultCacheDuration;
   }
 
-  public long getMaxCacheSizeInBytes() {
-    return maxCacheSizeInBytes;
+  public List<String> getFragmentRequestHeadersToPass() {
+    return fragmentRequestHeadersToPass;
+  }
+
+  public long getCacheMaxSizeInBytes() {
+    return cacheMaxSizeInBytes;
   }
 
   public static class Builder {
@@ -61,18 +83,23 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder requestTimeout(Duration requestTimeout) {
-      ableronConfig.requestTimeout = Objects.requireNonNull(requestTimeout, "requestTimeout must not be null");
+    public Builder fragmentRequestTimeout(Duration fragmentRequestTimeout) {
+      ableronConfig.fragmentRequestTimeout = Objects.requireNonNull(fragmentRequestTimeout, "fragmentRequestTimeout must not be null");
       return this;
     }
 
-    public Builder defaultFragmentCacheDuration(Duration defaultFragmentCacheDuration) {
-      ableronConfig.defaultFragmentCacheDuration = Objects.requireNonNull(defaultFragmentCacheDuration, "defaultFragmentCacheDuration must not be null");
+    public Builder fragmentDefaultCacheDuration(Duration fragmentDefaultCacheDuration) {
+      ableronConfig.fragmentDefaultCacheDuration = Objects.requireNonNull(fragmentDefaultCacheDuration, "fragmentDefaultCacheDuration must not be null");
       return this;
     }
 
-    public Builder maxCacheSizeInBytes(long maxCacheSizeInBytes) {
-      ableronConfig.maxCacheSizeInBytes = maxCacheSizeInBytes;
+    public Builder fragmentRequestHeadersToPass(List<String> fragmentRequestHeadersToPass) {
+      ableronConfig.fragmentRequestHeadersToPass = Objects.requireNonNull(fragmentRequestHeadersToPass, "fragmentRequestHeadersToPass must not be null");
+      return this;
+    }
+
+    public Builder cacheMaxSizeInBytes(long cacheMaxSizeInBytes) {
+      ableronConfig.cacheMaxSizeInBytes = cacheMaxSizeInBytes;
       return this;
     }
 

@@ -19,7 +19,7 @@ class IncludeSpec extends Specification {
 
   @Shared
   def config = AbleronConfig.builder()
-    .requestTimeout(Duration.ofSeconds(1))
+    .fragmentRequestTimeout(Duration.ofSeconds(1))
     .build()
 
   @Shared
@@ -537,7 +537,7 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
     def includeSrcUrl = mockWebServer.url("/test-default-cache-duration").toString()
     def config = AbleronConfig.builder()
-      .defaultFragmentCacheDuration(Duration.ofSeconds(30))
+      .fragmentDefaultCacheDuration(Duration.ofSeconds(30))
       .build()
 
     when:
