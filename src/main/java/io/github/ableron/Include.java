@@ -202,7 +202,7 @@ public class Include {
 
   private Duration getRequestTimeout(Duration localTimeout, AbleronConfig ableronConfig) {
     return Optional.ofNullable(localTimeout)
-      .orElse(ableronConfig.getRequestTimeout());
+      .orElse(ableronConfig.getFragmentRequestTimeout());
   }
 
   private Optional<String> load(String uri, HttpClient httpClient, Cache<String, Fragment> fragmentCache, AbleronConfig ableronConfig, Duration requestTimeout) {
@@ -219,7 +219,7 @@ public class Include {
         .map(response -> new Fragment(
           response.statusCode(),
           HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) ? response.body() : "",
-          calculateFragmentExpirationTime(response, ableronConfig.getDefaultFragmentCacheDuration())
+          calculateFragmentExpirationTime(response, ableronConfig.getFragmentDefaultCacheDuration())
         ))
         .orElse(null)
       ))
@@ -251,7 +251,7 @@ public class Include {
     }
   }
 
-  private Instant calculateFragmentExpirationTime(HttpResponse<String> response, Duration defaultFragmentCacheDuration) {
+  private Instant calculateFragmentExpirationTime(HttpResponse<String> response, Duration fragmentDefaultCacheDuration) {
     var cacheControlDirectives = response.headers()
       .firstValue(HEADER_CACHE_CONTROL)
       .stream()
@@ -269,7 +269,7 @@ public class Include {
         response.headers().firstValue(HEADER_DATE).orElse(null)
       ))
       .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
-      .orElse(Instant.now().plusSeconds(defaultFragmentCacheDuration.toSeconds()));
+      .orElse(Instant.now().plusSeconds(fragmentDefaultCacheDuration.toSeconds()));
   }
 
   private Optional<Instant> getCacheLifetimeBySharedCacheMaxAge(List<String> cacheControlDirectives) {

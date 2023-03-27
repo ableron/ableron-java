@@ -15,14 +15,14 @@ public class AbleronConfig {
    * Timeout for requesting fragments.
    * Defaults to 3 seconds.
    */
-  private Duration requestTimeout = Duration.ofMillis(3000);
+  private Duration fragmentRequestTimeout = Duration.ofSeconds(3);
 
   /**
-   * Duration to cache fragments in case no caching information is provided
-   * along the response, i.e. neither Cache-Control nor Expires header.
+   * Duration to cache fragments in case no caching information is provided along
+   * the response, i.e. neither <code>Cache-Control</code> nor <code>Expires</code> header.
    * Defaults to 5 minutes.
    */
-  private Duration defaultFragmentCacheDuration = Duration.ofMinutes(5);
+  private Duration fragmentDefaultCacheDuration = Duration.ofMinutes(5);
 
   /**
    * Maximum size in bytes the fragment cache may have.
@@ -40,12 +40,12 @@ public class AbleronConfig {
     return enabled;
   }
 
-  public Duration getRequestTimeout() {
-    return requestTimeout;
+  public Duration getFragmentRequestTimeout() {
+    return fragmentRequestTimeout;
   }
 
-  public Duration getDefaultFragmentCacheDuration() {
-    return defaultFragmentCacheDuration;
+  public Duration getFragmentDefaultCacheDuration() {
+    return fragmentDefaultCacheDuration;
   }
 
   public long getMaxCacheSizeInBytes() {
@@ -61,13 +61,13 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder requestTimeout(Duration requestTimeout) {
-      ableronConfig.requestTimeout = Objects.requireNonNull(requestTimeout, "requestTimeout must not be null");
+    public Builder fragmentRequestTimeout(Duration fragmentRequestTimeout) {
+      ableronConfig.fragmentRequestTimeout = Objects.requireNonNull(fragmentRequestTimeout, "fragmentRequestTimeout must not be null");
       return this;
     }
 
-    public Builder defaultFragmentCacheDuration(Duration defaultFragmentCacheDuration) {
-      ableronConfig.defaultFragmentCacheDuration = Objects.requireNonNull(defaultFragmentCacheDuration, "defaultFragmentCacheDuration must not be null");
+    public Builder fragmentDefaultCacheDuration(Duration fragmentDefaultCacheDuration) {
+      ableronConfig.fragmentDefaultCacheDuration = Objects.requireNonNull(fragmentDefaultCacheDuration, "fragmentDefaultCacheDuration must not be null");
       return this;
     }
 

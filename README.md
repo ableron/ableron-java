@@ -46,10 +46,10 @@ dependencies {
 
 ### Configuration Options
 * `enabled`: Whether UI composition is enabled. Defaults to `true`
-* `requestTimeout`: Timeout for requesting fragments. Defaults to `3 seconds`
-* `defaultFragmentCacheDuration`: Duration to cache fragments in case neither `Cache-Control` nor `Expires` header is present. Defaults to `5 minutes`
+* `fragmentRequestTimeout`: Timeout for requesting fragments. Defaults to `3 seconds`
+* `fragmentDefaultCacheDuration`: Duration to cache fragments in case neither `Cache-Control` nor `Expires` header is present. Defaults to `5 minutes`
 * `maxCacheSizeInBytes`: Maximum size in bytes the fragment cache may have. Defaults to `10 MB`
-* `requestHeadersToPass`: Request headers that are passed to fragment requests if present. Defaults to
+* `fragmentRequestHeadersToPass`: Request headers that are passed to fragment requests if present. Defaults to
   * `Accept-Language`
   * `Correlation-ID`
   * `Forwarded`
