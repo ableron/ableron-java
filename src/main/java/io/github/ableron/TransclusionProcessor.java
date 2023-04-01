@@ -97,13 +97,13 @@ public class TransclusionProcessor {
     var transclusionResult = new TransclusionResult();
     var includes = findIncludes(content.get())
       .stream()
-      .map(include -> include.resolve(httpClient, fragmentCache, ableronConfig, resolveThreadPool)
+      .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
         .thenApplyAsync(s -> {
           content.replace(include.getRawIncludeTag(), s);
           return s;
         })
         .exceptionally(throwable -> {
-          logger.error("Resolving include failed", throwable);
+          logger.error("Unable to resolve include", throwable);
           return null;
         })
       )

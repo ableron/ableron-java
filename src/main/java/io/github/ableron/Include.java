@@ -168,12 +168,13 @@ public class Include {
    * Resolves this include.
    *
    * @param httpClient HTTP client used to resolve this include
+   * @param fragmentRequestHeaders Request headers which are passed to fragment requests if allowed by config
    * @param fragmentCache Cache for fragments
    * @param ableronConfig Global ableron configuration
    * @param resolveThreadPool Thread pool to use for resolving
    * @return Content of the resolved include
    */
-  public CompletableFuture<String> resolve(HttpClient httpClient, Cache<String, Fragment> fragmentCache, AbleronConfig ableronConfig, ExecutorService resolveThreadPool) {
+  public CompletableFuture<String> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig ableronConfig, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
       resolvedInclude = CompletableFuture.supplyAsync(
         () -> load(src, httpClient, fragmentCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
