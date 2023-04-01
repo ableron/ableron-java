@@ -170,15 +170,29 @@ public class Include {
    * @param httpClient HTTP client used to resolve this include
    * @param fragmentRequestHeaders Request headers which are passed to fragment requests if allowed by config
    * @param fragmentCache Cache for fragments
-   * @param ableronConfig Global ableron configuration
+   * @param config Global ableron configuration
    * @param resolveThreadPool Thread pool to use for resolving
    * @return Content of the resolved include
    */
-  public CompletableFuture<String> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig ableronConfig, ExecutorService resolveThreadPool) {
+  public CompletableFuture<String> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
+      //TODO: Do not do this here time and time again. Instead do it only once in TransclusionProcessor
+      List<String> fragmentRequestHeadersToPassLowerCase = config.getFragmentRequestHeadersToPass()
+        .stream()
+        .map(String::toLowerCase)
+        .collect(Collectors.toList());
+      //TODO: Test request header whitelisting
+      //TODO: test whether there will be only one User-Agent header (and not provided + default from httpClient)
+      //TODO: Test case insensitivity of provided request headers and configured whitelist
+      //TODO: Move to separate method
+      Map<String, List<String>> filteredFragmentRequestHeaders = fragmentRequestHeaders.entrySet()
+        .stream()
+        .filter(header -> fragmentRequestHeadersToPassLowerCase.contains(header.getKey().toLowerCase()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
       resolvedInclude = CompletableFuture.supplyAsync(
-        () -> load(src, httpClient, fragmentCache, ableronConfig, getRequestTimeout(srcTimeout, ableronConfig))
-          .or(() -> load(fallbackSrc, httpClient, fragmentCache, ableronConfig, getRequestTimeout(fallbackSrcTimeout, ableronConfig)))
+        () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
+          .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
           .or(() -> Optional.ofNullable(fallbackContent))
           .orElse(""), resolveThreadPool
       );
@@ -201,14 +215,14 @@ public class Include {
       .orElse(null);
   }
 
-  private Duration getRequestTimeout(Duration localTimeout, AbleronConfig ableronConfig) {
+  private Duration getRequestTimeout(Duration localTimeout, AbleronConfig config) {
     return Optional.ofNullable(localTimeout)
-      .orElse(ableronConfig.getFragmentRequestTimeout());
+      .orElse(config.getFragmentRequestTimeout());
   }
 
-  private Optional<String> load(String uri, HttpClient httpClient, Cache<String, Fragment> fragmentCache, AbleronConfig ableronConfig, Duration requestTimeout) {
+  private Optional<String> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
     return Optional.ofNullable(uri)
-      .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestTimeout)
+      .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
           if (HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())) {
             return true;
@@ -220,7 +234,7 @@ public class Include {
         .map(response -> new Fragment(
           response.statusCode(),
           HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) ? response.body() : "",
-          calculateFragmentExpirationTime(response, ableronConfig.getFragmentDefaultCacheDuration())
+          calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration())
         ))
         .orElse(null)
       ))
@@ -235,10 +249,13 @@ public class Include {
       .map(Fragment::getContent);
   }
 
-  private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Duration requestTimeout) {
+  private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
     try {
-      var httpRequest = HttpRequest.newBuilder()
-        .uri(URI.create(uri))
+      //TODO: Implement this in a cleaner and more readable way
+      var httpRequestBuilder = HttpRequest.newBuilder()
+        .uri(URI.create(uri));
+      requestHeaders.forEach((name, values) -> values.forEach(value -> httpRequestBuilder.header(name, value)));
+      var httpRequest = httpRequestBuilder
         .GET()
         .build();
       var httpResponse = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString());
