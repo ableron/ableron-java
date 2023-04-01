@@ -24,8 +24,9 @@ dependencies {
 ## Usage
 1. Init ableron
    ```java
-   var ableronConfig = AbleronConfig.builder().build();
-   var ableron = new Ableron(ableronConfig);
+   var ableron = new Ableron(AbleronConfig.builder()
+     .cacheMaxSizeInBytes(1024 * 1024 * 50)
+     .build());
    ```
 1. Use includes in response body
    ```html
@@ -40,7 +41,8 @@ dependencies {
    ```
 1. Apply transclusion to response if applicable (HTTP status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
    ```java
-   TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody);
+   Map<String, List<String>> presentRequestHeaders = ...; // get headers from e.g. HttpServletRequest
+   TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody, presentRequestHeaders);
    String processedResponseBody = transclusionResult.getContent();
    ```
 

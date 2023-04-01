@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import java.net.http.HttpClient;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -88,9 +89,10 @@ public class TransclusionProcessor {
    * Resolves all includes in the given content.
    *
    * @param content The content to resolve the includes of
+   * @param presentRequestHeaders Request headers of the initial request having the includes in its response
    * @return Content with resolved includes
    */
-  public TransclusionResult resolveIncludes(Content content) {
+  public TransclusionResult resolveIncludes(Content content, Map<String, List<String>> presentRequestHeaders) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult();
     var includes = findIncludes(content.get())
