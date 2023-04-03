@@ -624,4 +624,76 @@ class IncludeSpec extends Specification {
     "fallback-src" | Map.of("fallback-src-timeout-millis", "2000") | "fragment"
     "fallback-src" | Map.of("src-timeout-millis", "2000")          | ""
   }
+
+  def "should pass allowed request headers to fragment request"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("fragment")
+      .setResponseCode(200))
+    def config = AbleronConfig.builder()
+      .fragmentRequestHeadersToPass(["X-Test"])
+      .build()
+
+    when:
+    def resolvedInclude = new Include("...", Map.of(
+      "src", mockWebServer.url("/").toString()
+    ), null).resolve(httpClient, ["X-Test":["Foo"]], cache, config, supplyPool).get()
+    def fragmentRequest = mockWebServer.takeRequest()
+
+    then:
+    resolvedInclude == "fragment"
+    fragmentRequest.getHeader("X-Test") == "Foo"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should treat fragment request headers allow list as case insensitive"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("fragment")
+      .setResponseCode(200))
+    def config = AbleronConfig.builder()
+      .fragmentRequestHeadersToPass(["X-TeSt"])
+      .build()
+
+    when:
+    def resolvedInclude = new Include("...", Map.of(
+      "src", mockWebServer.url("/").toString()
+    ), null).resolve(httpClient, ["x-tEsT":["Foo"]], cache, config, supplyPool).get()
+    def fragmentRequest = mockWebServer.takeRequest()
+
+    then:
+    resolvedInclude == "fragment"
+    fragmentRequest.getHeader("X-Test") == "Foo"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should not pass non-allowed request headers to fragment request"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("fragment")
+      .setResponseCode(200))
+    def config = AbleronConfig.builder()
+      .fragmentRequestHeadersToPass([])
+      .build()
+
+    when:
+    def resolvedInclude = new Include("...", Map.of(
+      "src", mockWebServer.url("/").toString()
+    ), null).resolve(httpClient, ["X-Test":["Foo"]], cache, config, supplyPool).get()
+    def fragmentRequest = mockWebServer.takeRequest()
+
+    then:
+    resolvedInclude == "fragment"
+    fragmentRequest.getHeader("X-Test") == null
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
 }

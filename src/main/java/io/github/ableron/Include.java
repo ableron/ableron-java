@@ -176,18 +176,11 @@ public class Include {
    */
   public CompletableFuture<String> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
-      //TODO: Do not do this here time and time again. Instead do it only once in TransclusionProcessor
-      List<String> fragmentRequestHeadersToPassLowerCase = config.getFragmentRequestHeadersToPass()
-        .stream()
-        .map(String::toLowerCase)
-        .collect(Collectors.toList());
-      //TODO: Test request header whitelisting
       //TODO: test whether there will be only one User-Agent header (and not provided + default from httpClient)
-      //TODO: Test case insensitivity of provided request headers and configured whitelist
       //TODO: Move to separate method
       Map<String, List<String>> filteredFragmentRequestHeaders = fragmentRequestHeaders.entrySet()
         .stream()
-        .filter(header -> fragmentRequestHeadersToPassLowerCase.contains(header.getKey().toLowerCase()))
+        .filter(header -> config.getFragmentRequestHeadersToPass().stream().anyMatch(headerName -> headerName.equalsIgnoreCase(header.getKey())))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
       resolvedInclude = CompletableFuture.supplyAsync(
