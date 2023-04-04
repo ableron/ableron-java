@@ -176,11 +176,7 @@ public class Include {
    */
   public CompletableFuture<String> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
-      //TODO: Move to separate method
-      Map<String, List<String>> filteredFragmentRequestHeaders = fragmentRequestHeaders.entrySet()
-        .stream()
-        .filter(header -> config.getFragmentRequestHeadersToPass().stream().anyMatch(headerName -> headerName.equalsIgnoreCase(header.getKey())))
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
 
       resolvedInclude = CompletableFuture.supplyAsync(
         () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
@@ -191,6 +187,13 @@ public class Include {
     }
 
     return resolvedInclude;
+  }
+
+  private Map<String, List<String>> filterFragmentRequestHeaders(Map<String, List<String>> requestHeaders, List<String> allowedRequestHeaders) {
+    return requestHeaders.entrySet()
+      .stream()
+      .filter(header -> allowedRequestHeaders.stream().anyMatch(headerName -> headerName.equalsIgnoreCase(header.getKey())))
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private Duration parseTimeout(String timeoutAsString) {
