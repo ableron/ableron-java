@@ -176,7 +176,6 @@ public class Include {
    */
   public CompletableFuture<String> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
-      //TODO: test whether there will be only one User-Agent header (and not provided + default from httpClient)
       //TODO: Move to separate method
       Map<String, List<String>> filteredFragmentRequestHeaders = fragmentRequestHeaders.entrySet()
         .stream()
@@ -244,14 +243,7 @@ public class Include {
 
   private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
     try {
-      //TODO: Implement this in a cleaner and more readable way
-      var httpRequestBuilder = HttpRequest.newBuilder()
-        .uri(URI.create(uri));
-      requestHeaders.forEach((name, values) -> values.forEach(value -> httpRequestBuilder.header(name, value)));
-      var httpRequest = httpRequestBuilder
-        .GET()
-        .build();
-      var httpResponse = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString());
+      var httpResponse = httpClient.sendAsync(buildHttpRequest(uri, requestHeaders), HttpResponse.BodyHandlers.ofString());
       return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
     } catch (TimeoutException e) {
       logger.error("Unable to load URL {} within {}ms", uri, requestTimeout.toMillis());
@@ -260,6 +252,15 @@ public class Include {
       logger.error("Unable to load URL {}: {}", uri, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
       return Optional.empty();
     }
+  }
+
+  private HttpRequest buildHttpRequest(String uri, Map<String, List<String>> requestHeaders) {
+    var httpRequestBuilder = HttpRequest.newBuilder()
+      .uri(URI.create(uri));
+    requestHeaders.forEach((name, values) -> values.forEach(value -> httpRequestBuilder.header(name, value)));
+    return httpRequestBuilder
+      .GET()
+      .build();
   }
 
   private Instant calculateFragmentExpirationTime(HttpResponse<String> response, Duration fragmentDefaultCacheDuration) {
