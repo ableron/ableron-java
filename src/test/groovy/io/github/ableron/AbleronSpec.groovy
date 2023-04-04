@@ -16,7 +16,7 @@ class AbleronSpec extends Specification {
   def "should perform transclusion only if enabled"() {
     when:
     def result = new Ableron(AbleronConfig.builder().enabled(enabled).build())
-      .resolveIncludes("<ableron-include src=\"https://foo-bar\">fallback</ableron-include>")
+      .resolveIncludes("<ableron-include src=\"https://foo-bar\">fallback</ableron-include>", [:])
 
     then:
     result.content == expectedContent

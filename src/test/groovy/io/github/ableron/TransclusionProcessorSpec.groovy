@@ -158,7 +158,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="https://foo.bar/baz?test=789"><!-- failed loading 3rd include --></ableron-include>
       </body>
       </html>
-    """))
+    """), [:])
 
     then:
     result.processedIncludesCount == 3
@@ -184,7 +184,7 @@ class TransclusionProcessorSpec extends Specification {
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #2 --></ableron-include>
-    """))
+    """), [:])
 
     then:
     result.content == """
@@ -198,7 +198,9 @@ class TransclusionProcessorSpec extends Specification {
   def "should not crash due to include tag #scenarioName"() {
     when:
     def result = transclusionProcessor
-      .resolveIncludes(Content.of("<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>"))
+      .resolveIncludes(Content.of(
+        "<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>"
+      ), [:])
 
     then:
     result.content == "before" + expectedResult + "after"
@@ -243,7 +245,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="${baseUrl}expect-404"><!-- failed loading 4th fragment --></ableron-include>
       </body>
       </html>
-    """))
+    """), [:])
 
     then:
     result.content == """
@@ -318,7 +320,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="${baseUrl}expect-404"><!-- failed loading fragment #6 --></ableron-include>
       </body>
       </html>
-    """))
+    """), [:])
 
     then:
     result.content == """
