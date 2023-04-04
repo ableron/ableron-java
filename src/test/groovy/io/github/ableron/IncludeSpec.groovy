@@ -706,7 +706,7 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  def "should pass provided User-Agent header to fragment request by default"() {
+  def "should pass provided User-Agent header to fragment requests by default"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse().setResponseCode(204))
