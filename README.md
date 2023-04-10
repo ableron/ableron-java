@@ -6,19 +6,20 @@
 Java Library for Ableron Server Side UI Composition
 
 ## Installation
+Add dependency [io.github.ableron:ableron](https://mvnrepository.com/artifact/io.github.ableron/ableron) to your project.
+
+Gradle:
+```groovy
+implementation 'io.github.ableron:ableron:1.1.0'
+```
+
 Maven:
 ```xml
 <dependency>
   <groupId>io.github.ableron</groupId>
   <artifactId>ableron</artifactId>
-  <version>1.0.2</version>
+  <version>1.1.0</version>
 </dependency>
-```
-Gradle:
-```groovy
-dependencies {
-  implementation 'io.github.ableron:ableron:1.0.2'
-}
 ```
 
 ## Usage
