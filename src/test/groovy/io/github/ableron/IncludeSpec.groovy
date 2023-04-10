@@ -625,7 +625,7 @@ class IncludeSpec extends Specification {
     "fallback-src" | Map.of("src-timeout-millis", "2000")          | ""
   }
 
-  def "should pass allowed request headers to fragment request"() {
+  def "should pass allowed request headers to fragment requests"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse().setResponseCode(204))
@@ -667,7 +667,7 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  def "should not pass non-allowed request headers to fragment request"() {
+  def "should not pass non-allowed request headers to fragment requests"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse().setResponseCode(204))
@@ -688,7 +688,7 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  def "should pass default User-Agent header to fragment request"() {
+  def "should pass default User-Agent header to fragment requests"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse().setResponseCode(204))
