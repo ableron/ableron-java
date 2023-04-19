@@ -69,10 +69,11 @@ Maven:
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
 * Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
 * Attributes
-   * `src`: URL of the fragment to include
-   * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
-   * `fallback-src`: URL of the fragment to include in case the request to `src` failed
-   * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
+  * `src`: URL of the fragment to include
+  * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
+  * `fallback-src`: URL of the fragment to include in case the request to `src` failed
+  * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
+  * `primary`: Denotes a fragment whose response code is set as response code for the page
 * Precedence for resolving: `src` → `fallback-src` → fallback content
 
 ### Redirects
@@ -88,10 +89,6 @@ Fragments are considered cacheable if they have HTTP status code
 ## Library Development
 
 ### Quick Start
-* Install to local `.m2` repository
-   ```console
-   $ ./mvnw clean install
-   ```
 * Check for outdated dependencies via [Versions Maven Plugin](https://www.mojohaus.org/versions/versions-maven-plugin/index.html)
    ```console
    $ ./mvnw versions:display-dependency-updates
