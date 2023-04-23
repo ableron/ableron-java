@@ -45,6 +45,12 @@ public class Include {
    */
   private static final String ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS = "fallback-src-timeout-millis";
 
+  /**
+   * Name of the attribute which denotes a fragment whose response code is set as response code
+   * for the page.
+   */
+  private static final String ATTR_PRIMARY = "primary";
+
   private static final String HEADER_AGE = "Age";
   private static final String HEADER_CACHE_CONTROL = "Cache-Control";
   private static final String HEADER_DATE = "Date";
@@ -102,6 +108,11 @@ public class Include {
   private final String fallbackContent;
 
   /**
+   * Whether the include provides the primary fragment and thus sets the response code of the page.
+   */
+  private final boolean primary;
+
+  /**
    * Resolved include content.
    */
   private CompletableFuture<String> resolvedInclude = null;
@@ -120,6 +131,7 @@ public class Include {
     this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
     this.fallbackSrcTimeout = parseTimeout(attributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS));
     this.fallbackContent = fallbackContent;
+    this.primary = attributes.containsKey(ATTR_PRIMARY) && List.of("", "primary").contains(attributes.get(ATTR_PRIMARY).toLowerCase());
   }
 
   /**
@@ -164,6 +176,10 @@ public class Include {
     return fallbackContent;
   }
 
+  public boolean isPrimary() {
+    return primary;
+  }
+
   /**
    * Resolves this include.
    *
@@ -202,7 +218,7 @@ public class Include {
         try {
           return Long.parseLong(timeout);
         } catch (NumberFormatException e) {
-          logger.error("Invalid request timeout provided: {}", timeout);
+          logger.error("Invalid request timeout: {}", timeout);
           return null;
         }
       })

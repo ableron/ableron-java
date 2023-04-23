@@ -86,6 +86,19 @@ class IncludeSpec extends Specification {
     new Include("...", Map.of(), "fallback") | "fallback"
   }
 
+  def "constructor should set primary attribute"() {
+    expect:
+    include.primary == expectedPrimary
+
+    where:
+    include                                                | expectedPrimary
+    new Include("...", Map.of(), null)                     | false
+    new Include("...", Map.of("primary", ""), null)        | true
+    new Include("...", Map.of("primary", "primary"), null) | true
+    new Include("...", Map.of("primary", "PRIMARY"), null) | true
+    new Include("...", Map.of("primary", "false"), null)   | false
+  }
+
   def "should consider include objects with identical include string as equal"() {
     when:
     def include1 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of(), null)

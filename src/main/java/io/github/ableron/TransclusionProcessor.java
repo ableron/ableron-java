@@ -4,10 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import java.net.http.HttpClient;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,7 +25,7 @@ public class TransclusionProcessor {
   /**
    * Regular expression for parsing include tag attributes.
    */
-  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)=\"([^\"]+)\"");
+  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)(=\"([^\"]+)\")?");
 
   private static final long NANO_2_MILLIS = 1000000L;
 
@@ -95,8 +92,9 @@ public class TransclusionProcessor {
   public TransclusionResult resolveIncludes(Content content, Map<String, List<String>> presentRequestHeaders) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult();
-    var includes = findIncludes(content.get())
-      .stream()
+    var includes = findIncludes(content.get());
+    validateIncludes(includes);
+    CompletableFuture.allOf(includes.stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
         .thenApplyAsync(s -> {
           content.replace(include.getRawIncludeTag(), s);
@@ -107,12 +105,22 @@ public class TransclusionProcessor {
           return null;
         })
       )
-      .collect(Collectors.toList());
-    CompletableFuture.allOf(includes.toArray(new CompletableFuture[0])).join();
+      .toArray(CompletableFuture[]::new)
+    ).join();
     transclusionResult.setProcessedIncludesCount(includes.size());
     transclusionResult.setContent(content.get());
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
+  }
+
+  private void validateIncludes(Set<Include> includes) {
+    long primaryIncludesCount = includes.stream()
+      .filter(Include::isPrimary)
+      .count();
+
+    if (primaryIncludesCount > 1) {
+      logger.error("Only one primary include per page allowed. Found {}", primaryIncludesCount);
+    }
   }
 
   private HttpClient buildHttpClient() {
@@ -154,7 +162,7 @@ public class TransclusionProcessor {
     if (attributesString != null) {
       ATTRIBUTES_PATTERN.matcher(attributesString)
         .results()
-        .forEach(match -> attributes.put(match.group(1), match.group(2)));
+        .forEach(match -> attributes.put(match.group(1), Optional.ofNullable(match.group(3)).orElse("")));
     }
 
     return attributes;
