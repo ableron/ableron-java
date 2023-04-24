@@ -62,6 +62,28 @@ class TransclusionProcessorSpec extends Specification {
     include.fallbackSrc == "https://foo.bar/fragment-1-fallback"
   }
 
+  def "should parse include tag attributes"() {
+    expect:
+    transclusionProcessor.findIncludes(include).first().rawAttributes == expectedRawAttributes
+
+    where:
+    include                                                          | expectedRawAttributes
+    '<ableron-include src="https://example.com"/>'                   | ["src": "https://example.com"]
+    '<ableron-include  src="https://example.com"/>'                  | ["src": "https://example.com"]
+    '<ableron-include   src="https://example.com"/>'                 | ["src": "https://example.com"]
+    '<ableron-include -src="https://example.com"/>'                  | ["-src": "https://example.com"]
+    '<ableron-include _src="https://example.com"/>'                  | ["_src": "https://example.com"]
+    '<ableron-include 0src="https://example.com"/>'                  | ["0src": "https://example.com"]
+    '<ableron-include foo="" src="https://example.com"/>'            | ["foo": "", "src": "https://example.com"]
+    '<ableron-include src="source" fallback-src="fallback"/>'        | ["src": "source", "fallback-src": "fallback"]
+    '<ableron-include fallback-src="fallback" src="source"/>'        | ["src": "source", "fallback-src": "fallback"]
+    '<ableron-include src=">" fallback-src="/>"/>'                   | ["src": ">", "fallback-src": "/>"]
+    '<ableron-include src="https://example.com" primary/>'           | ["src": "https://example.com", "primary": ""]
+    '<ableron-include primary src="https://example.com"/>'           | ["src": "https://example.com", "primary": ""]
+    '<ableron-include src="https://example.com" primary="primary"/>' | ["src": "https://example.com", "primary": "primary"]
+    '<ableron-include src="https://example.com" primary="foo"/>'     | ["src": "https://example.com", "primary": "foo"]
+  }
+
   def "should find all includes in input content"() {
     expect:
     transclusionProcessor.findIncludes("""
@@ -77,10 +99,10 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include('<ableron-include src="https://foo.bar/baz?test=123" />', null, null),
-      new Include('<ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>', null, null),
-      new Include('<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>', null, null),
-      new Include('<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>', null, null)
+      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=123" />'),
+      new Include(null, null, '<ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>'),
+      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>'),
+      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>')
     ] as Set
   }
 
@@ -101,9 +123,9 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include('<ableron-include src="https://foo.bar/baz?test=123"/>', null, null),
-      new Include('<ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>', null, null),
-      new Include('<ableron-include src="...">...</ableron-include>', null, null)
+      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=123"/>'),
+      new Include(null, null, '<ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>'),
+      new Include(null, null, '<ableron-include src="...">...</ableron-include>')
     ] as Set
   }
 

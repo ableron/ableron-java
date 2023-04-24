@@ -17,15 +17,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Include {
-
-  /**
-   * Regular expression for parsing include tag attributes.
-   */
-  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)(=\"([^\"]+)\")?");
 
   /**
    * Name of the attribute which contains the source URl to resolve the include to.
@@ -111,14 +105,14 @@ public class Include {
   private final Duration fallbackSrcTimeout;
 
   /**
-   * Fallback content to use in case the include could not be resolved.
-   */
-  private final String fallbackContent;
-
-  /**
    * Whether the include provides the primary fragment and thus sets the response code of the page.
    */
   private final boolean primary;
+
+  /**
+   * Fallback content to use in case the include could not be resolved.
+   */
+  private final String fallbackContent;
 
   /**
    * Resolved include content.
@@ -128,20 +122,38 @@ public class Include {
   /**
    * Constructs a new Include.
    *
-   * @param rawIncludeTag Raw include tag
-   * @param attributeString Attributes string of the include tag
+   * @param rawAttributes Raw attributes of the include tag
+   */
+  public Include(Map<String, String> rawAttributes) {
+    this(rawAttributes, null);
+  }
+
+  /**
+   * Constructs a new Include.
+   *
+   * @param rawAttributes Raw attributes of the include tag
    * @param fallbackContent Fallback content to use in case the include could not be resolved
    */
-  //TODO: rawIncludeTag should be only parameter as everything else can be derived from this
-  public Include(String rawIncludeTag, String attributeString, String fallbackContent) {
-    this.rawIncludeTag = Objects.requireNonNull(rawIncludeTag, "rawIncludeTag must not be null");
-    this.rawAttributes = parseAttributes(attributeString);
-    this.src = Objects.requireNonNull(this.rawAttributes, "attributes must not be null").get(ATTR_SOURCE);
+  public Include(Map<String, String> rawAttributes, String fallbackContent) {
+    this(rawAttributes, fallbackContent, "");
+  }
+
+  /**
+   * Constructs a new Include.
+   *
+   * @param rawAttributes Raw attributes of the include tag
+   * @param fallbackContent Fallback content to use in case the include could not be resolved
+   * @param rawIncludeTag Raw include tag
+   */
+  public Include(Map<String, String> rawAttributes, String fallbackContent, String rawIncludeTag) {
+    this.rawIncludeTag = Optional.ofNullable(rawIncludeTag).orElse("");
+    this.rawAttributes = Optional.ofNullable(rawAttributes).orElse(Map.of());
+    this.src = this.rawAttributes.get(ATTR_SOURCE);
     this.srcTimeout = parseTimeout(this.rawAttributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
     this.fallbackSrc = this.rawAttributes.get(ATTR_FALLBACK_SOURCE);
     this.fallbackSrcTimeout = parseTimeout(this.rawAttributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS));
-    this.fallbackContent = fallbackContent;
     this.primary = this.rawAttributes.containsKey(ATTR_PRIMARY) && List.of("", "primary").contains(this.rawAttributes.get(ATTR_PRIMARY).toLowerCase());
+    this.fallbackContent = fallbackContent;
   }
 
   /**
@@ -186,15 +198,15 @@ public class Include {
     return fallbackSrcTimeout;
   }
 
+  public boolean isPrimary() {
+    return primary;
+  }
+
   /**
    * @return Fallback content to use in case the include could not be resolved
    */
   public String getFallbackContent() {
     return fallbackContent;
-  }
-
-  public boolean isPrimary() {
-    return primary;
   }
 
   /**
@@ -220,19 +232,6 @@ public class Include {
     }
 
     return resolvedInclude;
-  }
-
-  /**
-   * Parses the given include tag attributes string.
-   *
-   * @param attributesString Attributes string to parse
-   * @return A key-value map of the attributes
-   */
-  private Map<String, String> parseAttributes(String attributesString) {
-    return ATTRIBUTES_PATTERN.matcher(Optional.ofNullable(attributesString).orElse(""))
-      .results()
-      .map(match -> new AbstractMap.SimpleEntry<>(match.group(1), Optional.ofNullable(match.group(3)).orElse("")))
-      .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
   }
 
   private Map<String, List<String>> filterFragmentRequestHeaders(Map<String, List<String>> requestHeaders, List<String> allowedRequestHeaders) {
