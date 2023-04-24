@@ -49,32 +49,6 @@ class TransclusionProcessorSpec extends Specification {
     ]
   }
 
-  def "should parse include attributes"() {
-    when:
-    def include = transclusionProcessor.findIncludes(includeTag).first()
-
-    then:
-    include.src == expectedSource
-    include.fallbackSrc == expectedFallbackSource
-    include.primary == expectedPrimary
-
-    where:
-    includeTag                                                           | expectedSource        | expectedFallbackSource | expectedPrimary
-    "<ableron-include src=\"https://example.com\"/>"                     | "https://example.com" | null                   | false
-    "<ableron-include  src=\"https://example.com\"/>"                    | "https://example.com" | null                   | false
-    "<ableron-include -src=\"https://example.com\"/>"                    | null                  | null                   | false
-    "<ableron-include _src=\"https://example.com\"/>"                    | null                  | null                   | false
-    "<ableron-include 0src=\"https://example.com\"/>"                    | null                  | null                   | false
-    "<ableron-include foo=\"\" src=\"https://example.com\"/>"            | "https://example.com" | null                   | false
-    "<ableron-include fallback-src=\"fallback\" src=\"source\"/>"        | "source"              | "fallback"             | false
-    "<ableron-include src=\"source\" fallback-src=\"fallback\"/>"        | "source"              | "fallback"             | false
-    "<ableron-include src=\">\" fallback-src=\"/>\"/>"                   | ">"                   | "/>"                   | false
-    "<ableron-include src=\"https://example.com\" primary/>"             | "https://example.com" | null                   | true
-    "<ableron-include primary src=\"https://example.com\"/>"             | "https://example.com" | null                   | true
-    "<ableron-include src=\"https://example.com\" primary=\"primary\"/>" | "https://example.com" | null                   | true
-    "<ableron-include src=\"https://example.com\" primary=\"foo\"/>"     | "https://example.com" | null                   | false
-  }
-
   def "should accept line breaks in include tag attributes"() {
     when:
     def include = transclusionProcessor.findIncludes("""
@@ -103,10 +77,10 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of(), null),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of(), null),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of(), null),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of(), null)
+      new Include('<ableron-include src="https://foo.bar/baz?test=123" />', null, null),
+      new Include('<ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>', null, null),
+      new Include('<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>', null, null),
+      new Include('<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>', null, null)
     ] as Set
   }
 
@@ -127,9 +101,9 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of(), null),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of(), null),
-      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of(), null)
+      new Include('<ableron-include src="https://foo.bar/baz?test=123"/>', null, null),
+      new Include('<ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>', null, null),
+      new Include('<ableron-include src="...">...</ableron-include>', null, null)
     ] as Set
   }
 

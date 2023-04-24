@@ -32,28 +32,19 @@ class IncludeSpec extends Specification {
 
   def "should throw exception if rawIncludeTag is not provided"() {
     when:
-    new Include(null, Map.of(), "")
+    new Include(null, null, "")
 
     then:
     def exception = thrown(NullPointerException)
     exception.message == "rawIncludeTag must not be null"
   }
 
-  def "should throw exception if attributes are not provided"() {
-    when:
-    new Include("", null, "")
-
-    then:
-    def exception = thrown(NullPointerException)
-    exception.message == "attributes must not be null"
-  }
-
   def "constructor should set raw include tag"() {
     when:
-    def include = new Include("<ableron-include src=\"https://example.com\"/>", Map.of(), null)
+    def include = new Include('<ableron-include src="https://example.com"/>', null, null)
 
     then:
-    include.rawIncludeTag == "<ableron-include src=\"https://example.com\"/>"
+    include.rawIncludeTag == '<ableron-include src="https://example.com"/>'
   }
 
   def "constructor should set src attribute"() {
@@ -61,9 +52,9 @@ class IncludeSpec extends Specification {
     include.src == expectedSrc
 
     where:
-    include                                                        | expectedSrc
-    new Include("...", Map.of(), null)                             | null
-    new Include("...", Map.of("src", "https://example.com"), null) | "https://example.com"
+    include                                               | expectedSrc
+    new Include("...", null, null)                        | null
+    new Include("...", 'src="https://example.com"', null) | "https://example.com"
   }
 
   def "constructor should set fallback-src attribute"() {
@@ -71,9 +62,9 @@ class IncludeSpec extends Specification {
     include.fallbackSrc == expectedFallbackSrc
 
     where:
-    include                                                                 | expectedFallbackSrc
-    new Include("...", Map.of(), null)                                      | null
-    new Include("...", Map.of("fallback-src", "https://example.com"), null) | "https://example.com"
+    include                                                        | expectedFallbackSrc
+    new Include("...", null, null)                                 | null
+    new Include("...", 'fallback-src="https://example.com"', null) | "https://example.com"
   }
 
   def "constructor should set fallback content"() {
@@ -81,9 +72,9 @@ class IncludeSpec extends Specification {
     include.fallbackContent == expectedFallbackContent
 
     where:
-    include                                  | expectedFallbackContent
-    new Include("...", Map.of(), null)       | null
-    new Include("...", Map.of(), "fallback") | "fallback"
+    include                              | expectedFallbackContent
+    new Include("...", null, null)       | null
+    new Include("...", null, "fallback") | "fallback"
   }
 
   def "constructor should set primary attribute"() {
@@ -91,24 +82,47 @@ class IncludeSpec extends Specification {
     include.primary == expectedPrimary
 
     where:
-    include                                                | expectedPrimary
-    new Include("...", Map.of(), null)                     | false
-    new Include("...", Map.of("primary", ""), null)        | true
-    new Include("...", Map.of("primary", "primary"), null) | true
-    new Include("...", Map.of("primary", "PRIMARY"), null) | true
-    new Include("...", Map.of("primary", "false"), null)   | false
+    include                                       | expectedPrimary
+    new Include("...", null, null)                | false
+    new Include("...", 'primary', null)           | true
+    new Include("...", 'primary=""', null)        | true
+    new Include("...", 'primary="primary"', null) | true
+    new Include("...", 'primary="PRIMARY"', null) | true
+    new Include("...", 'primary="nope"', null)    | false
   }
 
   def "should consider include objects with identical include string as equal"() {
     when:
-    def include1 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of(), null)
-    def include2 = new Include("<ableron-include src=\"...\"></ableron-include>", Map.of("foo", "bar"), null)
-    def include3 = new Include("<ableron-include src=\"...\"/>", Map.of("test", "test"), null)
+    def include1 = new Include('<ableron-include src="..."></ableron-include>', null, null)
+    def include2 = new Include('<ableron-include src="..."></ableron-include>', 'foo="bar"', null)
+    def include3 = new Include('<ableron-include src="..."/>', 'test="test"', null)
 
     then:
     include1 == include2
     include1 != include3
     include2 != include3
+  }
+
+  def "should parse include tag attributes"() {
+    expect:
+    new Include("", attributesString, null).rawAttributes == expectedRawAttributes
+
+    where:
+    attributesString                                | expectedRawAttributes
+    'src="https://example.com"'                     | ["src": "https://example.com"]
+    ' src="https://example.com"'                    | ["src": "https://example.com"]
+    '  src="https://example.com"'                   | ["src": "https://example.com"]
+    '-src="https://example.com"'                    | ["-src": "https://example.com"]
+    '_src="https://example.com"'                    | ["_src": "https://example.com"]
+    '0src="https://example.com"'                    | ["0src": "https://example.com"]
+    'foo="" src="https://example.com"/>'            | ["foo": "", "src": "https://example.com"]
+    'src="source" fallback-src="fallback"/>'        | ["src": "source", "fallback-src": "fallback"]
+    'fallback-src="fallback" src="source"/>'        | ["src": "source", "fallback-src": "fallback"]
+    'src=">" fallback-src="/>"/>'                   | ["src": ">", "fallback-src": "/>"]
+    'src="https://example.com" primary/>'           | ["src": "https://example.com", "primary": ""]
+    'primary src="https://example.com"/>'           | ["src": "https://example.com", "primary": ""]
+    'src="https://example.com" primary="primary"/>' | ["src": "https://example.com", "primary": "primary"]
+    'src="https://example.com" primary="foo"/>'     | ["src": "https://example.com", "primary": "foo"]
   }
 
   def "should resolve include with URL provided via src attribute"() {
@@ -119,9 +133,11 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/fragment").toString()
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include(
+      "...",
+      "src=\"${mockWebServer.url("/fragment").toString()}\"",
+      null
+    ).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "response"
@@ -142,10 +158,11 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/src").toString(),
-      "fallback-src", mockWebServer.url("/fallback-src").toString()
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include(
+      "...",
+      "src=\"${mockWebServer.url("/src").toString()}\" fallback-src=\"${mockWebServer.url("/fallback-src").toString()}\"",
+      null
+    ).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fragment from fallback-src"
@@ -167,10 +184,11 @@ class IncludeSpec extends Specification {
       .setResponseCode(500))
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/src").toString(),
-      "fallback-src", mockWebServer.url("/fallback-src").toString()
-    ), "fallback content").resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include(
+      "...",
+      "src=\"${mockWebServer.url("/src").toString()}\" fallback-src=\"${mockWebServer.url("/fallback-src").toString()}\"",
+      "fallback content"
+    ).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fallback content"
@@ -183,7 +201,7 @@ class IncludeSpec extends Specification {
 
   def "should resolve include to empty string if src, fallback src and fallback content are not present"() {
     expect:
-    new Include("...", Map.of(), null).resolve(httpClient, [:], cache, config, supplyPool).get() == ""
+    new Include("...", null, null).resolve(httpClient, [:], cache, config, supplyPool).get() == ""
   }
 
   def "should follow redirects when resolving URLs"() {
@@ -200,9 +218,11 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/test-redirect").toString()
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include(
+      "...",
+      "src=\"${mockWebServer.url("/test-redirect").toString()}\"",
+      null
+    ).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fragment after redirect"
@@ -221,9 +241,8 @@ class IncludeSpec extends Specification {
 
     when:
     cache.put(includeSrcUrl, new Fragment(200, "from cache", expirationTime))
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == expectedResolvedInclude
@@ -247,9 +266,8 @@ class IncludeSpec extends Specification {
       .setBody(fragmentContent)
       .setResponseCode(responsStatus))
     def includeSrcUrl = mockWebServer.url("/test-caching-" + UUID.randomUUID().toString()).toString()
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), ":(").resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", ":(")
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == expectedResolvedInclude
@@ -305,9 +323,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-s-maxage").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -330,9 +347,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/-test-max-age").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -354,9 +370,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-cache-headers-case-insensitive").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -380,9 +395,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-age-header").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -406,9 +420,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-age-header").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -431,9 +444,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -454,9 +466,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fragment"
@@ -477,9 +488,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -501,9 +511,8 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-caching").toString()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fragment"
@@ -523,9 +532,11 @@ class IncludeSpec extends Specification {
       .setHeader(header1Name, header1Value)
       .setHeader(header2Name, header2Value)
       .setResponseCode(200))
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/test-should-not-crash").toString()
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include(
+      "...",
+      "src=\"${mockWebServer.url("/test-should-not-crash").toString()}\"",
+      null
+    ).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fragment"
@@ -554,9 +565,8 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", includeSrcUrl
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include("...", "src=\"${includeSrcUrl}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
@@ -577,9 +587,11 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/test-timeout-handling").toString()
-    ), "fallback").resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include(
+      "...",
+      "src=\"${mockWebServer.url("/test-timeout-handling").toString()}\"",
+      "fallback"
+    ).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fallback"
@@ -597,9 +609,11 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def resolvedInclude = new Include("...", Map.of(
-      "src", mockWebServer.url("/test-timeout-handling").toString()
-    ), "fallback").resolve(httpClient, [:], cache, config, supplyPool).get()
+    def resolvedInclude = new Include(
+      "...",
+      "src=\"${mockWebServer.url("/test-timeout-handling").toString()}\"",
+      "fallback"
+    ).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     resolvedInclude == "fallback"
@@ -616,26 +630,24 @@ class IncludeSpec extends Specification {
       .setBodyDelay(1500, TimeUnit.MILLISECONDS)
       .setResponseCode(200))
 
-    when:
-    def attributes = new HashMap()
-    attributes.put(srcAttribute, mockWebServer.url("/test-timeout-handling").toString())
-    attributes.putAll(localTimeout)
-
-    then:
-    new Include("...", attributes, null)
-      .resolve(httpClient, [:], cache, config, supplyPool).get() == expectedResolvedInclude
+    expect:
+    new Include(
+      "...",
+      "$srcAttributeName=\"${mockWebServer.url("/test-timeout-handling").toString()}\" $timeoutAttribute",
+      null
+    ).resolve(httpClient, [:], cache, config, supplyPool).get() == expectedResolvedInclude
 
     cleanup:
     mockWebServer.shutdown()
 
     where:
-    srcAttribute   | localTimeout                                  | expectedResolvedInclude
-    "src"          | Map.of()                                      | ""
-    "src"          | Map.of("src-timeout-millis", "2000")          | "fragment"
-    "src"          | Map.of("fallback-src-timeout-millis", "2000") | ""
-    "fallback-src" | Map.of()                                      | ""
-    "fallback-src" | Map.of("fallback-src-timeout-millis", "2000") | "fragment"
-    "fallback-src" | Map.of("src-timeout-millis", "2000")          | ""
+    srcAttributeName | timeoutAttribute                     | expectedResolvedInclude
+    "src"            | ""                                   | ""
+    "src"            | 'src-timeout-millis="2000"'          | "fragment"
+    "src"            | 'fallback-src-timeout-millis="2000"' | ""
+    "fallback-src"   | ""                                   | ""
+    "fallback-src"   | 'fallback-src-timeout-millis="2000"' | "fragment"
+    "fallback-src"   | 'src-timeout-millis="2000"'          | ""
   }
 
   def "should pass allowed request headers to fragment requests"() {
@@ -647,9 +659,8 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, ["X-Test":["Foo"]], cache, config, supplyPool).get()
+    new Include("...", "src=\"${mockWebServer.url("/").toString()}\"", null)
+      .resolve(httpClient, ["X-Test":["Foo"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -668,9 +679,8 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, ["x-tEsT":["Foo"]], cache, config, supplyPool).get()
+    new Include("...", "src=\"${mockWebServer.url("/").toString()}\"", null)
+      .resolve(httpClient, ["x-tEsT":["Foo"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -689,9 +699,8 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, ["X-Test":["Foo"]], cache, config, supplyPool).get()
+    new Include("...", "src=\"${mockWebServer.url("/").toString()}\"", null)
+      .resolve(httpClient, ["X-Test":["Foo"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -707,9 +716,8 @@ class IncludeSpec extends Specification {
     mockWebServer.enqueue(new MockResponse().setResponseCode(204))
 
     when:
-    new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, [:], cache, config, supplyPool).get()
+    new Include("...", "src=\"${mockWebServer.url("/").toString()}\"", null)
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -725,9 +733,8 @@ class IncludeSpec extends Specification {
     mockWebServer.enqueue(new MockResponse().setResponseCode(204))
 
     when:
-    new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, ["user-agent":["test"]], cache, config, supplyPool).get()
+    new Include("...", "src=\"${mockWebServer.url("/").toString()}\"", null)
+      .resolve(httpClient, ["user-agent":["test"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -746,9 +753,8 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    new Include("...", Map.of(
-      "src", mockWebServer.url("/").toString()
-    ), null).resolve(httpClient, ["X-Test":["Foo", "Bar", "Baz"]], cache, config, supplyPool).get()
+    new Include("...", "src=\"${mockWebServer.url("/").toString()}\"", null)
+      .resolve(httpClient, ["X-Test":["Foo", "Bar", "Baz"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:

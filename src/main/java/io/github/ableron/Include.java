@@ -1,6 +1,9 @@
 package io.github.ableron;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -9,20 +12,20 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Include {
+
+  /**
+   * Regular expression for parsing include tag attributes.
+   */
+  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)(=\"([^\"]+)\")?");
 
   /**
    * Name of the attribute which contains the source URl to resolve the include to.
@@ -83,7 +86,12 @@ public class Include {
   private final String rawIncludeTag;
 
   /**
-   * Source URL the include resolves to.
+   * Raw attributes of the include tag.
+   */
+  private final Map<String, String> rawAttributes;
+
+  /**
+   * URL of the fragment to include.
    */
   private final String src;
 
@@ -93,7 +101,7 @@ public class Include {
   private final Duration srcTimeout;
 
   /**
-   * Fallback URL to resolve the include to in case the source URL could not be loaded.
+   * URL of the fragment to include in case the request to the source URL failed.
    */
   private final String fallbackSrc;
 
@@ -121,17 +129,19 @@ public class Include {
    * Constructs a new Include.
    *
    * @param rawIncludeTag Raw include tag
-   * @param attributes Attributes of the include tag
+   * @param attributeString Attributes string of the include tag
    * @param fallbackContent Fallback content to use in case the include could not be resolved
    */
-  public Include(String rawIncludeTag, Map<String, String> attributes, String fallbackContent) {
+  //TODO: rawIncludeTag should be only parameter as everything else can be derived from this
+  public Include(String rawIncludeTag, String attributeString, String fallbackContent) {
     this.rawIncludeTag = Objects.requireNonNull(rawIncludeTag, "rawIncludeTag must not be null");
-    this.src = Objects.requireNonNull(attributes, "attributes must not be null").get(ATTR_SOURCE);
-    this.srcTimeout = parseTimeout(attributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
-    this.fallbackSrc = attributes.get(ATTR_FALLBACK_SOURCE);
-    this.fallbackSrcTimeout = parseTimeout(attributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS));
+    this.rawAttributes = parseAttributes(attributeString);
+    this.src = Objects.requireNonNull(this.rawAttributes, "attributes must not be null").get(ATTR_SOURCE);
+    this.srcTimeout = parseTimeout(this.rawAttributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
+    this.fallbackSrc = this.rawAttributes.get(ATTR_FALLBACK_SOURCE);
+    this.fallbackSrcTimeout = parseTimeout(this.rawAttributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS));
     this.fallbackContent = fallbackContent;
-    this.primary = attributes.containsKey(ATTR_PRIMARY) && List.of("", "primary").contains(attributes.get(ATTR_PRIMARY).toLowerCase());
+    this.primary = this.rawAttributes.containsKey(ATTR_PRIMARY) && List.of("", "primary").contains(this.rawAttributes.get(ATTR_PRIMARY).toLowerCase());
   }
 
   /**
@@ -139,6 +149,13 @@ public class Include {
    */
   public String getRawIncludeTag() {
     return rawIncludeTag;
+  }
+
+  /**
+   * @return The raw attributes of the include tag.
+   */
+  public Map<String, String> getRawAttributes() {
+    return rawAttributes;
   }
 
   /**
@@ -203,6 +220,19 @@ public class Include {
     }
 
     return resolvedInclude;
+  }
+
+  /**
+   * Parses the given include tag attributes string.
+   *
+   * @param attributesString Attributes string to parse
+   * @return A key-value map of the attributes
+   */
+  private Map<String, String> parseAttributes(String attributesString) {
+    return ATTRIBUTES_PATTERN.matcher(Optional.ofNullable(attributesString).orElse(""))
+      .results()
+      .map(match -> new AbstractMap.SimpleEntry<>(match.group(1), Optional.ofNullable(match.group(3)).orElse("")))
+      .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
   }
 
   private Map<String, List<String>> filterFragmentRequestHeaders(Map<String, List<String>> requestHeaders, List<String> allowedRequestHeaders) {

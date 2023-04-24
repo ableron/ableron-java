@@ -4,7 +4,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import java.net.http.HttpClient;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,11 +23,6 @@ public class TransclusionProcessor {
    */
   private static final Pattern INCLUDE_PATTERN =
     Pattern.compile("<(ableron-include)\\s(([^\">]|\"[^\"]*\")*?)(/>|>(.*?)</\\1>)", Pattern.DOTALL);
-
-  /**
-   * Regular expression for parsing include tag attributes.
-   */
-  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)(=\"([^\"]+)\")?");
 
   private static final long NANO_2_MILLIS = 1000000L;
 
@@ -78,7 +75,7 @@ public class TransclusionProcessor {
     return (firstIncludePosition == -1) ? Set.of() : INCLUDE_PATTERN.matcher(content.substring(firstIncludePosition))
       .results()
       .parallel()
-      .map(match -> new Include(match.group(0), parseAttributes(match.group(2)), match.group(5)))
+      .map(match -> new Include(match.group(0), match.group(2), match.group(5)))
       .collect(Collectors.toSet());
   }
 
@@ -110,9 +107,11 @@ public class TransclusionProcessor {
     transclusionResult.setProcessedIncludesCount(includes.size());
     transclusionResult.setContent(content.get());
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
+    //TODO: Set result.statusCodeOverride
     return transclusionResult;
   }
 
+  //TODO: Do not make this in void method. Add test
   private void validateIncludes(Set<Include> includes) {
     long primaryIncludesCount = includes.stream()
       .filter(Include::isPrimary)
@@ -148,23 +147,5 @@ public class TransclusionProcessor {
         }
       })
       .build();
-  }
-
-  /**
-   * Parses the given include tag attributes string.
-   *
-   * @param attributesString Attributes string to parse
-   * @return A key-value map of the attributes
-   */
-  private Map<String, String> parseAttributes(String attributesString) {
-    Map<String, String> attributes = new HashMap<>();
-
-    if (attributesString != null) {
-      ATTRIBUTES_PATTERN.matcher(attributesString)
-        .results()
-        .forEach(match -> attributes.put(match.group(1), Optional.ofNullable(match.group(3)).orElse("")));
-    }
-
-    return attributes;
   }
 }
