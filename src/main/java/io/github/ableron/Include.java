@@ -217,7 +217,7 @@ public class Include {
    * @param fragmentCache Cache for fragments
    * @param config Global ableron configuration
    * @param resolveThreadPool Thread pool to use for resolving
-   * @return Content of the resolved include
+   * @return The fragment the include has been resolved to
    */
   public CompletableFuture<String> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
@@ -264,12 +264,12 @@ public class Include {
     return Optional.ofNullable(uri)
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
-          if (HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())) {
-            return true;
+          if (!HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())) {
+            logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
+            return false;
           }
 
-          logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
-          return false;
+          return true;
         })
         .map(response -> new Fragment(
           response.statusCode(),
@@ -278,13 +278,13 @@ public class Include {
         ))
         .orElse(null)
       ))
-      .filter(response -> {
-        if (HTTP_STATUS_CODES_SUCCESS.contains(response.getStatusCode())) {
-          return true;
+      .filter(fragment -> {
+        if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
+          logger.error("Unable to load URL {}: Status code {}", uri, fragment.getStatusCode());
+          return false;
         }
 
-        logger.error("Unable to load URL {}: Status code {}", uri, response.getStatusCode());
-        return false;
+        return true;
       })
       .map(Fragment::getContent);
   }
