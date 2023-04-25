@@ -96,9 +96,14 @@ public class TransclusionProcessor {
     validateIncludes(includes);
     CompletableFuture.allOf(includes.stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
-        .thenApplyAsync(s -> {
-          content.replace(include.getRawIncludeTag(), s);
-          return s;
+        .thenApplyAsync(fragment -> {
+          //TODO: test this behaviour
+          if (include.isPrimary()) {
+            transclusionResult.setStatusCodeOverride(fragment.getStatusCode());
+          }
+
+          content.replace(include.getRawIncludeTag(), fragment.getContent());
+          return fragment;
         })
         .exceptionally(throwable -> {
           logger.error("Unable to resolve include", throwable);
@@ -110,7 +115,6 @@ public class TransclusionProcessor {
     transclusionResult.setProcessedIncludesCount(includes.size());
     transclusionResult.setContent(content.get());
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
-    //TODO: Set result.statusCodeOverride
     return transclusionResult;
   }
 

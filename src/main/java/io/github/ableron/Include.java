@@ -115,9 +115,9 @@ public class Include {
   private final String fallbackContent;
 
   /**
-   * Resolved include content.
+   * Resolved include.
    */
-  private CompletableFuture<String> resolvedInclude = null;
+  private CompletableFuture<Fragment> resolvedInclude = null;
 
   /**
    * Constructs a new Include.
@@ -219,16 +219,18 @@ public class Include {
    * @param resolveThreadPool Thread pool to use for resolving
    * @return The fragment the include has been resolved to
    */
-  public CompletableFuture<String> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
+  public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
       var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
 
       resolvedInclude = CompletableFuture.supplyAsync(
         () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
           .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
-          .or(() -> Optional.ofNullable(fallbackContent))
-          .orElse(""), resolveThreadPool
-      );
+          //TODO: Which status code to send for primary includes with fallback content? Maybe configurable via fallback-content-status-code="200"?
+          .or(() -> Optional.ofNullable(fallbackContent)
+            .map(fallbackContent -> new Fragment(200, fallbackContent)))
+          //TODO: Which status code to set for primary includes?
+          .orElse(new Fragment(200, "")), resolveThreadPool);
     }
 
     return resolvedInclude;
@@ -260,7 +262,7 @@ public class Include {
       .orElse(config.getFragmentRequestTimeout());
   }
 
-  private Optional<String> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
+  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
     return Optional.ofNullable(uri)
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
@@ -285,8 +287,7 @@ public class Include {
         }
 
         return true;
-      })
-      .map(Fragment::getContent);
+      });
   }
 
   private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
