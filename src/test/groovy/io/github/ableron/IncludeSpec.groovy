@@ -195,6 +195,117 @@ class IncludeSpec extends Specification {
     new Include(null).resolve(httpClient, [:], cache, config, supplyPool).get().content == ""
   }
 
+  def "should set fragment status code for successfully resolved src"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(206))
+
+    when:
+    def fragment = new Include(Map.of("src", mockWebServer.url("/").toString()))
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    fragment.content == "response"
+    fragment.statusCode == 206
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should set fragment status code for successfully resolved fallback-src of primary include"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(500))
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(206))
+
+    when:
+    def fragment = new Include(Map.of(
+      "src", mockWebServer.url("/").toString(),
+      "fallback-src", mockWebServer.url("/").toString(),
+      "primary", ""
+    )).resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    fragment.content == "response"
+    fragment.statusCode == 206
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should set fragment status code and body of errored src"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(503))
+
+    when:
+    def fragment = new Include(Map.of(
+      "src", mockWebServer.url("/").toString(),
+      "primary", "primary"
+    )).resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    fragment.content == "response"
+    fragment.statusCode == 503
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should set fragment status code of errored src also if fallback-src errored"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(503))
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(500))
+
+    when:
+    def fragment = new Include(Map.of(
+      "src", mockWebServer.url("/").toString(),
+      "fallback-src", mockWebServer.url("/").toString(),
+      "primary", ""
+    )).resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    fragment.content == "response"
+    fragment.statusCode == 503
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should ignore fallback content and set fragment status code and body of errored src if primary"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("response")
+      .setResponseCode(503))
+
+    when:
+    def fragment = new Include(Map.of(
+      "src", mockWebServer.url("/").toString(),
+      "primary", ""
+    ), "fallback content").resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    fragment.content == "response"
+    fragment.statusCode == 503
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
   def "should follow redirects when resolving URLs"() {
     given:
     def mockWebServer = new MockWebServer()

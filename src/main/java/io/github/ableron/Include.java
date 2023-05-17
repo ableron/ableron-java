@@ -222,15 +222,14 @@ public class Include {
   public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     if (resolvedInclude == null) {
       var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
+      var fragmentErrorStatusHolder = new FragmentErrorStatusHolder();
 
       resolvedInclude = CompletableFuture.supplyAsync(
-        () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
-          .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
-          //TODO: Which status code to send for primary includes with fallback content? Maybe configurable via fallback-content-status-code="200"?
-          .or(() -> Optional.ofNullable(fallbackContent)
-            .map(fallbackContent -> new Fragment(200, fallbackContent)))
-          //TODO: Which status code to set for primary includes?
-          .orElse(new Fragment(200, "")), resolveThreadPool);
+        () -> load(src, primary, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), fragmentErrorStatusHolder)
+          .or(() -> load(fallbackSrc, primary, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), fragmentErrorStatusHolder))
+          .or(() -> Optional.ofNullable(primary ? fragmentErrorStatusHolder.getBody() : fallbackContent)
+            .map(fallbackContent -> new Fragment(fragmentErrorStatusHolder.getStatus(), fallbackContent)))
+          .orElseGet(() -> new Fragment(fragmentErrorStatusHolder.getStatus(), "")), resolveThreadPool);
     }
 
     return resolvedInclude;
@@ -262,12 +261,15 @@ public class Include {
       .orElse(config.getFragmentRequestTimeout());
   }
 
-  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
+  private Optional<Fragment> load(String uri, boolean isPrimary, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout, FragmentErrorStatusHolder fragmentErrorStatusHolder) {
     return Optional.ofNullable(uri)
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
-          if (!HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())) {
+          boolean isCacheable = HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode());
+          if ((!isPrimary && !isCacheable) || (isPrimary && response.statusCode() >= 500)) {
             logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
+            fragmentErrorStatusHolder.setStatus(response.statusCode());
+            fragmentErrorStatusHolder.setBody(response.body());
             return false;
           }
 
@@ -275,14 +277,18 @@ public class Include {
         })
         .map(response -> new Fragment(
           response.statusCode(),
-          HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) ? response.body() : "",
-          calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration())
+          HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) || isPrimary ? response.body() : "",
+          HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())
+            ? calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration())
+            : Instant.EPOCH
         ))
         .orElse(null)
       ))
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
           logger.error("Unable to load URL {}: Status code {}", uri, fragment.getStatusCode());
+          fragmentErrorStatusHolder.setStatus(fragment.getStatusCode());
+          fragmentErrorStatusHolder.setBody(fragment.getContent());
           return false;
         }
 
@@ -390,5 +396,31 @@ public class Include {
   @Override
   public int hashCode() {
     return rawIncludeTag.hashCode();
+  }
+
+  private static class FragmentErrorStatusHolder {
+
+    private Integer status = null;
+    private String body = null;
+
+    public Integer getStatus() {
+      return status != null ? status : 200;
+    }
+
+    public void setStatus(Integer status) {
+      if (this.status == null) {
+        this.status = status;
+      }
+    }
+
+    public String getBody() {
+      return body != null ? body : "";
+    }
+
+    public void setBody(String body) {
+      if (this.body == null) {
+        this.body = body;
+      }
+    }
   }
 }

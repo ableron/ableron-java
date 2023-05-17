@@ -178,6 +178,48 @@ class TransclusionProcessorSpec extends Specification {
     """
   }
 
+  def "should populate TransclusionResult with status code override"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
+    mockWebServer.setDispatcher(new Dispatcher() {
+      @Override
+      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+        switch (recordedRequest.getPath()) {
+          case "/header":
+            return new MockResponse()
+              .setBody("header-fragment")
+              .setResponseCode(200)
+          case "/footer":
+            return new MockResponse()
+              .setBody("footer-fragment")
+              .setResponseCode(200)
+        }
+        return new MockResponse()
+          .setBody("main-fragment")
+          .setResponseCode(404)
+      }
+    })
+
+    when:
+    def result = transclusionProcessor.resolveIncludes(Content.of("""
+      <ableron-include src="${baseUrl}header" />
+      <ableron-include src="${baseUrl}main" primary="primary"><!-- 404 not found --></ableron-include>
+      <ableron-include src="${baseUrl}footer" />
+    """), [:])
+
+    then:
+    result.content == """
+      header-fragment
+      main-fragment
+      footer-fragment
+    """
+    result.statusCodeOverride == 404
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
   def "should replace identical includes"() {
     when:
     def result = transclusionProcessor.resolveIncludes(Content.of("""

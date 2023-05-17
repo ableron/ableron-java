@@ -97,7 +97,6 @@ public class TransclusionProcessor {
     CompletableFuture.allOf(includes.stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
         .thenApplyAsync(fragment -> {
-          //TODO: test this behaviour
           if (include.isPrimary()) {
             transclusionResult.setStatusCodeOverride(fragment.getStatusCode());
           }
@@ -143,6 +142,7 @@ public class TransclusionProcessor {
   }
 
   private HttpClient buildHttpClient() {
+    //TODO: Do not follow redirects.
     return HttpClient.newBuilder()
       .followRedirects(HttpClient.Redirect.NORMAL)
       .build();

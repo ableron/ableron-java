@@ -74,6 +74,10 @@ Maven:
   * `fallback-src`: URL of the fragment to include in case the request to `src` failed
   * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
   * `primary`: Denotes a fragment whose response code is set as response code for the page
+    * If `src` returns success status, this status code is set as response code for the page
+    * If `src` returns error status, `fallback-src` is defined and returns success status, this status code is set as response code for the page
+    * If `src` and `fallback-src` return error status, the status code returned by `src` is set as response code for the page
+    * If `src` and `fallback-src` return error status, the fragment content equals the body returned by `src`. Fallback content is ignored
 * Precedence for resolving: `src` → `fallback-src` → fallback content
 
 ### Redirects
