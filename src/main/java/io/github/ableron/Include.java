@@ -222,8 +222,8 @@ public class Include {
     var fragmentErrorStatusHolder = new FragmentErrorStatusHolder();
 
     return CompletableFuture.supplyAsync(
-      () -> load(src, primary, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), fragmentErrorStatusHolder)
-        .or(() -> load(fallbackSrc, primary, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), fragmentErrorStatusHolder))
+      () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), fragmentErrorStatusHolder)
+        .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), fragmentErrorStatusHolder))
         .or(() -> Optional.ofNullable(primary ? fragmentErrorStatusHolder.getBody() : fallbackContent)
           .map(fallbackContent -> new Fragment(fragmentErrorStatusHolder.getStatus(), fallbackContent)))
         .orElseGet(() -> new Fragment(fragmentErrorStatusHolder.getStatus(), "")), resolveThreadPool);
@@ -255,12 +255,12 @@ public class Include {
       .orElse(config.getFragmentRequestTimeout());
   }
 
-  private Optional<Fragment> load(String uri, boolean isPrimary, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout, FragmentErrorStatusHolder fragmentErrorStatusHolder) {
+  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout, FragmentErrorStatusHolder fragmentErrorStatusHolder) {
     return Optional.ofNullable(uri)
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
           boolean isCacheable = HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode());
-          if ((!isPrimary && !isCacheable) || (isPrimary && response.statusCode() >= 500)) {
+          if ((!primary && !isCacheable) || (primary && response.statusCode() >= 500)) {
             logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
             fragmentErrorStatusHolder.setStatus(response.statusCode());
             fragmentErrorStatusHolder.setBody(response.body());
@@ -271,7 +271,7 @@ public class Include {
         })
         .map(response -> new Fragment(
           response.statusCode(),
-          HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) || isPrimary ? response.body() : "",
+          HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) || primary ? response.body() : "",
           HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())
             ? calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration())
             : Instant.EPOCH
