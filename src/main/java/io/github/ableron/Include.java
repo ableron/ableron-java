@@ -224,8 +224,8 @@ public class Include {
     return CompletableFuture.supplyAsync(
       () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), fragmentErrorStatusHolder)
         .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), fragmentErrorStatusHolder))
-        .or(() -> Optional.ofNullable(primary ? fragmentErrorStatusHolder.getBody() : fallbackContent)
-          .map(content -> new Fragment(fragmentErrorStatusHolder.getStatus(), content)))
+        .or(() -> primary ? Optional.of(new Fragment(fragmentErrorStatusHolder.getStatus(), fragmentErrorStatusHolder.getBody())) : Optional.empty())
+        .or(() -> Optional.ofNullable(fallbackContent).map(content -> new Fragment(fragmentErrorStatusHolder.getStatus(), content)))
         .orElseGet(() -> new Fragment(fragmentErrorStatusHolder.getStatus(), "")), resolveThreadPool);
   }
 
