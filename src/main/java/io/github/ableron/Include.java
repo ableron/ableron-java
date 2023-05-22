@@ -115,6 +115,11 @@ public class Include {
   private final String fallbackContent;
 
   /**
+   * Recorded errored fragment used to preserve status code and response body for primary include.
+   */
+  private Fragment erroredFragment = null;
+
+  /**
    * Constructs a new Include.
    *
    * @param rawAttributes Raw attributes of the include tag
@@ -219,12 +224,11 @@ public class Include {
    */
   public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
-    var fragmentErrorStatusHolder = new FragmentErrorStatusHolder();
 
     return CompletableFuture.supplyAsync(
-      () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), fragmentErrorStatusHolder)
-        .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), fragmentErrorStatusHolder))
-        .or(() -> primary ? Optional.of(new Fragment(fragmentErrorStatusHolder.getStatus(), fragmentErrorStatusHolder.getBody())) : Optional.empty())
+      () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), true)
+        .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), false))
+        .or(() -> primary ? Optional.ofNullable(erroredFragment) : Optional.empty())
         .or(() -> Optional.ofNullable(fallbackContent).map(content -> new Fragment(200, content)))
         .orElseGet(() -> new Fragment(200, "")), resolveThreadPool);
   }
@@ -255,7 +259,7 @@ public class Include {
       .orElse(config.getFragmentRequestTimeout());
   }
 
-  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout, FragmentErrorStatusHolder fragmentErrorStatusHolder) {
+  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout, boolean recordLastErroredFragment) {
     return Optional.ofNullable(uri)
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
@@ -263,8 +267,11 @@ public class Include {
 
           if ((!primary && !isCacheable) || (primary && response.statusCode() >= 500)) {
             logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
-            fragmentErrorStatusHolder.setStatus(response.statusCode());
-            fragmentErrorStatusHolder.setBody(response.body());
+
+            if (recordLastErroredFragment || erroredFragment == null) {
+              erroredFragment = new Fragment(response.statusCode(), response.body());
+            }
+
             return false;
           }
 
@@ -282,8 +289,11 @@ public class Include {
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
           logger.error("Unable to load URL {}: Status code {}", uri, fragment.getStatusCode());
-          fragmentErrorStatusHolder.setStatus(fragment.getStatusCode());
-          fragmentErrorStatusHolder.setBody(fragment.getContent());
+
+          if (recordLastErroredFragment || erroredFragment == null) {
+            erroredFragment = new Fragment(fragment.getStatusCode(), fragment.getContent());
+          }
+
           return false;
         }
 
@@ -391,31 +401,5 @@ public class Include {
   @Override
   public int hashCode() {
     return rawIncludeTag.hashCode();
-  }
-
-  private static class FragmentErrorStatusHolder {
-
-    private Integer status = null;
-    private String body = null;
-
-    public Integer getStatus() {
-      return status != null ? status : 200;
-    }
-
-    public void setStatus(Integer status) {
-      if (this.status == null) {
-        this.status = status;
-      }
-    }
-
-    public String getBody() {
-      return body != null ? body : "";
-    }
-
-    public void setBody(String body) {
-      if (this.body == null) {
-        this.body = body;
-      }
-    }
   }
 }
