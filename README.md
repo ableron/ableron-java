@@ -93,6 +93,10 @@ Fragments are considered cacheable if they have HTTP status code
 ## Library Development
 
 ### Quick Start
+* Compile/test/package
+   ```console
+   $ ./mvnw clean install
+   ```
 * Check for outdated dependencies via [Versions Maven Plugin](https://www.mojohaus.org/versions/versions-maven-plugin/index.html)
    ```console
    $ ./mvnw versions:display-dependency-updates

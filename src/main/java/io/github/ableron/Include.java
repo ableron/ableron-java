@@ -115,11 +115,6 @@ public class Include {
   private final String fallbackContent;
 
   /**
-   * Resolved include.
-   */
-  private CompletableFuture<Fragment> resolvedInclude = null;
-
-  /**
    * Constructs a new Include.
    *
    * @param rawAttributes Raw attributes of the include tag
@@ -147,7 +142,7 @@ public class Include {
    */
   public Include(Map<String, String> rawAttributes, String fallbackContent, String rawIncludeTag) {
     this.rawIncludeTag = Optional.ofNullable(rawIncludeTag).orElse("");
-    this.rawAttributes = Optional.ofNullable(rawAttributes).orElse(Map.of());
+    this.rawAttributes = Optional.ofNullable(rawAttributes).orElseGet(Map::of);
     this.src = this.rawAttributes.get(ATTR_SOURCE);
     this.srcTimeout = parseTimeout(this.rawAttributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
     this.fallbackSrc = this.rawAttributes.get(ATTR_FALLBACK_SOURCE);
@@ -198,6 +193,9 @@ public class Include {
     return fallbackSrcTimeout;
   }
 
+  /**
+   * @return Whether this is a primary include
+   */
   public boolean isPrimary() {
     return primary;
   }
@@ -220,19 +218,15 @@ public class Include {
    * @return The fragment the include has been resolved to
    */
   public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
-    if (resolvedInclude == null) {
-      var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
-      var fragmentErrorStatusHolder = new FragmentErrorStatusHolder();
+    var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
+    var fragmentErrorStatusHolder = new FragmentErrorStatusHolder();
 
-      resolvedInclude = CompletableFuture.supplyAsync(
-        () -> load(src, primary, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), fragmentErrorStatusHolder)
-          .or(() -> load(fallbackSrc, primary, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), fragmentErrorStatusHolder))
-          .or(() -> Optional.ofNullable(primary ? fragmentErrorStatusHolder.getBody() : fallbackContent)
-            .map(fallbackContent -> new Fragment(fragmentErrorStatusHolder.getStatus(), fallbackContent)))
-          .orElseGet(() -> new Fragment(fragmentErrorStatusHolder.getStatus(), "")), resolveThreadPool);
-    }
-
-    return resolvedInclude;
+    return CompletableFuture.supplyAsync(
+      () -> load(src, primary, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), fragmentErrorStatusHolder)
+        .or(() -> load(fallbackSrc, primary, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), fragmentErrorStatusHolder))
+        .or(() -> Optional.ofNullable(primary ? fragmentErrorStatusHolder.getBody() : fallbackContent)
+          .map(fallbackContent -> new Fragment(fragmentErrorStatusHolder.getStatus(), fallbackContent)))
+        .orElseGet(() -> new Fragment(fragmentErrorStatusHolder.getStatus(), "")), resolveThreadPool);
   }
 
   private Map<String, List<String>> filterFragmentRequestHeaders(Map<String, List<String>> requestHeaders, List<String> allowedRequestHeaders) {
