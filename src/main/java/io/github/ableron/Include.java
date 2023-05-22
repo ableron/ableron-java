@@ -225,7 +225,7 @@ public class Include {
       () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), fragmentErrorStatusHolder)
         .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), fragmentErrorStatusHolder))
         .or(() -> Optional.ofNullable(primary ? fragmentErrorStatusHolder.getBody() : fallbackContent)
-          .map(fallbackContent -> new Fragment(fragmentErrorStatusHolder.getStatus(), fallbackContent)))
+          .map(content -> new Fragment(fragmentErrorStatusHolder.getStatus(), content)))
         .orElseGet(() -> new Fragment(fragmentErrorStatusHolder.getStatus(), "")), resolveThreadPool);
   }
 
@@ -260,6 +260,7 @@ public class Include {
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
           boolean isCacheable = HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode());
+
           if ((!primary && !isCacheable) || (primary && response.statusCode() >= 500)) {
             logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
             fragmentErrorStatusHolder.setStatus(response.statusCode());
