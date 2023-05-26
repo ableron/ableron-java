@@ -97,6 +97,7 @@ public class TransclusionProcessor {
     CompletableFuture.allOf(includes.stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
         .thenApplyAsync(fragment -> {
+          //TODO: We must be able to set whitelisted response headers here in addition to the status code
           if (include.isPrimary()) {
             transclusionResult.setStatusCodeOverride(fragment.getStatusCode());
           }
