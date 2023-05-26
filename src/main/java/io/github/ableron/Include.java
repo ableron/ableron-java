@@ -224,10 +224,11 @@ public class Include {
    */
   public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
+    erroredFragment = null;
 
     return CompletableFuture.supplyAsync(
-      () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), true)
-        .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), false))
+      () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
+        .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
         .or(() -> primary ? Optional.ofNullable(erroredFragment) : Optional.empty())
         .or(() -> Optional.ofNullable(fallbackContent).map(content -> new Fragment(200, content)))
         .orElseGet(() -> new Fragment(200, "")), resolveThreadPool);
@@ -259,19 +260,15 @@ public class Include {
       .orElse(config.getFragmentRequestTimeout());
   }
 
-  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout, boolean recordLastErroredFragment) {
+  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
     return Optional.ofNullable(uri)
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
           boolean isCacheable = HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode());
 
-          if ((!primary && !isCacheable) || (primary && response.statusCode() >= 500)) {
+          if ((!primary && !isCacheable) || (primary && response.statusCode() >= 400)) {
             logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
-
-            if (recordLastErroredFragment || erroredFragment == null) {
-              erroredFragment = new Fragment(response.statusCode(), response.body());
-            }
-
+            recordErrorFragment(new Fragment(response.statusCode(), response.body()));
             return false;
           }
 
@@ -289,16 +286,18 @@ public class Include {
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
           logger.error("Unable to load URL {}: Status code {}", uri, fragment.getStatusCode());
-
-          if (recordLastErroredFragment || erroredFragment == null) {
-            erroredFragment = new Fragment(fragment.getStatusCode(), fragment.getContent());
-          }
-
+          recordErrorFragment(new Fragment(fragment.getStatusCode(), fragment.getContent()));
           return false;
         }
 
         return true;
       });
+  }
+
+  private void recordErrorFragment(Fragment fragment) {
+    if (primary && erroredFragment == null) {
+      erroredFragment = fragment;
+    }
   }
 
   private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
