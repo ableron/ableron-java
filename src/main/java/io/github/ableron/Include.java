@@ -115,9 +115,9 @@ public class Include {
   private final String fallbackContent;
 
   /**
-   * Recorded errored fragment used to preserve status code and response body for primary include.
+   * Recorded response of the errored primary fragment.
    */
-  private Fragment erroredFragment = null;
+  private Fragment erroredPrimaryFragment = null;
 
   /**
    * Constructs a new Include.
@@ -224,12 +224,12 @@ public class Include {
    */
   public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
-    erroredFragment = null;
+    erroredPrimaryFragment = null;
 
     return CompletableFuture.supplyAsync(
       () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
         .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
-        .or(() -> primary ? Optional.ofNullable(erroredFragment) : Optional.empty())
+        .or(() -> Optional.ofNullable(erroredPrimaryFragment))
         .or(() -> Optional.ofNullable(fallbackContent).map(content -> new Fragment(200, content)))
         .orElseGet(() -> new Fragment(200, "")), resolveThreadPool);
   }
@@ -264,11 +264,9 @@ public class Include {
     return Optional.ofNullable(uri)
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
-          boolean isCacheable = HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode());
-
-          if ((!primary && !isCacheable) || (primary && response.statusCode() >= 400)) {
-            logger.error("Unable to load URL {}: Status code {}", uri, response.statusCode());
-            recordErrorFragment(new Fragment(response.statusCode(), response.body()));
+          if (!isHttpStatusCacheable(response.statusCode())) {
+            logger.error("Fragment URL {} returned status code {}", uri, response.statusCode());
+            recordErroredPrimaryFragment(new Fragment(response.statusCode(), response.body()));
             return false;
           }
 
@@ -276,17 +274,15 @@ public class Include {
         })
         .map(response -> new Fragment(
           response.statusCode(),
-          HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) || primary ? response.body() : "",
-          HTTP_STATUS_CODES_CACHEABLE.contains(response.statusCode())
-            ? calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration())
-            : Instant.EPOCH
+          primary || HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) ? response.body() : "",
+          calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration())
         ))
         .orElse(null)
       ))
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
-          logger.error("Unable to load URL {}: Status code {}", uri, fragment.getStatusCode());
-          recordErrorFragment(new Fragment(fragment.getStatusCode(), fragment.getContent()));
+          logger.error("Fragment URL {} returned status code {}", uri, fragment.getStatusCode());
+          recordErroredPrimaryFragment(new Fragment(fragment.getStatusCode(), fragment.getContent()));
           return false;
         }
 
@@ -294,10 +290,14 @@ public class Include {
       });
   }
 
-  private void recordErrorFragment(Fragment fragment) {
-    if (primary && erroredFragment == null) {
-      erroredFragment = fragment;
+  private void recordErroredPrimaryFragment(Fragment fragment) {
+    if (primary && erroredPrimaryFragment == null) {
+      erroredPrimaryFragment = fragment;
     }
+  }
+
+  private boolean isHttpStatusCacheable(int httpStatusCode) {
+    return HTTP_STATUS_CODES_CACHEABLE.contains(httpStatusCode);
   }
 
   private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
