@@ -81,7 +81,7 @@ Maven:
 * Precedence for resolving: `src` → `fallback-src` → fallback content
 
 ### Redirects
-Redirects will be followed when requesting fragments except they redirect from `https` to `http`.
+Redirects will not be followed when requesting fragments because they may introduce unwanted latency.
 
 ### Caching
 Fragments are considered cacheable if they have HTTP status code

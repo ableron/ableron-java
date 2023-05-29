@@ -131,21 +131,19 @@ public class TransclusionProcessor {
       .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
   }
 
-  //TODO: Do not make this in void method. Add test
   private void validateIncludes(Set<Include> includes) {
     long primaryIncludesCount = includes.stream()
       .filter(Include::isPrimary)
       .count();
 
     if (primaryIncludesCount > 1) {
-      logger.error("Only one primary include per page allowed. Found {}", primaryIncludesCount);
+      logger.warn("Only one primary include per page allowed. Found {}", primaryIncludesCount);
     }
   }
 
   private HttpClient buildHttpClient() {
-    //TODO: Do not follow redirects.
     return HttpClient.newBuilder()
-      .followRedirects(HttpClient.Redirect.NORMAL)
+      .followRedirects(HttpClient.Redirect.NEVER)
       .build();
   }
 

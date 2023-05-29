@@ -345,25 +345,22 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  def "should follow redirects when resolving URLs"() {
+  def "should not follow redirects when resolving URLs"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
       .setHeader("Location", "foo")
       .setResponseCode(302))
     mockWebServer.enqueue(new MockResponse()
-      .setHeader("Location", "bar")
-      .setResponseCode(302))
-    mockWebServer.enqueue(new MockResponse()
       .setBody("fragment after redirect")
       .setResponseCode(200))
 
     when:
-    def fragment = new Include(Map.of("src", mockWebServer.url("/test-redirect").toString()))
+    def fragment = new Include(Map.of("src", mockWebServer.url("/test-redirect").toString()), "fallback")
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fragment after redirect"
+    fragment.content == "fallback"
 
     cleanup:
     mockWebServer.shutdown()
