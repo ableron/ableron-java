@@ -1,5 +1,7 @@
 package io.github.ableron;
 
+import java.util.Optional;
+
 public class TransclusionResult {
 
   /**
@@ -30,8 +32,8 @@ public class TransclusionResult {
     this.content = content;
   }
 
-  public Integer getStatusCodeOverride() {
-    return statusCodeOverride;
+  public Optional<Integer> getStatusCodeOverride() {
+    return Optional.ofNullable(statusCodeOverride);
   }
 
   public void setStatusCodeOverride(Integer statusCodeOverride) {
