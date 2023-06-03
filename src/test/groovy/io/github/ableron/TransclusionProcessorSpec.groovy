@@ -49,27 +49,6 @@ class TransclusionProcessorSpec extends Specification {
     ]
   }
 
-  def "should parse include attributes"() {
-    when:
-    def include = transclusionProcessor.findIncludes(includeTag).first()
-
-    then:
-    include.src == expectedSource
-    include.fallbackSrc == expectedFallbackSource
-
-    where:
-    includeTag                                                    | expectedSource        | expectedFallbackSource
-    "<ableron-include src=\"https://example.com\"/>"              | "https://example.com" | null
-    "<ableron-include  src=\"https://example.com\"/>"             | "https://example.com" | null
-    "<ableron-include -src=\"https://example.com\"/>"             | null                  | null
-    "<ableron-include _src=\"https://example.com\"/>"             | null                  | null
-    "<ableron-include 0src=\"https://example.com\"/>"             | null                  | null
-    "<ableron-include foo=\"\" src=\"https://example.com\"/>"     | "https://example.com" | null
-    "<ableron-include fallback-src=\"fallback\" src=\"source\"/>" | "source"              | "fallback"
-    "<ableron-include src=\"source\" fallback-src=\"fallback\"/>" | "source"              | "fallback"
-    "<ableron-include src=\">\" fallback-src=\"/>\"/>"            | ">"                   | "/>"
-  }
-
   def "should accept line breaks in include tag attributes"() {
     when:
     def include = transclusionProcessor.findIncludes("""
@@ -81,6 +60,28 @@ class TransclusionProcessorSpec extends Specification {
     then:
     include.src == "https://foo.bar/fragment-1"
     include.fallbackSrc == "https://foo.bar/fragment-1-fallback"
+  }
+
+  def "should parse include tag attributes"() {
+    expect:
+    transclusionProcessor.findIncludes(include).first().rawAttributes == expectedRawAttributes
+
+    where:
+    include                                                          | expectedRawAttributes
+    '<ableron-include src="https://example.com"/>'                   | ["src": "https://example.com"]
+    '<ableron-include  src="https://example.com"/>'                  | ["src": "https://example.com"]
+    '<ableron-include   src="https://example.com"/>'                 | ["src": "https://example.com"]
+    '<ableron-include -src="https://example.com"/>'                  | ["-src": "https://example.com"]
+    '<ableron-include _src="https://example.com"/>'                  | ["_src": "https://example.com"]
+    '<ableron-include 0src="https://example.com"/>'                  | ["0src": "https://example.com"]
+    '<ableron-include foo="" src="https://example.com"/>'            | ["foo": "", "src": "https://example.com"]
+    '<ableron-include src="source" fallback-src="fallback"/>'        | ["src": "source", "fallback-src": "fallback"]
+    '<ableron-include fallback-src="fallback" src="source"/>'        | ["src": "source", "fallback-src": "fallback"]
+    '<ableron-include src=">" fallback-src="/>"/>'                   | ["src": ">", "fallback-src": "/>"]
+    '<ableron-include src="https://example.com" primary/>'           | ["src": "https://example.com", "primary": ""]
+    '<ableron-include primary src="https://example.com"/>'           | ["src": "https://example.com", "primary": ""]
+    '<ableron-include src="https://example.com" primary="primary"/>' | ["src": "https://example.com", "primary": "primary"]
+    '<ableron-include src="https://example.com" primary="foo"/>'     | ["src": "https://example.com", "primary": "foo"]
   }
 
   def "should find all includes in input content"() {
@@ -98,10 +99,10 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\" />", Map.of(), null),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"/>", Map.of(), null),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\"/>", Map.of(), null),
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=789\" fallback-src=\"https://example.com\">fallback</ableron-include>", Map.of(), null)
+      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=123" />'),
+      new Include(null, null, '<ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>'),
+      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>'),
+      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>')
     ] as Set
   }
 
@@ -122,9 +123,9 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include("<ableron-include src=\"https://foo.bar/baz?test=123\"/>", Map.of(), null),
-      new Include("<ableron-include foo=\"bar\" src=\"https://foo.bar/baz?test=456\"></ableron-include>", Map.of(), null),
-      new Include("<ableron-include src=\"...\">...</ableron-include>", Map.of(), null)
+      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=123"/>'),
+      new Include(null, null, '<ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>'),
+      new Include(null, null, '<ableron-include src="...">...</ableron-include>')
     ] as Set
   }
 
@@ -175,6 +176,48 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """
+  }
+
+  def "should populate TransclusionResult with status code override"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
+    mockWebServer.setDispatcher(new Dispatcher() {
+      @Override
+      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+        switch (recordedRequest.getPath()) {
+          case "/header":
+            return new MockResponse()
+              .setBody("header-fragment")
+              .setResponseCode(200)
+          case "/footer":
+            return new MockResponse()
+              .setBody("footer-fragment")
+              .setResponseCode(200)
+        }
+        return new MockResponse()
+          .setBody("main-fragment")
+          .setResponseCode(404)
+      }
+    })
+
+    when:
+    def result = transclusionProcessor.resolveIncludes(Content.of("""
+      <ableron-include src="${baseUrl}header" />
+      <ableron-include src="${baseUrl}main" primary="primary"><!-- 404 not found --></ableron-include>
+      <ableron-include src="${baseUrl}footer" />
+    """), [:])
+
+    then:
+    result.content == """
+      header-fragment
+      main-fragment
+      footer-fragment
+    """
+    result.statusCodeOverride.get() == 404
+
+    cleanup:
+    mockWebServer.shutdown()
   }
 
   def "should replace identical includes"() {

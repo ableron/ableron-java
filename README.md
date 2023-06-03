@@ -45,6 +45,9 @@ Maven:
    Map<String, List<String>> presentRequestHeaders = ...; // get headers from e.g. HttpServletRequest
    TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody, presentRequestHeaders);
    String processedResponseBody = transclusionResult.getContent();
+   transclusionResult.getStatusCodeOverride().ifPresent(statusCode -> {
+     // set status code of the response
+   });
    ```
 
 ### Configuration Options
@@ -69,14 +72,19 @@ Maven:
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
 * Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
 * Attributes
-   * `src`: URL of the fragment to include
-   * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
-   * `fallback-src`: URL of the fragment to include in case the request to `src` failed
-   * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
+  * `src`: URL of the fragment to include
+  * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
+  * `fallback-src`: URL of the fragment to include in case the request to `src` failed
+  * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
+  * `primary`: Denotes a fragment whose response code is set as response code for the page
+    * If `src` returns success status, this status code is set as response code for the page
+    * If `src` returns error status, `fallback-src` is defined and returns success status, this status code is set as response code for the page
+    * If `src` and `fallback-src` return error status, the status code returned by `src` is set as response code for the page
+    * If `src` and `fallback-src` return error status, the fragment content equals the body returned by `src`. Fallback content is ignored
 * Precedence for resolving: `src` → `fallback-src` → fallback content
 
 ### Redirects
-Redirects will be followed when requesting fragments except they redirect from `https` to `http`.
+Redirects will not be followed when requesting fragments because they may introduce unwanted latency.
 
 ### Caching
 Fragments are considered cacheable if they have HTTP status code
@@ -88,7 +96,7 @@ Fragments are considered cacheable if they have HTTP status code
 ## Library Development
 
 ### Quick Start
-* Install to local `.m2` repository
+* Compile/test/package
    ```console
    $ ./mvnw clean install
    ```

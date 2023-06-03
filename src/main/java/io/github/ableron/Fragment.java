@@ -9,6 +9,10 @@ public class Fragment {
   private final String content;
   private final Instant expirationTime;
 
+  public Fragment(int statusCode, String content) {
+    this(statusCode, content, Instant.EPOCH);
+  }
+
   public Fragment(int statusCode, String content, Instant expirationTime) {
     this.statusCode = statusCode;
     this.content = Objects.requireNonNull(content, "content must not be null");

@@ -4,10 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import java.net.http.HttpClient;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,7 +25,7 @@ public class TransclusionProcessor {
   /**
    * Regular expression for parsing include tag attributes.
    */
-  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)=\"([^\"]+)\"");
+  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)(=\"([^\"]+)\")?");
 
   private static final long NANO_2_MILLIS = 1000000L;
 
@@ -81,7 +78,7 @@ public class TransclusionProcessor {
     return (firstIncludePosition == -1) ? Set.of() : INCLUDE_PATTERN.matcher(content.substring(firstIncludePosition))
       .results()
       .parallel()
-      .map(match -> new Include(match.group(0), parseAttributes(match.group(2)), match.group(5)))
+      .map(match -> new Include(parseAttributes(match.group(2)), match.group(5), match.group(0)))
       .collect(Collectors.toSet());
   }
 
@@ -95,29 +92,57 @@ public class TransclusionProcessor {
   public TransclusionResult resolveIncludes(Content content, Map<String, List<String>> presentRequestHeaders) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult();
-    var includes = findIncludes(content.get())
-      .stream()
+    var includes = findIncludes(content.get());
+    validateIncludes(includes);
+    CompletableFuture.allOf(includes.stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
-        .thenApplyAsync(s -> {
-          content.replace(include.getRawIncludeTag(), s);
-          return s;
+        .thenApplyAsync(fragment -> {
+          if (include.isPrimary()) {
+            transclusionResult.setStatusCodeOverride(fragment.getStatusCode());
+          }
+
+          content.replace(include.getRawIncludeTag(), fragment.getContent());
+          return fragment;
         })
         .exceptionally(throwable -> {
           logger.error("Unable to resolve include", throwable);
           return null;
         })
       )
-      .collect(Collectors.toList());
-    CompletableFuture.allOf(includes.toArray(new CompletableFuture[0])).join();
+      .toArray(CompletableFuture[]::new)
+    ).join();
     transclusionResult.setProcessedIncludesCount(includes.size());
     transclusionResult.setContent(content.get());
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
   }
 
+  /**
+   * Parses the given include tag attributes string.
+   *
+   * @param attributesString Attributes string to parse
+   * @return A key-value map of the attributes
+   */
+  private Map<String, String> parseAttributes(String attributesString) {
+    return ATTRIBUTES_PATTERN.matcher(Optional.ofNullable(attributesString).orElse(""))
+      .results()
+      .map(match -> new AbstractMap.SimpleEntry<>(match.group(1), Optional.ofNullable(match.group(3)).orElse("")))
+      .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+  }
+
+  private void validateIncludes(Set<Include> includes) {
+    long primaryIncludesCount = includes.stream()
+      .filter(Include::isPrimary)
+      .count();
+
+    if (primaryIncludesCount > 1) {
+      logger.warn("Only one primary include per page allowed. Found {}", primaryIncludesCount);
+    }
+  }
+
   private HttpClient buildHttpClient() {
     return HttpClient.newBuilder()
-      .followRedirects(HttpClient.Redirect.NORMAL)
+      .followRedirects(HttpClient.Redirect.NEVER)
       .build();
   }
 
@@ -140,23 +165,5 @@ public class TransclusionProcessor {
         }
       })
       .build();
-  }
-
-  /**
-   * Parses the given include tag attributes string.
-   *
-   * @param attributesString Attributes string to parse
-   * @return A key-value map of the attributes
-   */
-  private Map<String, String> parseAttributes(String attributesString) {
-    Map<String, String> attributes = new HashMap<>();
-
-    if (attributesString != null) {
-      ATTRIBUTES_PATTERN.matcher(attributesString)
-        .results()
-        .forEach(match -> attributes.put(match.group(1), match.group(2)));
-    }
-
-    return attributes;
   }
 }

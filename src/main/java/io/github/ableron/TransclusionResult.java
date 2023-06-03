@@ -1,11 +1,18 @@
 package io.github.ableron;
 
+import java.util.Optional;
+
 public class TransclusionResult {
 
   /**
    * Content with resolved includes.
    */
   private String content;
+
+  /**
+   * Status code set by a primary include which is to be sent along the content.
+   */
+  private Integer statusCodeOverride;
 
   /**
    * Number of includes that have been processed.
@@ -23,6 +30,14 @@ public class TransclusionResult {
 
   public void setContent(String content) {
     this.content = content;
+  }
+
+  public Optional<Integer> getStatusCodeOverride() {
+    return Optional.ofNullable(statusCodeOverride);
+  }
+
+  public void setStatusCodeOverride(Integer statusCodeOverride) {
+    this.statusCodeOverride = statusCodeOverride;
   }
 
   public int getProcessedIncludesCount() {
