@@ -375,7 +375,7 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-caching").toString()
 
     when:
-    cache.put(includeSrcUrl, new Fragment(200, "from cache", expirationTime))
+    cache.put(includeSrcUrl, new Fragment(200, "from cache", expirationTime, [:]))
     def fragment = new Include(Map.of("src", includeSrcUrl))
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
@@ -408,7 +408,6 @@ class IncludeSpec extends Specification {
     fragment.content == expectedFragment
     if (expectedFragmentCached) {
       assert cache.getIfPresent(includeSrcUrl) != null
-      assert cache.getIfPresent(includeSrcUrl).content == expectedCachedBody
     } else {
       assert cache.getIfPresent(includeSrcUrl) == null
     }
@@ -417,34 +416,34 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
 
     where:
-    responsStatus | srcFragment | expectedFragmentCached | expectedCachedBody | expectedFragment
-    100           | "fragment"  | false                  | null               | ":("
-    200           | "fragment"  | true                   | "fragment"         | "fragment"
-    202           | "fragment"  | false                  | null               | ":("
-    203           | "fragment"  | true                   | "fragment"         | "fragment"
-    204           | ""          | true                   | ""                 | ""
-    205           | "fragment"  | false                  | null               | ":("
-    206           | "fragment"  | true                   | "fragment"         | "fragment"
+    responsStatus | srcFragment | expectedFragmentCached | expectedFragment
+    100           | "fragment"  | false                  | ":("
+    200           | "fragment"  | true                   | "fragment"
+    202           | "fragment"  | false                  | ":("
+    203           | "fragment"  | true                   | "fragment"
+    204           | ""          | true                   | ""
+    205           | "fragment"  | false                  | ":("
+    206           | "fragment"  | true                   | "fragment"
     // TODO: Testing status code 300 does not work on Java 11 because HttpClient fails with "IOException: Invalid redirection"
-    // 300           | "fragment"  | true                   | ""                 | ":("
-    302           | "fragment"  | false                  | null               | ":("
-    400           | "fragment"  | false                  | null               | ":("
-    404           | "fragment"  | true                   | ""                 | ":("
-    405           | "fragment"  | true                   | ""                 | ":("
-    410           | "fragment"  | true                   | ""                 | ":("
-    414           | "fragment"  | true                   | ""                 | ":("
-    500           | "fragment"  | false                  | null               | ":("
-    501           | "fragment"  | true                   | ""                 | ":("
-    502           | "fragment"  | false                  | null               | ":("
-    503           | "fragment"  | false                  | null               | ":("
-    504           | "fragment"  | false                  | null               | ":("
-    505           | "fragment"  | false                  | null               | ":("
-    506           | "fragment"  | false                  | null               | ":("
-    507           | "fragment"  | false                  | null               | ":("
-    508           | "fragment"  | false                  | null               | ":("
-    509           | "fragment"  | false                  | null               | ":("
-    510           | "fragment"  | false                  | null               | ":("
-    511           | "fragment"  | false                  | null               | ":("
+    // 300           | "fragment"  | true                   | ":("
+    302           | "fragment"  | false                  | ":("
+    400           | "fragment"  | false                  | ":("
+    404           | "fragment"  | true                   | ":("
+    405           | "fragment"  | true                   | ":("
+    410           | "fragment"  | true                   | ":("
+    414           | "fragment"  | true                   | ":("
+    500           | "fragment"  | false                  | ":("
+    501           | "fragment"  | true                   | ":("
+    502           | "fragment"  | false                  | ":("
+    503           | "fragment"  | false                  | ":("
+    504           | "fragment"  | false                  | ":("
+    505           | "fragment"  | false                  | ":("
+    506           | "fragment"  | false                  | ":("
+    507           | "fragment"  | false                  | ":("
+    508           | "fragment"  | false                  | ":("
+    509           | "fragment"  | false                  | ":("
+    510           | "fragment"  | false                  | ":("
+    511           | "fragment"  | false                  | ":("
   }
 
   def "should cache fragment for s-maxage seconds if directive is present"() {

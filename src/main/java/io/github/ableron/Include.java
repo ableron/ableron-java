@@ -274,15 +274,17 @@ public class Include {
         })
         .map(response -> new Fragment(
           response.statusCode(),
-          primary || HTTP_STATUS_CODES_SUCCESS.contains(response.statusCode()) ? response.body() : "",
-          calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration())
+          response.body(),
+          calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration()),
+          //TODO: Implement something like filterFragmentResponseHeders() to make sure only whitelisted headers are passed (e.g. Location)
+          primary ? response.headers().map() : Map.of()
         ))
         .orElse(null)
       ))
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
           logger.error("Fragment URL {} returned status code {}", uri, fragment.getStatusCode());
-          recordErroredPrimaryFragment(new Fragment(fragment.getStatusCode(), fragment.getContent()));
+          recordErroredPrimaryFragment(fragment);
           return false;
         }
 

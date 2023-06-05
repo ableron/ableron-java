@@ -100,8 +100,8 @@ public class TransclusionProcessor {
           if (include.isPrimary()) {
             transclusionResult.setHasPrimaryInclude(true);
             transclusionResult.setPrimaryIncludeStatusCode(fragment.getStatusCode());
-            //TODO: Implement
-            //transclusionResult.addPrimaryIncludeResponseHeaders(fragment.get...());
+            //TODO: Test this
+            transclusionResult.setPrimaryIncludeResponseHeaders(fragment.getResponseHeaders());
           }
 
           content.replace(include.getRawIncludeTag(), fragment.getContent());
