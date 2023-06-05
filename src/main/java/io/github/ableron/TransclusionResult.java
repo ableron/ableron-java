@@ -1,5 +1,8 @@
 package io.github.ableron;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class TransclusionResult {
@@ -10,9 +13,20 @@ public class TransclusionResult {
   private String content;
 
   /**
+   * Whether one of the resolved includes was a primary include and thus result contains
+   * status code and response headers of this primary include.
+   */
+  private boolean hasPrimaryInclude = false;
+
+  /**
    * Status code set by a primary include which is to be sent along the content.
    */
-  private Integer statusCodeOverride;
+  private Integer primaryIncludeStatusCode;
+
+  /**
+   * Response headers set by a primary include which are to be sent along the content.
+   */
+  private final Map<String, List<String>> primaryIncludeResponseHeaders = new HashMap<>();
 
   /**
    * Number of includes that have been processed.
@@ -32,12 +46,29 @@ public class TransclusionResult {
     this.content = content;
   }
 
-  public Optional<Integer> getStatusCodeOverride() {
-    return Optional.ofNullable(statusCodeOverride);
+  public boolean hasPrimaryInclude() {
+    return hasPrimaryInclude;
   }
 
-  public void setStatusCodeOverride(Integer statusCodeOverride) {
-    this.statusCodeOverride = statusCodeOverride;
+  public void setHasPrimaryInclude(boolean hasPrimaryInclude) {
+    this.hasPrimaryInclude = hasPrimaryInclude;
+  }
+
+  public Optional<Integer> getPrimaryIncludeStatusCode() {
+    return Optional.ofNullable(primaryIncludeStatusCode);
+  }
+
+  public void setPrimaryIncludeStatusCode(Integer primaryIncludeStatusCode) {
+    this.primaryIncludeStatusCode = primaryIncludeStatusCode;
+  }
+
+  public Map<String, List<String>> getPrimaryIncludeResponseHeaders() {
+    return primaryIncludeResponseHeaders;
+  }
+
+  public void setPrimaryIncludeResponseHeaders(Map<String, List<String>> primaryIncludeResponseHeaders) {
+    this.primaryIncludeResponseHeaders.clear();
+    this.primaryIncludeResponseHeaders.putAll(primaryIncludeResponseHeaders);
   }
 
   public int getProcessedIncludesCount() {

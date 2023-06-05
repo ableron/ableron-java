@@ -98,7 +98,10 @@ public class TransclusionProcessor {
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
         .thenApplyAsync(fragment -> {
           if (include.isPrimary()) {
-            transclusionResult.setStatusCodeOverride(fragment.getStatusCode());
+            transclusionResult.setHasPrimaryInclude(true);
+            transclusionResult.setPrimaryIncludeStatusCode(fragment.getStatusCode());
+            //TODO: Implement
+            //transclusionResult.addPrimaryIncludeResponseHeaders(fragment.get...());
           }
 
           content.replace(include.getRawIncludeTag(), fragment.getContent());

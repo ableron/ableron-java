@@ -214,7 +214,7 @@ class TransclusionProcessorSpec extends Specification {
       main-fragment
       footer-fragment
     """
-    result.statusCodeOverride.get() == 404
+    result.primaryIncludeStatusCode.get() == 404
 
     cleanup:
     mockWebServer.shutdown()
