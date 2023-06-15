@@ -45,9 +45,10 @@ Maven:
    Map<String, List<String>> presentRequestHeaders = ...; // get headers from e.g. HttpServletRequest
    TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody, presentRequestHeaders);
    String processedResponseBody = transclusionResult.getContent();
-   transclusionResult.getStatusCodeOverride().ifPresent(statusCode -> {
-     // set status code of the response
-   });
+   if (transclusionResult.hasPrimaryInclude()) {
+     // set status code of the response to transclusionResult.getPrimaryIncludeStatusCode().get()
+     // add response headers from transclusionResult.getPrimaryIncludeResponseHeaders()
+   }
    ```
 
 ### Configuration Options
@@ -66,6 +67,10 @@ Maven:
   * `X-Forwarded-Host`
   * `X-Real-IP`
   * `X-Request-ID`
+* `primaryFragmentResponseHeadersToPass`: Response headers of primary fragments to pass to the page response if present. Defaults to:
+  * `Content-Language`
+  * `Location`
+  * `Refresh`
 * `cacheMaxSizeInBytes`: Maximum size in bytes the fragment cache may have. Defaults to `10 MB`
 
 ### Include Tag

@@ -49,11 +49,11 @@ public class TransclusionProcessor {
   private final ExecutorService resolveThreadPool = Executors.newFixedThreadPool(64);
 
   public TransclusionProcessor() {
-    this(null);
+    this(AbleronConfig.builder().build());
   }
 
   public TransclusionProcessor(AbleronConfig ableronConfig) {
-    this.ableronConfig = (ableronConfig != null) ? ableronConfig : AbleronConfig.builder().build();
+    this.ableronConfig = ableronConfig;
     this.httpClient = buildHttpClient();
     this.fragmentCache = buildFragmentCache(this.ableronConfig.getCacheMaxSizeInBytes());
   }
@@ -98,7 +98,9 @@ public class TransclusionProcessor {
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
         .thenApplyAsync(fragment -> {
           if (include.isPrimary()) {
-            transclusionResult.setStatusCodeOverride(fragment.getStatusCode());
+            transclusionResult.setHasPrimaryInclude(true);
+            transclusionResult.setPrimaryIncludeStatusCode(fragment.getStatusCode());
+            transclusionResult.setPrimaryIncludeResponseHeaders(fragment.getResponseHeaders());
           }
 
           content.replace(include.getRawIncludeTag(), fragment.getContent());
