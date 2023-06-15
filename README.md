@@ -45,9 +45,10 @@ Maven:
    Map<String, List<String>> presentRequestHeaders = ...; // get headers from e.g. HttpServletRequest
    TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody, presentRequestHeaders);
    String processedResponseBody = transclusionResult.getContent();
-   transclusionResult.getPrimaryIncludeStatusCode().ifPresent(statusCode -> {
-     // set status code of the response
-   });
+   if (transclusionResult.hasPrimaryInclude()) {
+     // set status code of the response to transclusionResult.getPrimaryIncludeStatusCode().get()
+     // add response headers from transclusionResult.getPrimaryIncludeResponseHeaders()
+   }
    ```
 
 ### Configuration Options
