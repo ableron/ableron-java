@@ -219,8 +219,7 @@ class TransclusionProcessorSpec extends Specification {
     """
     result.hasPrimaryInclude()
     result.primaryIncludeStatusCode.get() == 301
-    //TODO: Fails
-    result.primaryIncludeResponseHeaders.equals(["location": "/foobar"])
+    result.primaryIncludeResponseHeaders.equals(["location": ["/foobar"]])
 
     cleanup:
     mockWebServer.shutdown()

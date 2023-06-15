@@ -240,7 +240,12 @@ public class Include {
         .filter(response -> {
           if (!isHttpStatusCacheable(response.statusCode())) {
             logger.error("Fragment URL {} returned status code {}", uri, response.statusCode());
-            recordErroredPrimaryFragment(new Fragment(response.statusCode(), response.body()));
+            recordErroredPrimaryFragment(new Fragment(
+              response.statusCode(),
+              response.body(),
+              Instant.EPOCH,
+              filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
+            ));
             return false;
           }
 
