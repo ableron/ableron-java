@@ -223,7 +223,7 @@ public class Include {
    * @return The fragment the include has been resolved to
    */
   public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
-    var filteredFragmentRequestHeaders = filterFragmentRequestHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
+    var filteredFragmentRequestHeaders = filterHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
     erroredPrimaryFragment = null;
 
     return CompletableFuture.supplyAsync(
@@ -234,10 +234,47 @@ public class Include {
         .orElseGet(() -> new Fragment(200, "")), resolveThreadPool);
   }
 
-  private Map<String, List<String>> filterFragmentRequestHeaders(Map<String, List<String>> requestHeaders, List<String> allowedRequestHeaders) {
-    return requestHeaders.entrySet()
+  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
+    return Optional.ofNullable(uri)
+      .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
+        .filter(response -> {
+          if (!isHttpStatusCacheable(response.statusCode())) {
+            logger.error("Fragment URL {} returned status code {}", uri, response.statusCode());
+            recordErroredPrimaryFragment(new Fragment(response.statusCode(), response.body()));
+            return false;
+          }
+
+          return true;
+        })
+        .map(response -> new Fragment(
+          response.statusCode(),
+          response.body(),
+          calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration()),
+          filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
+        ))
+        .orElse(null)
+      ))
+      .filter(fragment -> {
+        if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
+          logger.error("Fragment URL {} returned status code {}", uri, fragment.getStatusCode());
+          recordErroredPrimaryFragment(fragment);
+          return false;
+        }
+
+        return true;
+      });
+  }
+
+  private void recordErroredPrimaryFragment(Fragment fragment) {
+    if (primary && erroredPrimaryFragment == null) {
+      erroredPrimaryFragment = fragment;
+    }
+  }
+
+  private Map<String, List<String>> filterHeaders(Map<String, List<String>> headersToFilter, List<String> allowedHeaders) {
+    return headersToFilter.entrySet()
       .stream()
-      .filter(header -> allowedRequestHeaders.stream().anyMatch(headerName -> headerName.equalsIgnoreCase(header.getKey())))
+      .filter(header -> allowedHeaders.stream().anyMatch(headerName -> headerName.equalsIgnoreCase(header.getKey())))
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
@@ -258,44 +295,6 @@ public class Include {
   private Duration getRequestTimeout(Duration localTimeout, AbleronConfig config) {
     return Optional.ofNullable(localTimeout)
       .orElse(config.getFragmentRequestTimeout());
-  }
-
-  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
-    return Optional.ofNullable(uri)
-      .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
-        .filter(response -> {
-          if (!isHttpStatusCacheable(response.statusCode())) {
-            logger.error("Fragment URL {} returned status code {}", uri, response.statusCode());
-            recordErroredPrimaryFragment(new Fragment(response.statusCode(), response.body()));
-            return false;
-          }
-
-          return true;
-        })
-        .map(response -> new Fragment(
-          response.statusCode(),
-          response.body(),
-          calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration()),
-          //TODO: Implement something like filterFragmentResponseHeders() to make sure only whitelisted headers are passed (e.g. Location)
-          primary ? response.headers().map() : Map.of()
-        ))
-        .orElse(null)
-      ))
-      .filter(fragment -> {
-        if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
-          logger.error("Fragment URL {} returned status code {}", uri, fragment.getStatusCode());
-          recordErroredPrimaryFragment(fragment);
-          return false;
-        }
-
-        return true;
-      });
-  }
-
-  private void recordErroredPrimaryFragment(Fragment fragment) {
-    if (primary && erroredPrimaryFragment == null) {
-      erroredPrimaryFragment = fragment;
-    }
   }
 
   private boolean isHttpStatusCacheable(int httpStatusCode) {

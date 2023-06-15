@@ -28,6 +28,11 @@ class AbleronConfigSpec extends Specification {
         "X-Real-IP",
         "X-Request-ID"
       ]
+      primaryFragmentResponseHeadersToPass == [
+        "Content-Language",
+        "Location",
+        "Refresh"
+      ]
       cacheMaxSizeInBytes == 1024 * 1024 * 10
     }
   }
@@ -38,7 +43,8 @@ class AbleronConfigSpec extends Specification {
       .enabled(false)
       .fragmentRequestTimeout(Duration.ofMillis(200))
       .fragmentDefaultCacheDuration(Duration.ofMinutes(15))
-      .fragmentRequestHeadersToPass(["X-Test", "X-Test-2"])
+      .fragmentRequestHeadersToPass(["X-Test-Request-Header", "X-Test-Request-Header-2"])
+      .primaryFragmentResponseHeadersToPass(["X-Test-Response-Header", "X-Test-Response-Header-2"])
       .cacheMaxSizeInBytes(1024 * 100)
       .build()
 
@@ -47,7 +53,8 @@ class AbleronConfigSpec extends Specification {
       !enabled
       fragmentRequestTimeout == Duration.ofMillis(200)
       fragmentDefaultCacheDuration == Duration.ofMinutes(15)
-      fragmentRequestHeadersToPass == ["X-Test", "X-Test-2"]
+      fragmentRequestHeadersToPass == ["X-Test-Request-Header", "X-Test-Request-Header-2"]
+      primaryFragmentResponseHeadersToPass == ["X-Test-Response-Header", "X-Test-Response-Header-2"]
       cacheMaxSizeInBytes == 1024 * 100
     }
   }
@@ -83,5 +90,16 @@ class AbleronConfigSpec extends Specification {
     then:
     def exception = thrown(NullPointerException)
     exception.message == "fragmentRequestHeadersToPass must not be null"
+  }
+
+  def "should throw exception if primaryFragmentResponseHeadersToPass is tried to be set to null"() {
+    when:
+    AbleronConfig.builder()
+      .primaryFragmentResponseHeadersToPass(null)
+      .build()
+
+    then:
+    def exception = thrown(NullPointerException)
+    exception.message == "primaryFragmentResponseHeadersToPass must not be null"
   }
 }

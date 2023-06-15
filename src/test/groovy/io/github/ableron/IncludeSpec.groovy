@@ -889,4 +889,82 @@ class IncludeSpec extends Specification {
     cleanup:
     mockWebServer.shutdown()
   }
+
+  def "should pass allowed response headers of primary fragment to transclusion result"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200)
+      .addHeader("X-Test", "Test"))
+    def config = AbleronConfig.builder()
+      .primaryFragmentResponseHeadersToPass(["X-Test"])
+      .build()
+
+    when:
+    def result = new Include(Map.of("src", mockWebServer.url("/").toString(), "primary", ""))
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    result.responseHeaders.equals(["x-test": ["Test"]])
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should not pass allowed response headers of non-primary fragment to transclusion result"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200)
+      .addHeader("X-Test", "Test"))
+
+    when:
+    def result = new Include(Map.of("src", mockWebServer.url("/").toString(), "primary", "false"))
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    result.responseHeaders.isEmpty()
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should treat fragment response headers allow list as case insensitive"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200)
+      .addHeader("x-test", "Test"))
+    def config = AbleronConfig.builder()
+      .primaryFragmentResponseHeadersToPass(["X-TeSt"])
+      .build()
+
+    when:
+    def result = new Include(Map.of("src", mockWebServer.url("/").toString(), "primary", ""))
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    result.responseHeaders.equals(["x-test": ["Test"]])
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should pass primary fragment response header with multiple values to transclusion result"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse().setResponseCode(200)
+      .addHeader("X-Test", "Test")
+      .addHeader("X-Test", "Test2"))
+    def config = AbleronConfig.builder()
+      .primaryFragmentResponseHeadersToPass(["X-TEST"])
+      .build()
+
+    when:
+    def result = new Include(Map.of("src", mockWebServer.url("/").toString(), "primary", ""))
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    result.responseHeaders.get("x-test") == ["Test", "Test2"]
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
 }

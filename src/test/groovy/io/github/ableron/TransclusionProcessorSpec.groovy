@@ -34,6 +34,8 @@ class TransclusionProcessorSpec extends Specification {
     "\n<ableron-include src=\"...\"/>\n"                            | "<ableron-include src=\"...\"/>"
     "<div><ableron-include src=\"...\"/></div>"                     | "<ableron-include src=\"...\"/>"
     "<ableron-include src=\"...\"  fallback-src=\"...\"/>"          | "<ableron-include src=\"...\"  fallback-src=\"...\"/>"
+    "<ableron-include src=\"test\" primary/>"                       | "<ableron-include src=\"test\" primary/>"
+    "<ableron-include src=\"test\" primary=\"primary\"/>"           | "<ableron-include src=\"test\" primary=\"primary\"/>"
   }
 
   def "should not recognize includes with invalid format"() {
@@ -178,7 +180,7 @@ class TransclusionProcessorSpec extends Specification {
     """
   }
 
-  def "should populate TransclusionResult with status code override"() {
+  def "should populate TransclusionResult with primary include status code"() {
     given:
     def mockWebServer = new MockWebServer()
     def baseUrl = mockWebServer.url("/").toString()
@@ -197,14 +199,15 @@ class TransclusionProcessorSpec extends Specification {
         }
         return new MockResponse()
           .setBody("main-fragment")
-          .setResponseCode(404)
+          .setResponseCode(301)
+          .addHeader("Location", "/foobar")
       }
     })
 
     when:
     def result = transclusionProcessor.resolveIncludes(Content.of("""
       <ableron-include src="${baseUrl}header" />
-      <ableron-include src="${baseUrl}main" primary="primary"><!-- 404 not found --></ableron-include>
+      <ableron-include src="${baseUrl}main" primary="primary"><!-- failure --></ableron-include>
       <ableron-include src="${baseUrl}footer" />
     """), [:])
 
@@ -214,7 +217,10 @@ class TransclusionProcessorSpec extends Specification {
       main-fragment
       footer-fragment
     """
-    result.primaryIncludeStatusCode.get() == 404
+    result.hasPrimaryInclude()
+    result.primaryIncludeStatusCode.get() == 301
+    //TODO: Fails
+    result.primaryIncludeResponseHeaders.equals(["location": "/foobar"])
 
     cleanup:
     mockWebServer.shutdown()
