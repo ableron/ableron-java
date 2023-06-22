@@ -103,6 +103,11 @@ public class TransclusionProcessor {
             transclusionResult.setPrimaryIncludeResponseHeaders(fragment.getResponseHeaders());
           }
 
+          if (transclusionResult.getContentExpirationTime().isEmpty()
+            || transclusionResult.getContentExpirationTime().get().isAfter(fragment.getExpirationTime())) {
+            transclusionResult.setContentExpirationTime(fragment.getExpirationTime());
+          }
+
           content.replace(include.getRawIncludeTag(), fragment.getContent());
           return fragment;
         })

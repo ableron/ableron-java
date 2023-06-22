@@ -1,5 +1,6 @@
 package io.github.ableron;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,12 @@ public class TransclusionResult {
    * Content with resolved includes.
    */
   private String content;
+
+  /**
+   * Expiration time of the content as defined by the fragment with the lowest expiration
+   * time.
+   */
+  private Instant contentExpirationTime;
 
   /**
    * Whether one of the resolved includes was a primary include and thus result contains
@@ -31,12 +38,18 @@ public class TransclusionResult {
   /**
    * Number of includes that have been processed.
    */
-  private int processedIncludesCount;
+  private int processedIncludesCount = 0;
 
   /**
    * Time in milliseconds it took to resolve the includes in the content.
    */
-  private long processingTimeMillis;
+  private long processingTimeMillis = 0;
+
+  public TransclusionResult() {}
+
+  public TransclusionResult(String content) {
+    this.content = content;
+  }
 
   public String getContent() {
     return content;
@@ -44,6 +57,14 @@ public class TransclusionResult {
 
   public void setContent(String content) {
     this.content = content;
+  }
+
+  public Optional<Instant> getContentExpirationTime() {
+    return Optional.ofNullable(contentExpirationTime);
+  }
+
+  public void setContentExpirationTime(Instant contentExpirationTime) {
+    this.contentExpirationTime = contentExpirationTime;
   }
 
   public boolean hasPrimaryInclude() {

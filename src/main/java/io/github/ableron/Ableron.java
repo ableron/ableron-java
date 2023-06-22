@@ -1,10 +1,11 @@
 package io.github.ableron;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Ableron {
 
@@ -36,14 +37,6 @@ public class Ableron {
       return transclusionResult;
     }
 
-    return getNoOpResult(content);
-  }
-
-  private TransclusionResult getNoOpResult(String content) {
-    var result = new TransclusionResult();
-    result.setContent(content);
-    result.setProcessedIncludesCount(0);
-    result.setProcessingTimeMillis(0);
-    return result;
+    return new TransclusionResult(content);
   }
 }
