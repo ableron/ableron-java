@@ -1,5 +1,8 @@
 package io.github.ableron;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -7,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public class TransclusionResult {
+
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   /**
    * Content with resolved includes.
@@ -83,10 +88,14 @@ public class TransclusionResult {
 
   public synchronized void addResolvedInclude(Include include, Fragment fragment) {
     if (include.isPrimary()) {
-      hasPrimaryInclude = true;
-      primaryIncludeStatusCode = fragment.getStatusCode();
-      primaryIncludeResponseHeaders.clear();
-      primaryIncludeResponseHeaders.putAll(fragment.getResponseHeaders());
+      if (hasPrimaryInclude) {
+        logger.warn("Only one primary include per page allowed. Multiple found");
+      } else {
+        hasPrimaryInclude = true;
+        primaryIncludeStatusCode = fragment.getStatusCode();
+        primaryIncludeResponseHeaders.clear();
+        primaryIncludeResponseHeaders.putAll(fragment.getResponseHeaders());
+      }
     }
 
     if (contentExpirationTime == null || fragment.getExpirationTime().isBefore(contentExpirationTime)) {

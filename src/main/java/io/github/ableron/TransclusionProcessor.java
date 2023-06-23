@@ -92,9 +92,7 @@ public class TransclusionProcessor {
   public TransclusionResult resolveIncludes(String content, Map<String, List<String>> presentRequestHeaders) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult(content);
-    var includes = findIncludes(content);
-    validateIncludes(includes);
-    CompletableFuture.allOf(includes.stream()
+    CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
         .thenApply(fragment -> {
           transclusionResult.addResolvedInclude(include, fragment);
@@ -122,16 +120,6 @@ public class TransclusionProcessor {
       .results()
       .map(match -> new AbstractMap.SimpleEntry<>(match.group(1), Optional.ofNullable(match.group(3)).orElse("")))
       .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
-  }
-
-  private void validateIncludes(Set<Include> includes) {
-    long primaryIncludesCount = includes.stream()
-      .filter(Include::isPrimary)
-      .count();
-
-    if (primaryIncludesCount > 1) {
-      logger.warn("Only one primary include per page allowed. Found {}", primaryIncludesCount);
-    }
   }
 
   private HttpClient buildHttpClient() {
