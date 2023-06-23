@@ -151,7 +151,7 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should populate TransclusionResult"() {
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <html>
       <head>
         <ableron-include src="https://foo.bar/baz?test=123"><!-- failed loading 1st include --></ableron-include>
@@ -162,7 +162,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="https://foo.bar/baz?test=789"><!-- failed loading 3rd include --></ableron-include>
       </body>
       </html>
-    """), [:])
+    """, [:])
 
     then:
     result.processedIncludesCount == 3
@@ -207,11 +207,11 @@ class TransclusionProcessorSpec extends Specification {
     })
 
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <ableron-include src="${baseUrl}header" />
       <ableron-include src="${baseUrl}main" primary="primary"><!-- failure --></ableron-include>
       <ableron-include src="${baseUrl}footer" />
-    """), [:])
+    """, [:])
 
     then:
     result.content == """
@@ -255,11 +255,11 @@ class TransclusionProcessorSpec extends Specification {
     })
 
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <ableron-include src="${baseUrl}header"/>
       <ableron-include src="${baseUrl}main"/>
       <ableron-include src="${baseUrl}footer"/>
-    """), [:])
+    """, [:])
 
     then:
     result.content == """
@@ -304,11 +304,11 @@ class TransclusionProcessorSpec extends Specification {
     })
 
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <ableron-include src="${baseUrl}header"/>
       <ableron-include src="${baseUrl}main"/>
       <ableron-include src="${baseUrl}footer"/>
-    """), [:])
+    """, [:])
 
     then:
     result.content == """
@@ -324,12 +324,12 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should replace identical includes"() {
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #2 --></ableron-include>
-    """), [:])
+    """, [:])
 
     then:
     result.content == """
@@ -343,9 +343,7 @@ class TransclusionProcessorSpec extends Specification {
   def "should not crash due to include tag #scenarioName"() {
     when:
     def result = transclusionProcessor
-      .resolveIncludes(Content.of(
-        "<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>"
-      ), [:])
+      .resolveIncludes("<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>", [:])
 
     then:
     result.content == "before" + expectedResult + "after"
@@ -378,7 +376,7 @@ class TransclusionProcessorSpec extends Specification {
     })
 
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <html>
       <head>
         <ableron-include src="${baseUrl}1"><!-- failed loading 1st fragment --></ableron-include>
@@ -390,7 +388,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="${baseUrl}expect-404"><!-- failed loading 4th fragment --></ableron-include>
       </body>
       </html>
-    """), [:])
+    """, [:])
 
     then:
     result.content == """
@@ -451,7 +449,7 @@ class TransclusionProcessorSpec extends Specification {
     })
 
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <html>
       <head>
         <ableron-include src="${baseUrl}503-route"><!-- failed loading fragment #1 --></ableron-include>
@@ -465,7 +463,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="${baseUrl}expect-404"><!-- failed loading fragment #6 --></ableron-include>
       </body>
       </html>
-    """), [:])
+    """, [:])
 
     then:
     result.content == """

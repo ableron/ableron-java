@@ -89,10 +89,10 @@ public class TransclusionProcessor {
    * @param presentRequestHeaders Request headers of the initial request having the includes in its response
    * @return Content with resolved includes
    */
-  public TransclusionResult resolveIncludes(Content content, Map<String, List<String>> presentRequestHeaders) {
+  public TransclusionResult resolveIncludes(String content, Map<String, List<String>> presentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult(content.get());
-    var includes = findIncludes(content.get());
+    var transclusionResult = new TransclusionResult(content);
+    var includes = findIncludes(content);
     validateIncludes(includes);
     CompletableFuture.allOf(includes.stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
