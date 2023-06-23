@@ -93,7 +93,6 @@ public class TransclusionResult {
       } else {
         hasPrimaryInclude = true;
         primaryIncludeStatusCode = fragment.getStatusCode();
-        primaryIncludeResponseHeaders.clear();
         primaryIncludeResponseHeaders.putAll(fragment.getResponseHeaders());
       }
     }
