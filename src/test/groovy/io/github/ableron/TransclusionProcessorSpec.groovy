@@ -203,6 +203,7 @@ class TransclusionProcessorSpec extends Specification {
               .addHeader("Location", "/foobar")
               .setBody("main-fragment")
         }
+        return new MockResponse().setResponseCode(500)
       }
     })
 
@@ -221,7 +222,7 @@ class TransclusionProcessorSpec extends Specification {
     """
     result.hasPrimaryInclude()
     result.primaryIncludeStatusCode.get() == 301
-    result.primaryIncludeResponseHeaders.equals(["location": ["/foobar"]])
+    result.primaryIncludeResponseHeaders == ["location": ["/foobar"]]
 
     cleanup:
     mockWebServer.shutdown()
@@ -251,6 +252,7 @@ class TransclusionProcessorSpec extends Specification {
               .setHeader("Cache-Control", "max-age=30")
               .setBody("main-fragment")
         }
+        return new MockResponse().setResponseCode(500)
       }
     })
 
@@ -268,8 +270,8 @@ class TransclusionProcessorSpec extends Specification {
       footer-fragment
     """
     with (result.contentExpirationTime.get()) {
-      isBefore(Instant.now().plus(31))
-      isAfter(Instant.now().plus(28))
+      isBefore(now() + 31)
+      isAfter(now() + 28)
     }
 
     cleanup:
@@ -300,6 +302,7 @@ class TransclusionProcessorSpec extends Specification {
               .setHeader("Cache-Control", "no-store, no-cache, must-revalidate")
               .setBody("main-fragment")
         }
+        return new MockResponse().setResponseCode(500)
       }
     })
 
