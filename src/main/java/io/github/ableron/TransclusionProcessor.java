@@ -91,24 +91,13 @@ public class TransclusionProcessor {
    */
   public TransclusionResult resolveIncludes(Content content, Map<String, List<String>> presentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult();
+    var transclusionResult = new TransclusionResult(content.get());
     var includes = findIncludes(content.get());
     validateIncludes(includes);
     CompletableFuture.allOf(includes.stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
-        .thenApplyAsync(fragment -> {
-          if (include.isPrimary()) {
-            transclusionResult.setHasPrimaryInclude(true);
-            transclusionResult.setPrimaryIncludeStatusCode(fragment.getStatusCode());
-            transclusionResult.setPrimaryIncludeResponseHeaders(fragment.getResponseHeaders());
-          }
-
-          if (transclusionResult.getContentExpirationTime().isEmpty()
-            || transclusionResult.getContentExpirationTime().get().isAfter(fragment.getExpirationTime())) {
-            transclusionResult.setContentExpirationTime(fragment.getExpirationTime());
-          }
-
-          content.replace(include.getRawIncludeTag(), fragment.getContent());
+        .thenApply(fragment -> {
+          transclusionResult.addResolvedInclude(include, fragment);
           return fragment;
         })
         .exceptionally(throwable -> {
@@ -118,8 +107,6 @@ public class TransclusionProcessor {
       )
       .toArray(CompletableFuture[]::new)
     ).join();
-    transclusionResult.setProcessedIncludesCount(includes.size());
-    transclusionResult.setContent(content.get());
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
   }

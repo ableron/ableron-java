@@ -45,8 +45,6 @@ public class TransclusionResult {
    */
   private long processingTimeMillis = 0;
 
-  public TransclusionResult() {}
-
   public TransclusionResult(String content) {
     this.content = content;
   }
@@ -55,49 +53,24 @@ public class TransclusionResult {
     return content;
   }
 
-  public void setContent(String content) {
-    this.content = content;
-  }
-
   public Optional<Instant> getContentExpirationTime() {
     return Optional.ofNullable(contentExpirationTime);
-  }
-
-  public void setContentExpirationTime(Instant contentExpirationTime) {
-    this.contentExpirationTime = contentExpirationTime;
   }
 
   public boolean hasPrimaryInclude() {
     return hasPrimaryInclude;
   }
 
-  public void setHasPrimaryInclude(boolean hasPrimaryInclude) {
-    this.hasPrimaryInclude = hasPrimaryInclude;
-  }
-
   public Optional<Integer> getPrimaryIncludeStatusCode() {
     return Optional.ofNullable(primaryIncludeStatusCode);
-  }
-
-  public void setPrimaryIncludeStatusCode(Integer primaryIncludeStatusCode) {
-    this.primaryIncludeStatusCode = primaryIncludeStatusCode;
   }
 
   public Map<String, List<String>> getPrimaryIncludeResponseHeaders() {
     return primaryIncludeResponseHeaders;
   }
 
-  public void setPrimaryIncludeResponseHeaders(Map<String, List<String>> primaryIncludeResponseHeaders) {
-    this.primaryIncludeResponseHeaders.clear();
-    this.primaryIncludeResponseHeaders.putAll(primaryIncludeResponseHeaders);
-  }
-
   public int getProcessedIncludesCount() {
     return processedIncludesCount;
-  }
-
-  public void setProcessedIncludesCount(int processedIncludesCount) {
-    this.processedIncludesCount = processedIncludesCount;
   }
 
   public long getProcessingTimeMillis() {
@@ -106,5 +79,21 @@ public class TransclusionResult {
 
   public void setProcessingTimeMillis(long processingTimeMillis) {
     this.processingTimeMillis = processingTimeMillis;
+  }
+
+  public synchronized void addResolvedInclude(Include include, Fragment fragment) {
+    if (include.isPrimary()) {
+      hasPrimaryInclude = true;
+      primaryIncludeStatusCode = fragment.getStatusCode();
+      primaryIncludeResponseHeaders.clear();
+      primaryIncludeResponseHeaders.putAll(fragment.getResponseHeaders());
+    }
+
+    if (contentExpirationTime == null || fragment.getExpirationTime().isBefore(contentExpirationTime)) {
+      contentExpirationTime = fragment.getExpirationTime();
+    }
+
+    content = content.replace(include.getRawIncludeTag(), fragment.getContent());
+    processedIncludesCount++;
   }
 }
