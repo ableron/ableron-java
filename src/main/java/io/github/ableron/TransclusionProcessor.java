@@ -89,21 +89,13 @@ public class TransclusionProcessor {
    * @param presentRequestHeaders Request headers of the initial request having the includes in its response
    * @return Content with resolved includes
    */
-  public TransclusionResult resolveIncludes(Content content, Map<String, List<String>> presentRequestHeaders) {
+  public TransclusionResult resolveIncludes(String content, Map<String, List<String>> presentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult();
-    var includes = findIncludes(content.get());
-    validateIncludes(includes);
-    CompletableFuture.allOf(includes.stream()
+    var transclusionResult = new TransclusionResult(content);
+    CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
-        .thenApplyAsync(fragment -> {
-          if (include.isPrimary()) {
-            transclusionResult.setHasPrimaryInclude(true);
-            transclusionResult.setPrimaryIncludeStatusCode(fragment.getStatusCode());
-            transclusionResult.setPrimaryIncludeResponseHeaders(fragment.getResponseHeaders());
-          }
-
-          content.replace(include.getRawIncludeTag(), fragment.getContent());
+        .thenApply(fragment -> {
+          transclusionResult.addResolvedInclude(include, fragment);
           return fragment;
         })
         .exceptionally(throwable -> {
@@ -113,8 +105,6 @@ public class TransclusionProcessor {
       )
       .toArray(CompletableFuture[]::new)
     ).join();
-    transclusionResult.setProcessedIncludesCount(includes.size());
-    transclusionResult.setContent(content.get());
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
   }
@@ -130,16 +120,6 @@ public class TransclusionProcessor {
       .results()
       .map(match -> new AbstractMap.SimpleEntry<>(match.group(1), Optional.ofNullable(match.group(3)).orElse("")))
       .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
-  }
-
-  private void validateIncludes(Set<Include> includes) {
-    long primaryIncludesCount = includes.stream()
-      .filter(Include::isPrimary)
-      .count();
-
-    if (primaryIncludesCount > 1) {
-      logger.warn("Only one primary include per page allowed. Found {}", primaryIncludesCount);
-    }
   }
 
   private HttpClient buildHttpClient() {

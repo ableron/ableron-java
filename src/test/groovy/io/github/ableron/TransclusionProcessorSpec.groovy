@@ -9,6 +9,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Timeout
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 class TransclusionProcessorSpec extends Specification {
@@ -150,7 +151,7 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should populate TransclusionResult"() {
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <html>
       <head>
         <ableron-include src="https://foo.bar/baz?test=123"><!-- failed loading 1st include --></ableron-include>
@@ -161,7 +162,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="https://foo.bar/baz?test=789"><!-- failed loading 3rd include --></ableron-include>
       </body>
       </html>
-    """), [:])
+    """, [:])
 
     then:
     result.processedIncludesCount == 3
@@ -190,26 +191,28 @@ class TransclusionProcessorSpec extends Specification {
         switch (recordedRequest.getPath()) {
           case "/header":
             return new MockResponse()
-              .setBody("header-fragment")
               .setResponseCode(200)
+              .setBody("header-fragment")
           case "/footer":
             return new MockResponse()
-              .setBody("footer-fragment")
               .setResponseCode(200)
+              .setBody("footer-fragment")
+          case "/main":
+            return new MockResponse()
+              .setResponseCode(301)
+              .addHeader("Location", "/foobar")
+              .setBody("main-fragment")
         }
-        return new MockResponse()
-          .setBody("main-fragment")
-          .setResponseCode(301)
-          .addHeader("Location", "/foobar")
+        return new MockResponse().setResponseCode(500)
       }
     })
 
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <ableron-include src="${baseUrl}header" />
       <ableron-include src="${baseUrl}main" primary="primary"><!-- failure --></ableron-include>
       <ableron-include src="${baseUrl}footer" />
-    """), [:])
+    """, [:])
 
     then:
     result.content == """
@@ -219,7 +222,148 @@ class TransclusionProcessorSpec extends Specification {
     """
     result.hasPrimaryInclude()
     result.primaryIncludeStatusCode.get() == 301
-    result.primaryIncludeResponseHeaders.equals(["location": ["/foobar"]])
+    result.primaryIncludeResponseHeaders == ["location": ["/foobar"]]
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should set content expiration time to lowest fragment expiration time"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
+    mockWebServer.setDispatcher(new Dispatcher() {
+      @Override
+      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+        switch (recordedRequest.getPath()) {
+          case "/header":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setHeader("Cache-Control", "max-age=120")
+              .setBody("header-fragment")
+          case "/footer":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setHeader("Cache-Control", "max-age=60")
+              .setBody("footer-fragment")
+          case "/main":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setHeader("Cache-Control", "max-age=30")
+              .setBody("main-fragment")
+        }
+        return new MockResponse().setResponseCode(500)
+      }
+    })
+
+    when:
+    def result = transclusionProcessor.resolveIncludes("""
+      <ableron-include src="${baseUrl}header"/>
+      <ableron-include src="${baseUrl}main"/>
+      <ableron-include src="${baseUrl}footer"/>
+    """, [:])
+
+    then:
+    result.content == """
+      header-fragment
+      main-fragment
+      footer-fragment
+    """
+    with (result.contentExpirationTime.get()) {
+      isBefore(now() + 31)
+      isAfter(now() + 27)
+    }
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should set content expiration time to past if a fragment must not be cached"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
+    mockWebServer.setDispatcher(new Dispatcher() {
+      @Override
+      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+        switch (recordedRequest.getPath()) {
+          case "/header":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setHeader("Cache-Control", "max-age=120")
+              .setBody("header-fragment")
+          case "/footer":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setHeader("Cache-Control", "max-age=60")
+              .setBody("footer-fragment")
+          case "/main":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setHeader("Cache-Control", "no-store, no-cache, must-revalidate")
+              .setBody("main-fragment")
+        }
+        return new MockResponse().setResponseCode(500)
+      }
+    })
+
+    when:
+    def result = transclusionProcessor.resolveIncludes("""
+      <ableron-include src="${baseUrl}header"/>
+      <ableron-include src="${baseUrl}main"/>
+      <ableron-include src="${baseUrl}footer"/>
+    """, [:])
+
+    then:
+    result.content == """
+      header-fragment
+      main-fragment
+      footer-fragment
+    """
+    result.contentExpirationTime.get() == Instant.EPOCH
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should prevent caching if no fragment provides explicit caching information"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
+    mockWebServer.setDispatcher(new Dispatcher() {
+      @Override
+      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+        switch (recordedRequest.getPath()) {
+          case "/header":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setBody("header-fragment")
+          case "/footer":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setBody("footer-fragment")
+          case "/main":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setBody("main-fragment")
+        }
+        return new MockResponse().setResponseCode(500)
+      }
+    })
+
+    when:
+    def result = transclusionProcessor.resolveIncludes("""
+      <ableron-include src="${baseUrl}header"/>
+      <ableron-include src="${baseUrl}main"/>
+      <ableron-include src="${baseUrl}footer"/>
+    """, [:])
+
+    then:
+    result.content == """
+      header-fragment
+      main-fragment
+      footer-fragment
+    """
+    result.contentExpirationTime.get() == Instant.EPOCH
 
     cleanup:
     mockWebServer.shutdown()
@@ -227,12 +371,12 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should replace identical includes"() {
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #1 --></ableron-include>
       <ableron-include src="foo-bar"><!-- #2 --></ableron-include>
-    """), [:])
+    """, [:])
 
     then:
     result.content == """
@@ -246,9 +390,7 @@ class TransclusionProcessorSpec extends Specification {
   def "should not crash due to include tag #scenarioName"() {
     when:
     def result = transclusionProcessor
-      .resolveIncludes(Content.of(
-        "<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>"
-      ), [:])
+      .resolveIncludes("<ableron-include >before</ableron-include>" + includeTag + "<ableron-include >after</ableron-include>", [:])
 
     then:
     result.content == "before" + expectedResult + "after"
@@ -270,18 +412,18 @@ class TransclusionProcessorSpec extends Specification {
         switch (recordedRequest.getPath()) {
           case "/1":
             return new MockResponse()
+              .setResponseCode(200)
               .setBody("fragment-1")
               .setHeadersDelay(200, TimeUnit.MILLISECONDS)
-              .setResponseCode(200)
         }
         return new MockResponse()
-          .setBody("fragment-2")
           .setResponseCode(404)
+          .setBody("404")
       }
     })
 
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <html>
       <head>
         <ableron-include src="${baseUrl}1"><!-- failed loading 1st fragment --></ableron-include>
@@ -293,7 +435,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="${baseUrl}expect-404"><!-- failed loading 4th fragment --></ableron-include>
       </body>
       </html>
-    """), [:])
+    """, [:])
 
     then:
     result.content == """
@@ -325,36 +467,36 @@ class TransclusionProcessorSpec extends Specification {
         switch (recordedRequest.getPath()) {
           case "/503-route":
             return new MockResponse()
+              .setResponseCode(503)
               .setBody("fragment-1")
               .setHeadersDelay(2000, TimeUnit.MILLISECONDS)
-              .setResponseCode(503)
           case "/1000ms-delay-route":
             return new MockResponse()
+              .setResponseCode(200)
               .setBody("fragment-2")
               .setHeadersDelay(1000, TimeUnit.MILLISECONDS)
-              .setResponseCode(200)
           case "/2000ms-delay-route":
             return new MockResponse()
+              .setResponseCode(200)
               .setBody("fragment-3")
               .setHeadersDelay(2000, TimeUnit.MILLISECONDS)
-              .setResponseCode(200)
           case "/2100ms-delay-route":
             return new MockResponse()
+              .setResponseCode(200)
               .setBody("fragment-4")
               .setHeadersDelay(2100, TimeUnit.MILLISECONDS)
-              .setResponseCode(200)
           case "/2200ms-delay-route":
             return new MockResponse()
+              .setResponseCode(200)
               .setBody("fragment-5")
               .setHeadersDelay(2200, TimeUnit.MILLISECONDS)
-              .setResponseCode(200)
         }
         return new MockResponse().setResponseCode(404)
       }
     })
 
     when:
-    def result = transclusionProcessor.resolveIncludes(Content.of("""
+    def result = transclusionProcessor.resolveIncludes("""
       <html>
       <head>
         <ableron-include src="${baseUrl}503-route"><!-- failed loading fragment #1 --></ableron-include>
@@ -368,7 +510,7 @@ class TransclusionProcessorSpec extends Specification {
         <ableron-include src="${baseUrl}expect-404"><!-- failed loading fragment #6 --></ableron-include>
       </body>
       </html>
-    """), [:])
+    """, [:])
 
     then:
     result.content == """

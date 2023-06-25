@@ -42,13 +42,33 @@ Maven:
    ```
 1. Apply transclusion to response if applicable (HTTP status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
    ```java
-   Map<String, List<String>> presentRequestHeaders = ...; // get headers from e.g. HttpServletRequest
+   // get request headers from e.g. HttpServletRequest
+   Map<String, List<String>> presentRequestHeaders = getRequestHeaders();
+   // get unprocessed response body
+   String originalResponseBody = getOriginalResponseBody();
+   // perform transclusion
    TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody, presentRequestHeaders);
-   String processedResponseBody = transclusionResult.getContent();
+   // set body to the processed one
+   setResponseBody(transclusionResult.getContent());
+   // check whether there was a primary include
    if (transclusionResult.hasPrimaryInclude()) {
-     // set status code of the response to transclusionResult.getPrimaryIncludeStatusCode().get()
-     // add response headers from transclusionResult.getPrimaryIncludeResponseHeaders()
+     // override response status code when primary include was present
+     transclusionResult.getPrimaryIncludeStatusCode().ifPresent(statusCode -> setResponseStatusCode(statusCode));
+     // add response headers when primary include was present
+     addResponseHeaders(transclusionResult.getPrimaryIncludeResponseHeaders());
    }
+   // reduce response cache time according to the lowest fragment cache time
+   transclusionResult.getContentExpirationTime().ifPresent(contentExpirationTime -> {
+     // check whether response may be cached
+     if (contentExpirationTime.isAfter(Instant.now()) && contentExpirationTime.isBefore(getInitialPageExpirationTime())) {
+       // override response expiration time
+       removeResponseHeader("Age");
+       setResponseHeader("Cache-Control", "max-age=" + ChronoUnit.SECONDS.between(Instant.now(), contentExpirationTime));
+     } else {
+       // make sure, response will not be cached if fragment expiration time is set to past
+       setResponseHeader("Cache-Control", "no-store");
+     }
+   });
    ```
 
 ### Configuration Options
@@ -97,6 +117,12 @@ Fragments are considered cacheable if they have HTTP status code
    * `300`,
    * `404`, `405`, `410`, `414`,
    * `501`
+
+### Cache-Control
+The transclusion result provides a max-age for the content with all includes resolved,
+based on the fragment with the lowest expiration time.
+I.e. the fragment with the lowest expiration time defines the max-age of the page in case max age of the page
+is not below it.
 
 ## Contributing
 Contributions are greatly appreciated. To contribute you can either simply open an issue or fork the repository and create a pull request:

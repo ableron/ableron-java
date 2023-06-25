@@ -1,5 +1,9 @@
 package io.github.ableron;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,10 +11,18 @@ import java.util.Optional;
 
 public class TransclusionResult {
 
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+
   /**
    * Content with resolved includes.
    */
   private String content;
+
+  /**
+   * Expiration time of the content as defined by the fragment with the lowest expiration
+   * time.
+   */
+  private Instant contentExpirationTime;
 
   /**
    * Whether one of the resolved includes was a primary include and thus result contains
@@ -31,52 +43,39 @@ public class TransclusionResult {
   /**
    * Number of includes that have been processed.
    */
-  private int processedIncludesCount;
+  private int processedIncludesCount = 0;
 
   /**
    * Time in milliseconds it took to resolve the includes in the content.
    */
-  private long processingTimeMillis;
+  private long processingTimeMillis = 0;
+
+  public TransclusionResult(String content) {
+    this.content = content;
+  }
 
   public String getContent() {
     return content;
   }
 
-  public void setContent(String content) {
-    this.content = content;
+  public Optional<Instant> getContentExpirationTime() {
+    return Optional.ofNullable(contentExpirationTime);
   }
 
   public boolean hasPrimaryInclude() {
     return hasPrimaryInclude;
   }
 
-  public void setHasPrimaryInclude(boolean hasPrimaryInclude) {
-    this.hasPrimaryInclude = hasPrimaryInclude;
-  }
-
   public Optional<Integer> getPrimaryIncludeStatusCode() {
     return Optional.ofNullable(primaryIncludeStatusCode);
-  }
-
-  public void setPrimaryIncludeStatusCode(Integer primaryIncludeStatusCode) {
-    this.primaryIncludeStatusCode = primaryIncludeStatusCode;
   }
 
   public Map<String, List<String>> getPrimaryIncludeResponseHeaders() {
     return primaryIncludeResponseHeaders;
   }
 
-  public void setPrimaryIncludeResponseHeaders(Map<String, List<String>> primaryIncludeResponseHeaders) {
-    this.primaryIncludeResponseHeaders.clear();
-    this.primaryIncludeResponseHeaders.putAll(primaryIncludeResponseHeaders);
-  }
-
   public int getProcessedIncludesCount() {
     return processedIncludesCount;
-  }
-
-  public void setProcessedIncludesCount(int processedIncludesCount) {
-    this.processedIncludesCount = processedIncludesCount;
   }
 
   public long getProcessingTimeMillis() {
@@ -85,5 +84,24 @@ public class TransclusionResult {
 
   public void setProcessingTimeMillis(long processingTimeMillis) {
     this.processingTimeMillis = processingTimeMillis;
+  }
+
+  public synchronized void addResolvedInclude(Include include, Fragment fragment) {
+    if (include.isPrimary()) {
+      if (hasPrimaryInclude) {
+        logger.warn("Only one primary include per page allowed. Multiple found");
+      } else {
+        hasPrimaryInclude = true;
+        primaryIncludeStatusCode = fragment.getStatusCode();
+        primaryIncludeResponseHeaders.putAll(fragment.getResponseHeaders());
+      }
+    }
+
+    if (contentExpirationTime == null || fragment.getExpirationTime().isBefore(contentExpirationTime)) {
+      contentExpirationTime = fragment.getExpirationTime();
+    }
+
+    content = content.replace(include.getRawIncludeTag(), fragment.getContent());
+    processedIncludesCount++;
   }
 }
