@@ -346,7 +346,7 @@ public class Include {
         response.headers().firstValue(HEADER_DATE).orElse(null)
       ))
       .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
-      .orElse(Instant.now().plusSeconds(fragmentDefaultCacheDuration.toSeconds()));
+      .orElse(Instant.EPOCH);
   }
 
   private Optional<Instant> getCacheLifetimeBySharedCacheMaxAge(List<String> cacheControlDirectives) {

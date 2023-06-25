@@ -398,8 +398,9 @@ class IncludeSpec extends Specification {
 
     when:
     mockWebServer.enqueue(new MockResponse()
-      .setBody(srcFragment)
-      .setResponseCode(responsStatus))
+      .setResponseCode(responsStatus)
+      .setHeader("Cache-Control", "max-age=7200")
+      .setBody(srcFragment))
     def includeSrcUrl = mockWebServer.url("/test-caching-" + UUID.randomUUID().toString()).toString()
     def fragment = new Include(Map.of("src", includeSrcUrl), ":(")
       .resolve(httpClient, [:], cache, config, supplyPool).get()
@@ -684,7 +685,7 @@ class IncludeSpec extends Specification {
     "Expires"       | "Wed, 12 Oct 2050 07:28:00 GMT" | "Date"      | "not-a-date"
   }
 
-  def "should cache fragment for a configurable duration if no expiration time is indicated via response header"() {
+  def "should not cache fragment if no expiration time is indicated via response header"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
@@ -698,12 +699,10 @@ class IncludeSpec extends Specification {
     when:
     def fragment = new Include(Map.of("src", includeSrcUrl))
       .resolve(httpClient, [:], cache, config, supplyPool).get()
-    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
     fragment.content == "fragment"
-    cacheExpirationTime.isBefore(Instant.now().plusSeconds(30).plusSeconds(1))
-    cacheExpirationTime.isAfter(Instant.now().plusSeconds(30).minusSeconds(1))
+    cache.getIfPresent(includeSrcUrl) == null
 
     cleanup:
     mockWebServer.shutdown()

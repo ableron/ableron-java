@@ -271,7 +271,7 @@ class TransclusionProcessorSpec extends Specification {
     """
     with (result.contentExpirationTime.get()) {
       isBefore(now() + 31)
-      isAfter(now() + 28)
+      isAfter(now() + 27)
     }
 
     cleanup:
@@ -300,6 +300,50 @@ class TransclusionProcessorSpec extends Specification {
             return new MockResponse()
               .setResponseCode(200)
               .setHeader("Cache-Control", "no-store, no-cache, must-revalidate")
+              .setBody("main-fragment")
+        }
+        return new MockResponse().setResponseCode(500)
+      }
+    })
+
+    when:
+    def result = transclusionProcessor.resolveIncludes("""
+      <ableron-include src="${baseUrl}header"/>
+      <ableron-include src="${baseUrl}main"/>
+      <ableron-include src="${baseUrl}footer"/>
+    """, [:])
+
+    then:
+    result.content == """
+      header-fragment
+      main-fragment
+      footer-fragment
+    """
+    result.contentExpirationTime.get() == Instant.EPOCH
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should prevent caching if no fragment provides explicit caching information"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
+    mockWebServer.setDispatcher(new Dispatcher() {
+      @Override
+      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+        switch (recordedRequest.getPath()) {
+          case "/header":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setBody("header-fragment")
+          case "/footer":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setBody("footer-fragment")
+          case "/main":
+            return new MockResponse()
+              .setResponseCode(200)
               .setBody("main-fragment")
         }
         return new MockResponse().setResponseCode(500)
