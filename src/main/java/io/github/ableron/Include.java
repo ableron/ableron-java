@@ -10,9 +10,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -47,11 +48,6 @@ public class Include {
    * for the page.
    */
   private static final String ATTR_PRIMARY = "primary";
-
-  private static final String HEADER_AGE = "Age";
-  private static final String HEADER_CACHE_CONTROL = "Cache-Control";
-  private static final String HEADER_DATE = "Date";
-  private static final String HEADER_EXPIRES = "Expires";
 
   /**
    * HTTP status codes indicating successful and cacheable responses.
@@ -254,7 +250,7 @@ public class Include {
         .map(response -> new Fragment(
           response.statusCode(),
           response.body(),
-          calculateFragmentExpirationTime(response),
+          HttpUtil.calculateResponseExpirationTime(response.headers()),
           filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
         ))
         .orElse(null)
@@ -326,67 +322,6 @@ public class Include {
     return httpRequestBuilder
       .GET()
       .build();
-  }
-
-  private Instant calculateFragmentExpirationTime(HttpResponse<String> response) {
-    var cacheControlDirectives = response.headers()
-      .firstValue(HEADER_CACHE_CONTROL)
-      .stream()
-      .flatMap(value -> Arrays.stream(value.split(",")))
-      .map(String::trim)
-      .collect(Collectors.toList());
-
-    return getCacheLifetimeBySharedCacheMaxAge(cacheControlDirectives)
-      .or(() -> getCacheLifetimeByMaxAge(
-        cacheControlDirectives,
-        response.headers().firstValue(HEADER_AGE).orElse(null)
-      ))
-      .or(() -> getCacheLifetimeByExpiresHeader(
-        response.headers().firstValue(HEADER_EXPIRES).orElse(null),
-        response.headers().firstValue(HEADER_DATE).orElse(null)
-      ))
-      .or(() -> response.headers().firstValue(HEADER_CACHE_CONTROL).map(cacheControl -> Instant.EPOCH))
-      .orElse(Instant.EPOCH);
-  }
-
-  private Optional<Instant> getCacheLifetimeBySharedCacheMaxAge(List<String> cacheControlDirectives) {
-    return cacheControlDirectives.stream()
-      .filter(directive -> directive.matches("^s-maxage=[1-9][0-9]*$"))
-      .findFirst()
-      .map(sMaxAge -> sMaxAge.substring("s-maxage=".length()))
-      .map(Long::parseLong)
-      .map(seconds -> Instant.now().plusSeconds(seconds));
-  }
-
-  private Optional<Instant> getCacheLifetimeByMaxAge(List<String> cacheControlDirectives, String ageHeaderValue) {
-    try {
-      return cacheControlDirectives.stream()
-        .filter(directive -> directive.matches("^max-age=[1-9][0-9]*$"))
-        .findFirst()
-        .map(maxAge -> maxAge.substring("max-age=".length()))
-        .map(Long::parseLong)
-        .map(seconds -> seconds - Optional.ofNullable(ageHeaderValue)
-          .map(Long::parseLong)
-          .map(Math::abs)
-          .orElse(0L))
-        .map(seconds -> Instant.now().plusSeconds(seconds));
-    } catch (Exception e) {
-      return Optional.empty();
-    }
-  }
-
-  private Optional<Instant> getCacheLifetimeByExpiresHeader(String expiresHeaderValue, String dateHeaderValue) {
-    try {
-      return Optional.ofNullable(expiresHeaderValue)
-        .map(value -> value.equals("0") ? Instant.EPOCH : parseHttpDate(value))
-        .map(expires -> (dateHeaderValue != null) ? Instant.now().plusMillis(expires.toEpochMilli() - parseHttpDate(dateHeaderValue).toEpochMilli()) : expires);
-    } catch (Exception e) {
-      return Optional.empty();
-    }
-  }
-
-  private Instant parseHttpDate(String httpDate) {
-    return ZonedDateTime.parse(httpDate, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
   }
 
   @Override
