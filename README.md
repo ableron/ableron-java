@@ -121,7 +121,8 @@ Fragments are considered cacheable if they have HTTP status code
 ### Cache-Control
 The transclusion result provides a max-age for the content with all includes resolved,
 based on the fragment with the lowest expiration time.
-I.e. the fragment with the lowest expiration time defines the max-age of the page.
+I.e. the fragment with the lowest expiration time defines the max-age of the page in case max age of the page
+is not below it.
 
 ## Contributing
 Contributions are greatly appreciated. To contribute you can either simply open an issue or fork the repository and create a pull request:
