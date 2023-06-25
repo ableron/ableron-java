@@ -692,9 +692,6 @@ class IncludeSpec extends Specification {
       .setBody("fragment")
       .setResponseCode(200))
     def includeSrcUrl = mockWebServer.url("/test-default-cache-duration").toString()
-    def config = AbleronConfig.builder()
-      .fragmentDefaultCacheDuration(Duration.ofSeconds(30))
-      .build()
 
     when:
     def fragment = new Include(Map.of("src", includeSrcUrl))
@@ -903,7 +900,7 @@ class IncludeSpec extends Specification {
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    result.responseHeaders.equals(["x-test": ["Test"]])
+    result.responseHeaders == ["x-test": ["Test"]]
 
     cleanup:
     mockWebServer.shutdown()
@@ -940,7 +937,7 @@ class IncludeSpec extends Specification {
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    result.responseHeaders.equals(["x-test": ["Test"]])
+    result.responseHeaders == ["x-test": ["Test"]]
 
     cleanup:
     mockWebServer.shutdown()
