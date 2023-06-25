@@ -254,7 +254,7 @@ public class Include {
         .map(response -> new Fragment(
           response.statusCode(),
           response.body(),
-          calculateFragmentExpirationTime(response, config.getFragmentDefaultCacheDuration()),
+          calculateFragmentExpirationTime(response),
           filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
         ))
         .orElse(null)
@@ -328,7 +328,7 @@ public class Include {
       .build();
   }
 
-  private Instant calculateFragmentExpirationTime(HttpResponse<String> response, Duration fragmentDefaultCacheDuration) {
+  private Instant calculateFragmentExpirationTime(HttpResponse<String> response) {
     var cacheControlDirectives = response.headers()
       .firstValue(HEADER_CACHE_CONTROL)
       .stream()

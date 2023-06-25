@@ -19,13 +19,6 @@ public class AbleronConfig {
   private Duration fragmentRequestTimeout = Duration.ofSeconds(3);
 
   /**
-   * Duration to cache fragments in case no caching information is provided along
-   * the response, i.e. neither <code>Cache-Control</code> nor <code>Expires</code> header.
-   * Defaults to 5 minutes.
-   */
-  private Duration fragmentDefaultCacheDuration = Duration.ofMinutes(5);
-
-  /**
    * Request headers that are passed to fragment requests if present.
    */
   private List<String> fragmentRequestHeadersToPass = List.of(
@@ -71,10 +64,6 @@ public class AbleronConfig {
     return fragmentRequestTimeout;
   }
 
-  public Duration getFragmentDefaultCacheDuration() {
-    return fragmentDefaultCacheDuration;
-  }
-
   public List<String> getFragmentRequestHeadersToPass() {
     return fragmentRequestHeadersToPass;
   }
@@ -98,11 +87,6 @@ public class AbleronConfig {
 
     public Builder fragmentRequestTimeout(Duration fragmentRequestTimeout) {
       ableronConfig.fragmentRequestTimeout = Objects.requireNonNull(fragmentRequestTimeout, "fragmentRequestTimeout must not be null");
-      return this;
-    }
-
-    public Builder fragmentDefaultCacheDuration(Duration fragmentDefaultCacheDuration) {
-      ableronConfig.fragmentDefaultCacheDuration = Objects.requireNonNull(fragmentDefaultCacheDuration, "fragmentDefaultCacheDuration must not be null");
       return this;
     }
 

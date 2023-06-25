@@ -14,7 +14,6 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       enabled
       fragmentRequestTimeout == Duration.ofSeconds(3)
-      fragmentDefaultCacheDuration == Duration.ofMinutes(5)
       fragmentRequestHeadersToPass == [
         "Accept-Language",
         "Correlation-ID",
@@ -42,7 +41,6 @@ class AbleronConfigSpec extends Specification {
     def config = AbleronConfig.builder()
       .enabled(false)
       .fragmentRequestTimeout(Duration.ofMillis(200))
-      .fragmentDefaultCacheDuration(Duration.ofMinutes(15))
       .fragmentRequestHeadersToPass(["X-Test-Request-Header", "X-Test-Request-Header-2"])
       .primaryFragmentResponseHeadersToPass(["X-Test-Response-Header", "X-Test-Response-Header-2"])
       .cacheMaxSizeInBytes(1024 * 100)
@@ -52,7 +50,6 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       !enabled
       fragmentRequestTimeout == Duration.ofMillis(200)
-      fragmentDefaultCacheDuration == Duration.ofMinutes(15)
       fragmentRequestHeadersToPass == ["X-Test-Request-Header", "X-Test-Request-Header-2"]
       primaryFragmentResponseHeadersToPass == ["X-Test-Response-Header", "X-Test-Response-Header-2"]
       cacheMaxSizeInBytes == 1024 * 100
@@ -68,17 +65,6 @@ class AbleronConfigSpec extends Specification {
     then:
     def exception = thrown(NullPointerException)
     exception.message == "fragmentRequestTimeout must not be null"
-  }
-
-  def "should throw exception if fragmentDefaultCacheDuration is tried to be set to null"() {
-    when:
-    AbleronConfig.builder()
-      .fragmentDefaultCacheDuration(null)
-      .build()
-
-    then:
-    def exception = thrown(NullPointerException)
-    exception.message == "fragmentDefaultCacheDuration must not be null"
   }
 
   def "should throw exception if fragmentRequestHeadersToPass is tried to be set to null"() {
