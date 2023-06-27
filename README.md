@@ -59,14 +59,10 @@ Maven:
    }
    // reduce response cache time according to the lowest fragment cache time
    transclusionResult.getContentExpirationTime().ifPresent(contentExpirationTime -> {
-     // check whether response may be cached
-     if (contentExpirationTime.isAfter(Instant.now()) && contentExpirationTime.isBefore(getInitialPageExpirationTime())) {
-       // override response expiration time
-       removeResponseHeader("Age");
-       setResponseHeader("Cache-Control", "max-age=" + ChronoUnit.SECONDS.between(Instant.now(), contentExpirationTime));
-     } else {
-       // make sure, response will not be cached if fragment expiration time is set to past
-       setResponseHeader("Cache-Control", "no-store");
+     if (contentExpirationTime.isBefore(Instant.now())) {
+       getResponse().setHeader(CACHE_CONTROL, "no-store");
+     } else if (contentExpirationTime.isBefore(getInitialPageExpirationTime())) {
+       getResponse().setHeader(CACHE_CONTROL, "max-age=" + ChronoUnit.SECONDS.between(Instant.now(), contentExpirationTime));
      }
    });
    ```
