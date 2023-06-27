@@ -6,6 +6,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -16,8 +17,9 @@ public class HttpUtil {
   private static final String HEADER_DATE = "Date";
   private static final String HEADER_EXPIRES = "Expires";
 
-  public static Instant calculateResponseExpirationTime(HttpHeaders responseHeaders) {
-    var cacheControlDirectives = responseHeaders
+  public static Instant calculateResponseExpirationTime(Map<String, List<String>> responseHeaders) {
+    var headers = HttpHeaders.of(responseHeaders, (name, value) -> true);
+    var cacheControlDirectives = headers
       .firstValue(HEADER_CACHE_CONTROL)
       .stream()
       .flatMap(value -> Arrays.stream(value.toLowerCase().split(",")))
@@ -27,11 +29,11 @@ public class HttpUtil {
     return getCacheLifetimeBySharedCacheMaxAge(cacheControlDirectives)
       .or(() -> getCacheLifetimeByMaxAge(
         cacheControlDirectives,
-        responseHeaders.firstValue(HEADER_AGE).orElse(null)
+        headers.firstValue(HEADER_AGE).orElse(null)
       ))
       .or(() -> getCacheLifetimeByExpiresHeader(
-        responseHeaders.firstValue(HEADER_EXPIRES).orElse(null),
-        responseHeaders.firstValue(HEADER_DATE).orElse(null)
+        headers.firstValue(HEADER_EXPIRES).orElse(null),
+        headers.firstValue(HEADER_DATE).orElse(null)
       ))
       .orElse(Instant.EPOCH);
   }

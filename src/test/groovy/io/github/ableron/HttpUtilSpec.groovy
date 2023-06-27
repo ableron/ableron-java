@@ -2,7 +2,6 @@ package io.github.ableron
 
 import spock.lang.Specification
 
-import java.net.http.HttpHeaders
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -11,14 +10,11 @@ import java.time.temporal.ChronoUnit
 class HttpUtilSpec extends Specification {
 
   def "should calculate response expiration time based on s-maxage"() {
-    given:
-    def responseHeaders = HttpHeaders.of([
+    when:
+    def expirationTime = HttpUtil.calculateResponseExpirationTime([
       "Cache-Control": ["max-age=3600, s-maxage=604800 , public"],
       "Expires": ["Wed, 21 Oct 2015 07:28:00 GMT"]
-    ], (name, value) -> true)
-
-    when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(responseHeaders)
+    ])
 
     then:
     expirationTime.isBefore(Instant.now().plusSeconds(604800).plusSeconds(1))
@@ -27,9 +23,7 @@ class HttpUtilSpec extends Specification {
 
   def "should calculate response expiration time based on max-age"() {
     when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(
-      HttpHeaders.of(responseHeaders, (name, value) -> true)
-    )
+    def expirationTime = HttpUtil.calculateResponseExpirationTime(responseHeaders)
 
     then:
     expirationTime.isBefore(Instant.now().plusSeconds(expectedExpirationTimeSeconds).plusSeconds(1))
@@ -43,9 +37,7 @@ class HttpUtilSpec extends Specification {
 
   def "should calculate response expiration time based on max-age and Age"() {
     when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(
-      HttpHeaders.of(responseHeaders, (name, value) -> true)
-    )
+    def expirationTime = HttpUtil.calculateResponseExpirationTime(responseHeaders)
 
     then:
     expirationTime.isBefore(Instant.now().plusSeconds(expectedExpirationTimeSeconds).plusSeconds(1))
@@ -60,10 +52,10 @@ class HttpUtilSpec extends Specification {
 
   def "should calculate response expiration time based on Expires header and current time if Cache-Control header and Date header are not present"() {
     when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(HttpHeaders.of([
+    def expirationTime = HttpUtil.calculateResponseExpirationTime([
       "Cache-Control": ["public"],
       "Expires": ["Wed, 12 Oct 2050 07:28:00 GMT"]
-    ], (name, value) -> true))
+    ])
 
     then:
     expirationTime == ZonedDateTime.parse("Wed, 12 Oct 2050 07:28:00 GMT", DateTimeFormatter.RFC_1123_DATE_TIME).toInstant()
@@ -71,10 +63,10 @@ class HttpUtilSpec extends Specification {
 
   def "should calculate response expiration time based on Expires and Date header if Cache-Control header is not present"() {
     when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(HttpHeaders.of([
+    def expirationTime = HttpUtil.calculateResponseExpirationTime([
       "Date": ["Wed, 05 Oct 2050 07:28:00 GMT"],
       "Expires": ["Wed, 12 Oct 2050 07:28:00 GMT"]
-    ], (name, value) -> true))
+    ])
 
     then:
     expirationTime.isBefore(Instant.now().plus(7, ChronoUnit.DAYS).plusSeconds(1))
@@ -82,32 +74,18 @@ class HttpUtilSpec extends Specification {
   }
 
   def "should calculate response expiration time based on Expires=0"() {
-    when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(
-      HttpHeaders.of(["Expires": ["0"]], (name, value) -> true))
-
-    then:
-    expirationTime == Instant.EPOCH
+    expect:
+    HttpUtil.calculateResponseExpirationTime(["Expires": ["0"]]) == Instant.EPOCH
   }
 
   def "should calculate response expiration time if Cache-Control header is set but without max-age directives"() {
-    when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(HttpHeaders.of([
-      "Expires": ["no-cache,no-store,must-revalidate"]
-    ], (name, value) -> true))
-
-    then:
-    expirationTime == Instant.EPOCH
+    expect:
+    HttpUtil.calculateResponseExpirationTime(["Cache-Control": ["no-cache,no-store,must-revalidate"]]) == Instant.EPOCH
   }
 
   def "should not crash on invalid header values"() {
-    when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(
-      HttpHeaders.of(responseHeaders, (name, value) -> true)
-    )
-
-    then:
-    expirationTime == Instant.EPOCH
+    expect:
+    HttpUtil.calculateResponseExpirationTime(responseHeaders) == Instant.EPOCH
 
     where:
     responseHeaders                                                        | _
@@ -119,11 +97,7 @@ class HttpUtilSpec extends Specification {
   }
 
   def "should calculate expiration time in the past if no expiration time is indicated via response header"() {
-    when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(
-      HttpHeaders.of([:], (name, value) -> true))
-
-    then:
-    expirationTime == Instant.EPOCH
+    expect:
+    HttpUtil.calculateResponseExpirationTime([:]) == Instant.EPOCH
   }
 }

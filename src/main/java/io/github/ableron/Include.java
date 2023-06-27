@@ -250,7 +250,7 @@ public class Include {
         .map(response -> new Fragment(
           response.statusCode(),
           response.body(),
-          HttpUtil.calculateResponseExpirationTime(response.headers()),
+          HttpUtil.calculateResponseExpirationTime(response.headers().map()),
           filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
         ))
         .orElse(null)
