@@ -42,12 +42,8 @@ Maven:
    ```
 1. Apply transclusion to response if applicable (HTTP status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
    ```java
-   // get request headers from e.g. HttpServletRequest
-   Map<String, List<String>> presentRequestHeaders = getRequestHeaders();
-   // get unprocessed response body
-   String originalResponseBody = getOriginalResponseBody();
-   // perform transclusion
-   TransclusionResult transclusionResult = ableron.resolveIncludes(originalResponseBody, presentRequestHeaders);
+   // perform transclusion based on unprocessed response body and request headers from e.g. HttpServletRequest
+   TransclusionResult transclusionResult = ableron.resolveIncludes(getOriginalResponseBody(), getRequestHeaders());
    // set body to the processed one
    setResponseBody(transclusionResult.getContent());
    // check whether there was a primary include
