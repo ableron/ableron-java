@@ -3,7 +3,9 @@ package io.github.ableron;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +35,12 @@ public class TransclusionResult {
   /**
    * Status code set by a primary include which is to be sent along the content.
    */
-  private Integer primaryIncludeStatusCode;
+  private Integer statusCodeOverride;
 
   /**
    * Response headers set by a primary include which are to be sent along the content.
    */
-  private final Map<String, List<String>> primaryIncludeResponseHeaders = new HashMap<>();
+  private final Map<String, List<String>> responseHeadersToPass = new HashMap<>();
 
   /**
    * Number of includes that have been processed.
@@ -66,12 +68,12 @@ public class TransclusionResult {
     return hasPrimaryInclude;
   }
 
-  public Optional<Integer> getPrimaryIncludeStatusCode() {
-    return Optional.ofNullable(primaryIncludeStatusCode);
+  public Optional<Integer> getStatusCodeOverride() {
+    return Optional.ofNullable(statusCodeOverride);
   }
 
-  public Map<String, List<String>> getPrimaryIncludeResponseHeaders() {
-    return primaryIncludeResponseHeaders;
+  public Map<String, List<String>> getResponseHeadersToPass() {
+    return responseHeadersToPass;
   }
 
   public int getProcessedIncludesCount() {
@@ -92,8 +94,8 @@ public class TransclusionResult {
         logger.warn("Only one primary include per page allowed. Multiple found");
       } else {
         hasPrimaryInclude = true;
-        primaryIncludeStatusCode = fragment.getStatusCode();
-        primaryIncludeResponseHeaders.putAll(fragment.getResponseHeaders());
+        statusCodeOverride = fragment.getStatusCode();
+        responseHeadersToPass.putAll(fragment.getResponseHeaders());
       }
     }
 
@@ -103,5 +105,40 @@ public class TransclusionResult {
 
     content = content.replace(include.getRawIncludeTag(), fragment.getContent());
     processedIncludesCount++;
+  }
+
+  //TODO: Check whether this makes sense
+  //TODO: Improve
+  //TODO: Add unit tests
+  //TODO: Use in examples and dependent libs
+  public String calculateCacheControlHeaderValue(Duration initialPageMaxAge) {
+    if (contentExpirationTime.isBefore(Instant.now())) {
+      return "no-store";
+    }
+
+    if (contentExpirationTime.isBefore(Instant.now().plusSeconds(initialPageMaxAge.toSeconds()))) {
+      return "max-age=" + ChronoUnit.SECONDS.between(Instant.now(), contentExpirationTime);
+    }
+
+    return "max-age=" + initialPageMaxAge.toSeconds();
+  }
+
+  //TODO: Check whether this makes sense
+  //TODO: Improve
+  //TODO: Add unit tests
+  //TODO: Use in examples and dependent libs
+  public String calculateCacheControlHeaderValue(Map<String, List<String>> responseHeaders) {
+    if (contentExpirationTime.isBefore(Instant.now())) {
+      return "no-store";
+    }
+
+    if (contentExpirationTime.isBefore(HttpUtil.calculateResponseExpirationTime(responseHeaders))) {
+      return "max-age=" + ChronoUnit.SECONDS.between(Instant.now(), contentExpirationTime);
+    }
+
+    return responseHeaders.getOrDefault("Cache-Control", List.of("no-store"))
+      .stream()
+      .findFirst()
+      .orElse("no-store");
   }
 }
