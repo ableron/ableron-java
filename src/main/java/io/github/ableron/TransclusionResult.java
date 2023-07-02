@@ -107,38 +107,47 @@ public class TransclusionResult {
     processedIncludesCount++;
   }
 
-  //TODO: Check whether this makes sense
-  //TODO: Improve
-  //TODO: Add unit tests
-  //TODO: Use in examples and dependent libs
-  public String calculateCacheControlHeaderValue(Duration initialPageMaxAge) {
-    if (contentExpirationTime.isBefore(Instant.now())) {
-      return "no-store";
-    }
-
-    if (contentExpirationTime.isBefore(Instant.now().plusSeconds(initialPageMaxAge.toSeconds()))) {
-      return "max-age=" + ChronoUnit.SECONDS.between(Instant.now(), contentExpirationTime);
-    }
-
-    return "max-age=" + initialPageMaxAge.toSeconds();
+  /**
+   * Calculates the <code>Cache-Control</code> header value. Due to page max age is considered
+   * zero, return value is always <code>no-store</code>.
+   *
+   * @return Fixed Cache-Control header value "no-store"
+   */
+  public String calculateCacheControlHeaderValue() {
+    return calculateCacheControlHeaderValue(Duration.ZERO);
   }
 
-  //TODO: Check whether this makes sense
-  //TODO: Improve
-  //TODO: Add unit tests
-  //TODO: Use in examples and dependent libs
-  public String calculateCacheControlHeaderValue(Map<String, List<String>> responseHeaders) {
-    if (contentExpirationTime.isBefore(Instant.now())) {
+  /**
+   * Calculates the <code>Cache-Control</code> header value based on the fragment with the lowest
+   * expiration time and the given page max age.
+   *
+   * @return The Cache-Control header value. Either "no-store" or "max-age=xxx"
+   */
+  public String calculateCacheControlHeaderValue(Duration pageMaxAge) {
+    Instant now = Instant.now();
+
+    if (contentExpirationTime.isBefore(now) || !now.plusSeconds(pageMaxAge.toSeconds()).isAfter(now)) {
       return "no-store";
     }
 
-    if (contentExpirationTime.isBefore(HttpUtil.calculateResponseExpirationTime(responseHeaders))) {
-      return "max-age=" + ChronoUnit.SECONDS.between(Instant.now(), contentExpirationTime);
+    if (contentExpirationTime.isBefore(now.plusSeconds(pageMaxAge.toSeconds()))) {
+      return "max-age=" + ChronoUnit.SECONDS.between(now, contentExpirationTime);
     }
 
-    return responseHeaders.getOrDefault("Cache-Control", List.of("no-store"))
-      .stream()
-      .findFirst()
-      .orElse("no-store");
+    return "max-age=" + pageMaxAge.toSeconds();
+  }
+
+  /**
+   * Calculates the <code>Cache-Control</code> header value based on the fragment with the lowest
+   * expiration time and the given response headers which max contain page expiration time.
+   *
+   * @return The Cache-Control header value. Either "no-store" or "max-age=xxx"
+   */
+  public String calculateCacheControlHeaderValue(Map<String, List<String>> responseHeaders) {
+    Instant pageExpirationTime = HttpUtil.calculateResponseExpirationTime(responseHeaders);
+    Duration pageMaxAge = pageExpirationTime.isAfter(Instant.now())
+      ? Duration.between(Instant.now(), pageExpirationTime)
+      : Duration.ZERO;
+    return calculateCacheControlHeaderValue(pageMaxAge);
   }
 }

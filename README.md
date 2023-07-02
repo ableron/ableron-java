@@ -46,21 +46,12 @@ Maven:
    TransclusionResult transclusionResult = ableron.resolveIncludes(getOriginalResponseBody(), getRequestHeaders());
    // set body to the processed one
    setResponseBody(transclusionResult.getContent());
-   // check whether there was a primary include
-   if (transclusionResult.hasPrimaryInclude()) {
-     // override response status code when primary include was present
-     transclusionResult.getPrimaryIncludeStatusCode().ifPresent(statusCode -> setResponseStatusCode(statusCode));
-     // add response headers when primary include was present
-     addResponseHeaders(transclusionResult.getPrimaryIncludeResponseHeaders());
-   }
-   // reduce response cache time according to the lowest fragment cache time
-   transclusionResult.getContentExpirationTime().ifPresent(contentExpirationTime -> {
-     if (contentExpirationTime.isBefore(Instant.now())) {
-       getResponse().setHeader(CACHE_CONTROL, "no-store");
-     } else if (contentExpirationTime.isBefore(getInitialPageExpirationTime())) {
-       getResponse().setHeader(CACHE_CONTROL, "max-age=" + ChronoUnit.SECONDS.between(Instant.now(), contentExpirationTime));
-     }
-   });
+   // override response status code when primary include was present
+   transclusionResult.getStatusCodeOverride().ifPresent(statusCode -> setResponseStatusCode(statusCode));
+   // add response headers when primary include was present
+   addResponseHeaders(transclusionResult.getResponseHeadersToPass());
+   // set cache-control header
+   getResponse().setHeader(CACHE_CONTROL, transclusionResult.calculateCacheControlHeaderValue(getResponseHeaders()));
    ```
 
 ### Configuration Options
