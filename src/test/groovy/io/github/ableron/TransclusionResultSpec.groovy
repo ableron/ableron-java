@@ -127,4 +127,12 @@ class TransclusionResultSpec extends Specification {
     Instant.now().plusSeconds(300) | ["Cache-Control":["max-age=300"]] | "max-age=299"
     Instant.now().plusSeconds(300) | ["Cache-Control":["max-age=600"]] | "max-age=299"
   }
+
+  def "should handle missing content expiration time when calculating cache control header value"() {
+    given:
+    def transclusionResult = new TransclusionResult("")
+
+    expect:
+    transclusionResult.calculateCacheControlHeaderValue([:]) == "no-store"
+  }
 }

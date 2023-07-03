@@ -126,7 +126,9 @@ public class TransclusionResult {
   public String calculateCacheControlHeaderValue(Duration pageMaxAge) {
     Instant now = Instant.now();
 
-    if (contentExpirationTime.isBefore(now) || !now.plusSeconds(pageMaxAge.toSeconds()).isAfter(now)) {
+    if (contentExpirationTime == null
+      || contentExpirationTime.isBefore(now)
+      || !now.plusSeconds(pageMaxAge.toSeconds()).isAfter(now)) {
       return "no-store";
     }
 
