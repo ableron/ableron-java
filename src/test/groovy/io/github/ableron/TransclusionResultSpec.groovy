@@ -91,8 +91,8 @@ class TransclusionResultSpec extends Specification {
     Instant.now().minusSeconds(5)  | Duration.ofSeconds(120) | "no-store"
     Instant.now()                  | Duration.ofSeconds(120) | "no-store"
     Instant.now().plusSeconds(300) | Duration.ofSeconds(120) | "max-age=120"
-    Instant.now().plusSeconds(300) | Duration.ofSeconds(300) | "max-age=299"
-    Instant.now().plusSeconds(300) | Duration.ofSeconds(600) | "max-age=299"
+    Instant.now().plusSeconds(300) | Duration.ofSeconds(300) | "max-age=300"
+    Instant.now().plusSeconds(300) | Duration.ofSeconds(600) | "max-age=300"
   }
 
   def "should calculate cache control header value based on given response headers"() {
@@ -123,9 +123,9 @@ class TransclusionResultSpec extends Specification {
     Instant.EPOCH                  | ["Cache-Control":["max-age=120"]] | "no-store"
     Instant.now().minusSeconds(5)  | ["Cache-Control":["max-age=120"]] | "no-store"
     Instant.now()                  | ["Cache-Control":["max-age=120"]] | "no-store"
-    Instant.now().plusSeconds(300) | ["Cache-Control":["max-age=120"]] | "max-age=119"
-    Instant.now().plusSeconds(300) | ["Cache-Control":["max-age=300"]] | "max-age=299"
-    Instant.now().plusSeconds(300) | ["Cache-Control":["max-age=600"]] | "max-age=299"
+    Instant.now().plusSeconds(300) | ["Cache-Control":["max-age=120"]] | "max-age=120"
+    Instant.now().plusSeconds(300) | ["Cache-Control":["max-age=300"]] | "max-age=300"
+    Instant.now().plusSeconds(300) | ["Cache-Control":["max-age=600"]] | "max-age=300"
   }
 
   def "should handle missing content expiration time when calculating cache control header value"() {

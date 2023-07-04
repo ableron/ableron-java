@@ -126,14 +126,12 @@ public class TransclusionResult {
   public String calculateCacheControlHeaderValue(Duration pageMaxAge) {
     Instant now = Instant.now();
 
-    if (contentExpirationTime == null
-      || contentExpirationTime.isBefore(now)
-      || !now.plusSeconds(pageMaxAge.toSeconds()).isAfter(now)) {
+    if (contentExpirationTime == null || contentExpirationTime.isBefore(now) || pageMaxAge.toSeconds() <= 0) {
       return "no-store";
     }
 
-    if (contentExpirationTime.isBefore(now.plusSeconds(pageMaxAge.toSeconds()))) {
-      return "max-age=" + ChronoUnit.SECONDS.between(now, contentExpirationTime);
+    if (contentExpirationTime.isBefore(now.plus(pageMaxAge))) {
+      return "max-age=" + ChronoUnit.SECONDS.between(now, contentExpirationTime.plusSeconds(1));
     }
 
     return "max-age=" + pageMaxAge.toSeconds();
@@ -148,7 +146,7 @@ public class TransclusionResult {
   public String calculateCacheControlHeaderValue(Map<String, List<String>> responseHeaders) {
     Instant pageExpirationTime = HttpUtil.calculateResponseExpirationTime(responseHeaders);
     Duration pageMaxAge = pageExpirationTime.isAfter(Instant.now())
-      ? Duration.between(Instant.now(), pageExpirationTime)
+      ? Duration.ofSeconds(ChronoUnit.SECONDS.between(Instant.now(), pageExpirationTime.plusSeconds(1)))
       : Duration.ZERO;
     return calculateCacheControlHeaderValue(pageMaxAge);
   }
