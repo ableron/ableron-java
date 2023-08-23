@@ -56,6 +56,20 @@ class IncludeSpec extends Specification {
     new Include(null, null, rawIncludeTag).rawIncludeTag == rawIncludeTag
   }
 
+  def "should handle include id"() {
+    expect:
+    include.id == expectedId
+
+    where:
+    include                                      | expectedId
+    new Include(Map.of())                        | "0"
+    new Include(Map.of("id", "foo-bar"))         | "foo-bar"
+    new Include(Map.of("id", "FOO-bar%baz__/5")) | "FOO-barbaz__5"
+    new Include(Map.of("id", "//"))              | "0"
+    new Include(Map.of(), "", "zzzzz")           | "116425210"
+    new Include(Map.of(), "", "zzzzzz")          | "685785664"
+  }
+
   def "constructor should set src attribute"() {
     expect:
     include.src == expectedSrc

@@ -79,6 +79,7 @@ Maven:
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
 * Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
 * Attributes
+  * `id`: Unique name of the include used within log messages
   * `src`: URL of the fragment to include
   * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
   * `fallback-src`: URL of the fragment to include in case the request to `src` failed

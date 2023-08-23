@@ -10,10 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +18,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class Include {
+
+  /**
+   * Name of the attribute which contains the ID of the include - an optional unique name.
+   */
+  private static final String ATTR_ID = "id";
 
   /**
    * Name of the attribute which contains the source URl to resolve the include to.
@@ -79,6 +81,11 @@ public class Include {
    * Raw attributes of the include tag.
    */
   private final Map<String, String> rawAttributes;
+
+  /**
+   * Fragment ID. Either generated or passed via attribute.
+   */
+  private final String id;
 
   /**
    * URL of the fragment to include.
@@ -144,6 +151,7 @@ public class Include {
   public Include(Map<String, String> rawAttributes, String fallbackContent, String rawIncludeTag) {
     this.rawIncludeTag = Optional.ofNullable(rawIncludeTag).orElse("");
     this.rawAttributes = Optional.ofNullable(rawAttributes).orElseGet(Map::of);
+    this.id = buildIncludeId(this.rawAttributes.get(ATTR_ID));
     this.src = this.rawAttributes.get(ATTR_SOURCE);
     this.srcTimeout = parseTimeout(this.rawAttributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
     this.fallbackSrc = this.rawAttributes.get(ATTR_FALLBACK_SOURCE);
@@ -164,6 +172,13 @@ public class Include {
    */
   public Map<String, String> getRawAttributes() {
     return rawAttributes;
+  }
+
+  /**
+   * @return ID of the include
+   */
+  public String getId() {
+    return id;
   }
 
   /**
@@ -235,7 +250,7 @@ public class Include {
       .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
           if (!isHttpStatusCacheable(response.statusCode())) {
-            logger.error("Fragment URL {} returned status code {}", uri, response.statusCode());
+            logger.error("Fragment {} returned status code {}", uri, response.statusCode());
             recordErroredPrimaryFragment(new Fragment(
               response.statusCode(),
               response.body(),
@@ -257,7 +272,7 @@ public class Include {
       ))
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
-          logger.error("Fragment URL {} returned status code {}", uri, fragment.getStatusCode());
+          logger.error("Fragment {} returned status code {}", uri, fragment.getStatusCode());
           recordErroredPrimaryFragment(fragment);
           return false;
         }
@@ -304,13 +319,14 @@ public class Include {
 
   private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
     try {
+      logger.debug("Loading fragment {} for include {} with timeout {}ms", uri, id, requestTimeout.toMillis());
       var httpResponse = httpClient.sendAsync(buildHttpRequest(uri, requestHeaders), HttpResponse.BodyHandlers.ofString());
       return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
     } catch (TimeoutException e) {
-      logger.error("Unable to load URL {} within {}ms", uri, requestTimeout.toMillis());
+      logger.error("Unable to load fragment {} for include {}: {}ms timeout exceeded", uri, id, requestTimeout.toMillis());
       return Optional.empty();
     } catch (Exception e) {
-      logger.error("Unable to load URL {}: {}", uri, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
+      logger.error("Unable to load fragment {} for include {}: {}", uri, id, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
       return Optional.empty();
     }
   }
@@ -322,6 +338,13 @@ public class Include {
     return httpRequestBuilder
       .GET()
       .build();
+  }
+
+  private String buildIncludeId(String providedId) {
+    return Optional.ofNullable(providedId)
+      .map(id -> id.replaceAll("[^A-Za-z0-9_-]", ""))
+      .filter(id -> !id.isEmpty())
+      .orElse(String.valueOf(Math.abs(rawIncludeTag.hashCode())));
   }
 
   @Override
