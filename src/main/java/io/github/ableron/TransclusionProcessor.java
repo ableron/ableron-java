@@ -3,6 +3,10 @@ package io.github.ableron;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.http.HttpClient;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -11,8 +15,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TransclusionProcessor {
 
@@ -93,16 +95,19 @@ public class TransclusionProcessor {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult(content);
     CompletableFuture.allOf(findIncludes(content).stream()
-      .map(include -> include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
-        .thenApply(fragment -> {
-          transclusionResult.addResolvedInclude(include, fragment);
-          return fragment;
-        })
-        .exceptionally(throwable -> {
-          logger.error("Unable to resolve include", throwable);
-          return null;
-        })
-      )
+      .map(include -> {
+        var includeResolveStartTime = System.nanoTime();
+        return include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
+          .thenApply(fragment -> {
+            logger.debug("Resolved include {} in {}ms", include.getId(), (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
+            transclusionResult.addResolvedInclude(include, fragment);
+            return fragment;
+          })
+          .exceptionally(throwable -> {
+            logger.error("Unable to resolve include {}", include.getId(), throwable);
+            return null;
+          });
+      })
       .toArray(CompletableFuture[]::new)
     ).join();
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
@@ -146,6 +151,12 @@ public class TransclusionProcessor {
           return currentDuration;
         }
       })
+      .evictionListener((String url, Fragment fragment, RemovalCause cause) -> {
+        if (cause == RemovalCause.SIZE) {
+          logger.info("Fragment cache size exceeded. Removing fragment {} from cache. Consider increasing cache size", url);
+        }
+      })
+      .recordStats()
       .build();
   }
 }
