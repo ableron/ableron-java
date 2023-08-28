@@ -10,4 +10,15 @@ class FragmentSpec extends Specification {
     expect:
     new Fragment("").expirationTime.isBefore(Instant.now())
   }
+
+  def "should provide isRemote() based on existence of fragment url"() {
+    expect:
+    new Fragment(url, 200, "", Instant.EPOCH, Map.of()).isRemote() == expectedIsRemote
+
+    where:
+    url                  | expectedIsRemote
+    null                 | false
+    ""                   | true
+    "http://example.com" | true
+  }
 }
