@@ -252,6 +252,7 @@ public class Include {
           if (!isHttpStatusCacheable(response.statusCode())) {
             logger.error("Fragment {} returned status code {}", uri, response.statusCode());
             recordErroredPrimaryFragment(new Fragment(
+              uri,
               response.statusCode(),
               response.body(),
               Instant.EPOCH,
@@ -263,6 +264,7 @@ public class Include {
           return true;
         })
         .map(response -> new Fragment(
+          response.uri().toString(),
           response.statusCode(),
           response.body(),
           HttpUtil.calculateResponseExpirationTime(response.headers().map()),

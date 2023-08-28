@@ -389,7 +389,7 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-caching").toString()
 
     when:
-    cache.put(includeSrcUrl, new Fragment(200, "from cache", expirationTime, [:]))
+    cache.put(includeSrcUrl, new Fragment(null, 200, "from cache", expirationTime, [:]))
     def fragment = new Include(["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
