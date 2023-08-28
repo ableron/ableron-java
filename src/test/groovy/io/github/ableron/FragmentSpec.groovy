@@ -8,7 +8,7 @@ class FragmentSpec extends Specification {
 
   def "should create expired fragment if expiration time is not provided"() {
     expect:
-    new Fragment("").expirationTime.isBefore(Instant.now())
+    new Fragment(200, "").expirationTime.isBefore(Instant.now())
   }
 
   def "should provide isRemote() based on existence of fragment url"() {

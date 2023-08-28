@@ -241,8 +241,8 @@ public class Include {
       () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
         .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
         .or(() -> Optional.ofNullable(erroredPrimaryFragment))
-        .or(() -> Optional.ofNullable(fallbackContent).map(Fragment::new))
-        .orElseGet(() -> new Fragment("")), resolveThreadPool);
+        .or(() -> Optional.ofNullable(fallbackContent).map(content -> new Fragment(200, content)))
+        .orElseGet(() -> new Fragment(200, "")), resolveThreadPool);
   }
 
   private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {

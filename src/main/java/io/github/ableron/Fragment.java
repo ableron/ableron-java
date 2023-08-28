@@ -14,8 +14,8 @@ public class Fragment {
   private final int statusCode;
   private final Map<String, List<String>> responseHeaders;
 
-  public Fragment(String content) {
-    this(null, 200, content, Instant.EPOCH, Map.of());
+  public Fragment(int statusCode, String content) {
+    this(null, statusCode, content, Instant.EPOCH, Map.of());
   }
 
   public Fragment(String url, int statusCode, String content, Instant expirationTime, Map<String, List<String>> responseHeaders) {
