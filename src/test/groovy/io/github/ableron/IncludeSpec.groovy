@@ -222,7 +222,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "response"
-    fragment.statusCode == 206
+    fragment.statusCode.get() == 206
 
     cleanup:
     mockWebServer.shutdown()
@@ -247,7 +247,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "fallback"
-    fragment.statusCode == 206
+    fragment.statusCode.get() == 206
 
     cleanup:
     mockWebServer.shutdown()
@@ -268,7 +268,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "response"
-    fragment.statusCode == 503
+    fragment.statusCode.get() == 503
 
     cleanup:
     mockWebServer.shutdown()
@@ -293,7 +293,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "src"
-    fragment.statusCode == 503
+    fragment.statusCode.get() == 503
 
     cleanup:
     mockWebServer.shutdown()
@@ -325,14 +325,14 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "src"
-    fragment.statusCode == 503
+    fragment.statusCode.get() == 503
 
     when:
     def fragment2 = include.resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     fragment2.content == "src 2nd call"
-    fragment2.statusCode == 504
+    fragment2.statusCode.get() == 504
 
     cleanup:
     mockWebServer.shutdown()
@@ -353,7 +353,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "response"
-    fragment.statusCode == 503
+    fragment.statusCode.get() == 503
 
     cleanup:
     mockWebServer.shutdown()
@@ -389,7 +389,7 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/test-caching").toString()
 
     when:
-    cache.put(includeSrcUrl, new Fragment(200, "from cache", expirationTime, [:]))
+    cache.put(includeSrcUrl, new Fragment(null, 200, "from cache", expirationTime, [:]))
     def fragment = new Include(["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 

@@ -6,10 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class TransclusionResult {
 
@@ -52,6 +49,12 @@ public class TransclusionResult {
    */
   private long processingTimeMillis = 0;
 
+  /**
+   * Log entries containing information about resolved includes to be used
+   * in stats.
+   */
+  private final List<String> resolvedIncludesLog = new ArrayList<>();
+
   public TransclusionResult(String content) {
     this.content = content;
   }
@@ -88,13 +91,13 @@ public class TransclusionResult {
     this.processingTimeMillis = processingTimeMillis;
   }
 
-  public synchronized void addResolvedInclude(Include include, Fragment fragment) {
+  public synchronized void addResolvedInclude(Include include, Fragment fragment, long includeResolveTimeMillis) {
     if (include.isPrimary()) {
       if (hasPrimaryInclude) {
         logger.warn("Only one primary include per page allowed. Multiple found");
       } else {
         hasPrimaryInclude = true;
-        statusCodeOverride = fragment.getStatusCode();
+        fragment.getStatusCode().ifPresent(status -> statusCodeOverride = status);
         responseHeadersToPass.putAll(fragment.getResponseHeaders());
       }
     }
@@ -105,6 +108,11 @@ public class TransclusionResult {
 
     content = content.replace(include.getRawIncludeTag(), fragment.getContent());
     processedIncludesCount++;
+    resolvedIncludesLog.add(String.format("Resolved include %s with %s in %dms",
+      include.getId(),
+      fragment.isRemote() ? "fragment " + fragment.getUrl().orElse("null") : "fallback content",
+      includeResolveTimeMillis
+    ));
   }
 
   /**
@@ -149,5 +157,21 @@ public class TransclusionResult {
       ? Duration.ofSeconds(ChronoUnit.SECONDS.between(Instant.now(), pageExpirationTime.plusSeconds(1)))
       : Duration.ZERO;
     return calculateCacheControlHeaderValue(pageMaxAge);
+  }
+
+  public String appendStatsToContent() {
+    final var stats = new StringBuilder()
+      .append("\n<!-- Ableron stats:\n")
+      .append("Processed ").append(processedIncludesCount).append(" includes in ").append(processingTimeMillis).append("ms\n")
+      .append("Has primary include: ").append(hasPrimaryInclude ? "Yes" : "No").append("\n");
+
+    if (hasPrimaryInclude) {
+      stats.append("Primary include status code override: ").append(statusCodeOverride).append("\n");
+    }
+
+    resolvedIncludesLog.forEach(logEntry -> stats.append(logEntry).append("\n"));
+    stats.append("-->");
+    content += stats;
+    return stats.toString();
   }
 }

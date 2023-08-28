@@ -36,10 +36,10 @@ class TransclusionResultSpec extends Specification {
     given:
     def transclusionResult = new TransclusionResult("content: <include>")
     def include = new Include(["primary":""], "fallback", "<include>")
-    def fragment = new Fragment(404, "not found", Instant.EPOCH, ["X-Test":["Foo"]])
+    def fragment = new Fragment(null, 404, "not found", Instant.EPOCH, ["X-Test":["Foo"]])
 
     when:
-    transclusionResult.addResolvedInclude(include, fragment)
+    transclusionResult.addResolvedInclude(include, fragment, 0L)
 
     then:
     transclusionResult.getContent() == "content: not found"
@@ -56,7 +56,8 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
       new Include([:]),
-      new Fragment(200, "", fragmentExpirationTime, [:])
+      new Fragment(null, null, "", fragmentExpirationTime, [:]),
+      0L
     )
 
     expect:
@@ -75,7 +76,8 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
       new Include([:]),
-      new Fragment(200, "", fragmentExpirationTime, [:])
+      new Fragment(null, null, "", fragmentExpirationTime, [:]),
+      0L
     )
 
     expect:
@@ -100,7 +102,8 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
       new Include([:]),
-      new Fragment(200, "", fragmentExpirationTime, [:])
+      new Fragment(null, null, "", fragmentExpirationTime, [:]),
+      0L
     )
 
     expect:
@@ -134,5 +137,51 @@ class TransclusionResultSpec extends Specification {
 
     expect:
     transclusionResult.calculateCacheControlHeaderValue([:]) == "no-store"
+  }
+
+  def "should append stats to content - zero includes"() {
+    given:
+    def transclusionResult = new TransclusionResult("")
+
+    when:
+    transclusionResult.appendStatsToContent()
+
+    then:
+    transclusionResult.content == "\n<!-- Ableron stats:\n" +
+      "Processed 0 includes in 0ms\n" +
+      "Has primary include: No\n" +
+      "-->"
+  }
+
+  def "should append stats to content - more than zero includes"() {
+    given:
+    def transclusionResult = new TransclusionResult("")
+
+    when:
+    transclusionResult.addResolvedInclude(
+      new Include([:], "", "include#1"),
+      new Fragment(null, null, "", Instant.EPOCH, [:]),
+      0L
+    )
+    transclusionResult.addResolvedInclude(
+      new Include([:], "", "include#2"),
+      new Fragment("http://...", 404, "not found", Instant.EPOCH, [:]),
+      233L
+    )
+    transclusionResult.addResolvedInclude(
+      new Include([:], "fallback", "include#3"),
+      new Fragment("http://...", 404, "not found", Instant.EPOCH, [:]),
+      999L
+    )
+    transclusionResult.appendStatsToContent()
+
+    then:
+    transclusionResult.content == "\n<!-- Ableron stats:\n" +
+      "Processed 3 includes in 0ms\n" +
+      "Has primary include: No\n" +
+      "Resolved include 1496920298 with fallback content in 0ms\n" +
+      "Resolved include 1496920297 with fragment http://... in 233ms\n" +
+      "Resolved include 1496920296 with fragment http://... in 999ms\n" +
+      "-->"
   }
 }

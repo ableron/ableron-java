@@ -8,6 +8,6 @@ class FragmentSpec extends Specification {
 
   def "should create expired fragment if expiration time is not provided"() {
     expect:
-    new Fragment(200, "").expirationTime.isBefore(Instant.now())
+    new Fragment("").expirationTime.isBefore(Instant.now())
   }
 }

@@ -100,7 +100,7 @@ public class TransclusionProcessor {
         return include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
           .thenApply(fragment -> {
             logger.debug("Resolved include {} in {}ms", include.getId(), (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
-            transclusionResult.addResolvedInclude(include, fragment);
+            transclusionResult.addResolvedInclude(include, fragment, (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
             return fragment;
           })
           .exceptionally(throwable -> {
@@ -156,7 +156,6 @@ public class TransclusionProcessor {
           logger.info("Fragment cache size exceeded. Removing fragment {} from cache. Consider increasing cache size", url);
         }
       })
-      .recordStats()
       .build();
   }
 }

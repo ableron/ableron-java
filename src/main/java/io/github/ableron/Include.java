@@ -241,8 +241,8 @@ public class Include {
       () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
         .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
         .or(() -> Optional.ofNullable(erroredPrimaryFragment))
-        .or(() -> Optional.ofNullable(fallbackContent).map(content -> new Fragment(200, content)))
-        .orElseGet(() -> new Fragment(200, "")), resolveThreadPool);
+        .or(() -> Optional.ofNullable(fallbackContent).map(Fragment::new))
+        .orElseGet(() -> new Fragment("")), resolveThreadPool);
   }
 
   private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
@@ -252,6 +252,7 @@ public class Include {
           if (!isHttpStatusCacheable(response.statusCode())) {
             logger.error("Fragment {} returned status code {}", uri, response.statusCode());
             recordErroredPrimaryFragment(new Fragment(
+              uri,
               response.statusCode(),
               response.body(),
               Instant.EPOCH,
@@ -263,6 +264,7 @@ public class Include {
           return true;
         })
         .map(response -> new Fragment(
+          response.uri().toString(),
           response.statusCode(),
           response.body(),
           HttpUtil.calculateResponseExpirationTime(response.headers().map()),
@@ -271,8 +273,8 @@ public class Include {
         .orElse(null)
       ))
       .filter(fragment -> {
-        if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
-          logger.error("Fragment {} returned status code {}", uri, fragment.getStatusCode());
+        if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode().get())) {
+          logger.error("Fragment {} returned status code {}", uri, fragment.getStatusCode().get());
           recordErroredPrimaryFragment(fragment);
           return false;
         }
