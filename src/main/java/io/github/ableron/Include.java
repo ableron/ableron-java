@@ -273,8 +273,8 @@ public class Include {
         .orElse(null)
       ))
       .filter(fragment -> {
-        if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode().get())) {
-          logger.error("Fragment {} returned status code {}", uri, fragment.getStatusCode().get());
+        if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
+          logger.error("Fragment {} returned status code {}", uri, fragment.getStatusCode());
           recordErroredPrimaryFragment(fragment);
           return false;
         }

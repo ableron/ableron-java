@@ -97,7 +97,7 @@ public class TransclusionResult {
         logger.warn("Only one primary include per page allowed. Multiple found");
       } else {
         hasPrimaryInclude = true;
-        fragment.getStatusCode().ifPresent(status -> statusCodeOverride = status);
+        statusCodeOverride = fragment.getStatusCode();
         responseHeadersToPass.putAll(fragment.getResponseHeaders());
       }
     }

@@ -56,7 +56,7 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
       new Include([:]),
-      new Fragment(null, null, "", fragmentExpirationTime, [:]),
+      new Fragment(null, 200, "", fragmentExpirationTime, [:]),
       0L
     )
 
@@ -76,7 +76,7 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
       new Include([:]),
-      new Fragment(null, null, "", fragmentExpirationTime, [:]),
+      new Fragment(null, 200, "", fragmentExpirationTime, [:]),
       0L
     )
 
@@ -102,7 +102,7 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
       new Include([:]),
-      new Fragment(null, null, "", fragmentExpirationTime, [:]),
+      new Fragment(null, 200, "", fragmentExpirationTime, [:]),
       0L
     )
 
@@ -160,7 +160,7 @@ class TransclusionResultSpec extends Specification {
     when:
     transclusionResult.addResolvedInclude(
       new Include([:], "", "include#1"),
-      new Fragment(null, null, "", Instant.EPOCH, [:]),
+      new Fragment(null, 200, "", Instant.EPOCH, [:]),
       0L
     )
     transclusionResult.addResolvedInclude(

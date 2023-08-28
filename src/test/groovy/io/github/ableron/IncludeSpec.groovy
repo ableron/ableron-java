@@ -222,7 +222,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "response"
-    fragment.statusCode.get() == 206
+    fragment.statusCode == 206
 
     cleanup:
     mockWebServer.shutdown()
@@ -247,7 +247,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "fallback"
-    fragment.statusCode.get() == 206
+    fragment.statusCode == 206
 
     cleanup:
     mockWebServer.shutdown()
@@ -268,7 +268,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "response"
-    fragment.statusCode.get() == 503
+    fragment.statusCode == 503
 
     cleanup:
     mockWebServer.shutdown()
@@ -293,7 +293,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "src"
-    fragment.statusCode.get() == 503
+    fragment.statusCode == 503
 
     cleanup:
     mockWebServer.shutdown()
@@ -325,14 +325,14 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "src"
-    fragment.statusCode.get() == 503
+    fragment.statusCode == 503
 
     when:
     def fragment2 = include.resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     fragment2.content == "src 2nd call"
-    fragment2.statusCode.get() == 504
+    fragment2.statusCode == 504
 
     cleanup:
     mockWebServer.shutdown()
@@ -353,7 +353,7 @@ class IncludeSpec extends Specification {
 
     then:
     fragment.content == "response"
-    fragment.statusCode.get() == 503
+    fragment.statusCode == 503
 
     cleanup:
     mockWebServer.shutdown()

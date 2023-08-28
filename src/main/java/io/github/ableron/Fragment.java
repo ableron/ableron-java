@@ -11,14 +11,14 @@ public class Fragment {
   private final String content;
   private final Instant expirationTime;
   private final String url;
-  private final Integer statusCode;
+  private final int statusCode;
   private final Map<String, List<String>> responseHeaders;
 
   public Fragment(String content) {
-    this(null, null, content, Instant.EPOCH, Map.of());
+    this(null, 200, content, Instant.EPOCH, Map.of());
   }
 
-  public Fragment(String url, Integer statusCode, String content, Instant expirationTime, Map<String, List<String>> responseHeaders) {
+  public Fragment(String url, int statusCode, String content, Instant expirationTime, Map<String, List<String>> responseHeaders) {
     this.url = url;
     this.statusCode = statusCode;
     this.content = Objects.requireNonNull(content, "content must not be null");
@@ -42,8 +42,8 @@ public class Fragment {
     return url != null;
   }
 
-  public Optional<Integer> getStatusCode() {
-    return Optional.ofNullable(statusCode);
+  public int getStatusCode() {
+    return statusCode;
   }
 
   public Map<String, List<String>> getResponseHeaders() {
