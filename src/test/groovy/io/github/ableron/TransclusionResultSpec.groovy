@@ -146,15 +146,15 @@ class TransclusionResultSpec extends Specification {
 
   def "should append stats to content - zero includes"() {
     expect:
-    new TransclusionResult("content", true, null).getContent() == "content\n" +
+    new TransclusionResult("content", true).getContent() == "content\n" +
       "<!-- Ableron stats:\n" +
-      "Processed 0 includes in 0ms\n" +
+      "Processed 0 include(s) in 0ms\n" +
       "-->"
   }
 
   def "should append stats to content - more than zero includes"() {
     given:
-    def transclusionResult = new TransclusionResult("", true, null)
+    def transclusionResult = new TransclusionResult("", true)
 
     when:
     transclusionResult.addResolvedInclude(
@@ -175,11 +175,55 @@ class TransclusionResultSpec extends Specification {
 
     then:
     transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
-      "Processed 3 includes in 0ms\n" +
-      "Has primary include: No\n" +
+      "Processed 3 include(s) in 0ms\n" +
       "Resolved include 1496920298 with fallback content in 0ms\n" +
-      "Resolved include 1496920297 with fragment http://... in 233ms\n" +
-      "Resolved include 1496920296 with fragment http://... in 999ms\n" +
+      "Resolved include 1496920297 with remote fragment in 233ms\n" +
+      "Resolved include 1496920296 with remote fragment in 999ms\n" +
+      "-->"
+  }
+
+  def "should append stats for primary include"() {
+    given:
+    def transclusionResult = new TransclusionResult("", true)
+
+    when:
+    transclusionResult.addResolvedInclude(
+      new Include(["primary":""], "", "include#1"),
+      new Fragment(null, 200, "", Instant.EPOCH, [:]),
+      0L
+    )
+
+    then:
+    transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
+      "Processed 1 include(s) in 0ms\n" +
+      "Primary include with status code 200\n" +
+      "Resolved include 1496920298 with fallback content in 0ms\n" +
+      "-->"
+  }
+
+  def "should append stats for primary include - multiple primary includes"() {
+    given:
+    def transclusionResult = new TransclusionResult("", true)
+
+    when:
+    transclusionResult.addResolvedInclude(
+      new Include(["primary":""], "", "include#1"),
+      new Fragment(null, 200, "", Instant.EPOCH, [:]),
+      0L
+    )
+    transclusionResult.addResolvedInclude(
+      new Include(["primary":""], "", "include#2"),
+      new Fragment(null, 200, "", Instant.EPOCH, [:]),
+      33L
+    )
+
+    then:
+    transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
+      "Processed 2 include(s) in 0ms\n" +
+      "Primary include with status code 200\n" +
+      "Resolved include 1496920298 with fallback content in 0ms\n" +
+      "Ignoring primary include with status code 200 because there is already another primary include\n" +
+      "Resolved include 1496920297 with fallback content in 33ms\n" +
       "-->"
   }
 }

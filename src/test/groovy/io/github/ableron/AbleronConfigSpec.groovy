@@ -33,6 +33,7 @@ class AbleronConfigSpec extends Specification {
         "Refresh"
       ]
       cacheMaxSizeInBytes == 1024 * 1024 * 10
+      !statsAppendToContent()
     }
   }
 
@@ -44,6 +45,7 @@ class AbleronConfigSpec extends Specification {
       .fragmentRequestHeadersToPass(["X-Test-Request-Header", "X-Test-Request-Header-2"])
       .primaryFragmentResponseHeadersToPass(["X-Test-Response-Header", "X-Test-Response-Header-2"])
       .cacheMaxSizeInBytes(1024 * 100)
+      .statsAppendToContent(true)
       .build()
 
     then:
@@ -53,6 +55,7 @@ class AbleronConfigSpec extends Specification {
       fragmentRequestHeadersToPass == ["X-Test-Request-Header", "X-Test-Request-Header-2"]
       primaryFragmentResponseHeadersToPass == ["X-Test-Response-Header", "X-Test-Response-Header-2"]
       cacheMaxSizeInBytes == 1024 * 100
+      statsAppendToContent()
     }
   }
 

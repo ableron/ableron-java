@@ -56,11 +56,6 @@ public class AbleronConfig {
    */
   private boolean statsAppendToContent = false;
 
-  /**
-   * Key to encrypt the stats with, in order to not have them plain text in the final content.
-   */
-  private String statsEncryptionKey = null;
-
   private AbleronConfig() {}
 
   public static Builder builder() {
@@ -89,10 +84,6 @@ public class AbleronConfig {
 
   public boolean statsAppendToContent() {
     return statsAppendToContent;
-  }
-
-  public String getStatsEncryptionKey() {
-    return statsEncryptionKey;
   }
 
   public static class Builder {
@@ -126,11 +117,6 @@ public class AbleronConfig {
 
     public Builder statsAppendToContent(boolean statsAppendToContent) {
       ableronConfig.statsAppendToContent = statsAppendToContent;
-      return this;
-    }
-
-    public Builder statsEncryptionKey(String statsEncryptionKey) {
-      ableronConfig.statsEncryptionKey = statsEncryptionKey;
       return this;
     }
 

@@ -18,11 +18,6 @@ public class TransclusionResult {
   private final boolean appendStatsToContent;
 
   /**
-   * Key to encrypt the stats with.
-   */
-  private final String statsEncryptionKey;
-
-  /**
    * Content with resolved includes.
    */
   private String content;
@@ -66,13 +61,12 @@ public class TransclusionResult {
   private final List<String> resolvedIncludesLog = new ArrayList<>();
 
   public TransclusionResult(String content) {
-    this(content, false, null);
+    this(content, false);
   }
 
-  public TransclusionResult(String content, boolean appendStatsToContent, String statsEncryptionKey) {
+  public TransclusionResult(String content, boolean appendStatsToContent) {
     this.content = content;
     this.appendStatsToContent = appendStatsToContent;
-    this.statsEncryptionKey = statsEncryptionKey;
   }
 
   public String getContent() {
@@ -111,10 +105,12 @@ public class TransclusionResult {
     if (include.isPrimary()) {
       if (hasPrimaryInclude) {
         logger.warn("Only one primary include per page allowed. Multiple found");
+        resolvedIncludesLog.add("Ignoring primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
       } else {
         hasPrimaryInclude = true;
         statusCodeOverride = fragment.getStatusCode();
         responseHeadersToPass.putAll(fragment.getResponseHeaders());
+        resolvedIncludesLog.add("Primary include with status code " + fragment.getStatusCode());
       }
     }
 
@@ -126,7 +122,7 @@ public class TransclusionResult {
     processedIncludesCount++;
     resolvedIncludesLog.add(String.format("Resolved include %s with %s in %dms",
       include.getId(),
-      fragment.isRemote() ? "fragment " + fragment.getUrl().orElse("null") : "fallback content",
+      fragment.isRemote() ? "remote fragment" : "fallback content",
       includeResolveTimeMillis
     ));
   }
@@ -176,17 +172,8 @@ public class TransclusionResult {
   }
 
   private String getStats() {
-    final var stats = new StringBuilder("\n<!-- Ableron stats:\n");
-    stats.append("Processed ").append(processedIncludesCount).append(" includes in ").append(processingTimeMillis).append("ms\n");
-
-    if (processedIncludesCount > 0) {
-      stats.append("Has primary include: ").append(hasPrimaryInclude ? "Yes" : "No").append("\n");
-    }
-
-    if (hasPrimaryInclude) {
-      stats.append("Primary include status code: ").append(statusCodeOverride).append("\n");
-    }
-
+    final var stats = new StringBuilder("\n<!-- Ableron stats:\n"
+      + "Processed " + processedIncludesCount + " include(s) in " + processingTimeMillis + "ms\n");
     resolvedIncludesLog.forEach(logEntry -> stats.append(logEntry).append("\n"));
     return stats.append("-->").toString();
   }
