@@ -13,6 +13,11 @@ public class TransclusionResult {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   /**
+   * Whether to append stats as HTML comment to the content.
+   */
+  private final boolean appendStatsToContent;
+
+  /**
    * Content with resolved includes.
    */
   private String content;
@@ -56,11 +61,16 @@ public class TransclusionResult {
   private final List<String> resolvedIncludesLog = new ArrayList<>();
 
   public TransclusionResult(String content) {
+    this(content, false);
+  }
+
+  public TransclusionResult(String content, boolean appendStatsToContent) {
     this.content = content;
+    this.appendStatsToContent = appendStatsToContent;
   }
 
   public String getContent() {
-    return content;
+    return appendStatsToContent ? content + getStats() : content;
   }
 
   public Optional<Instant> getContentExpirationTime() {
@@ -159,19 +169,19 @@ public class TransclusionResult {
     return calculateCacheControlHeaderValue(pageMaxAge);
   }
 
-  public String appendStatsToContent() {
-    final var stats = new StringBuilder()
-      .append("\n<!-- Ableron stats:\n")
-      .append("Processed ").append(processedIncludesCount).append(" includes in ").append(processingTimeMillis).append("ms\n")
-      .append("Has primary include: ").append(hasPrimaryInclude ? "Yes" : "No").append("\n");
+  private String getStats() {
+    final var stats = new StringBuilder("\n<!-- Ableron stats:\n");
+    stats.append("Processed ").append(processedIncludesCount).append(" includes in ").append(processingTimeMillis).append("ms\n");
+
+    if (processedIncludesCount > 0) {
+      stats.append("Has primary include: ").append(hasPrimaryInclude ? "Yes" : "No").append("\n");
+    }
 
     if (hasPrimaryInclude) {
-      stats.append("Primary include status code override: ").append(statusCodeOverride).append("\n");
+      stats.append("Primary include status code: ").append(statusCodeOverride).append("\n");
     }
 
     resolvedIncludesLog.forEach(logEntry -> stats.append(logEntry).append("\n"));
-    stats.append("-->");
-    content += stats;
-    return stats.toString();
+    return stats.append("-->").toString();
   }
 }

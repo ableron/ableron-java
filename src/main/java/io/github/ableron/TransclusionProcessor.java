@@ -93,7 +93,7 @@ public class TransclusionProcessor {
    */
   public TransclusionResult resolveIncludes(String content, Map<String, List<String>> presentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult(content);
+    var transclusionResult = new TransclusionResult(content, ableronConfig.statsAppendToContent());
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         var includeResolveStartTime = System.nanoTime();
@@ -111,11 +111,6 @@ public class TransclusionProcessor {
       .toArray(CompletableFuture[]::new)
     ).join();
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
-
-    if (ableronConfig.statsAppendToContent()) {
-      transclusionResult.appendStatsToContent();
-    }
-
     return transclusionResult;
   }
 

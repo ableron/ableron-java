@@ -139,23 +139,22 @@ class TransclusionResultSpec extends Specification {
     transclusionResult.calculateCacheControlHeaderValue([:]) == "no-store"
   }
 
+  def "should not append stats to content by default"() {
+    expect:
+    new TransclusionResult("content").getContent() == "content"
+  }
+
   def "should append stats to content - zero includes"() {
-    given:
-    def transclusionResult = new TransclusionResult("")
-
-    when:
-    transclusionResult.appendStatsToContent()
-
-    then:
-    transclusionResult.content == "\n<!-- Ableron stats:\n" +
+    expect:
+    new TransclusionResult("content", true).getContent() == "content\n" +
+      "<!-- Ableron stats:\n" +
       "Processed 0 includes in 0ms\n" +
-      "Has primary include: No\n" +
       "-->"
   }
 
   def "should append stats to content - more than zero includes"() {
     given:
-    def transclusionResult = new TransclusionResult("")
+    def transclusionResult = new TransclusionResult("", true)
 
     when:
     transclusionResult.addResolvedInclude(
@@ -173,10 +172,9 @@ class TransclusionResultSpec extends Specification {
       new Fragment("http://...", 404, "not found", Instant.EPOCH, [:]),
       999L
     )
-    transclusionResult.appendStatsToContent()
 
     then:
-    transclusionResult.content == "\n<!-- Ableron stats:\n" +
+    transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
       "Processed 3 includes in 0ms\n" +
       "Has primary include: No\n" +
       "Resolved include 1496920298 with fallback content in 0ms\n" +
