@@ -18,6 +18,11 @@ public class TransclusionResult {
   private final boolean appendStatsToContent;
 
   /**
+   * Key to encrypt the stats with.
+   */
+  private final String statsEncryptionKey;
+
+  /**
    * Content with resolved includes.
    */
   private String content;
@@ -61,12 +66,13 @@ public class TransclusionResult {
   private final List<String> resolvedIncludesLog = new ArrayList<>();
 
   public TransclusionResult(String content) {
-    this(content, false);
+    this(content, false, null);
   }
 
-  public TransclusionResult(String content, boolean appendStatsToContent) {
+  public TransclusionResult(String content, boolean appendStatsToContent, String statsEncryptionKey) {
     this.content = content;
     this.appendStatsToContent = appendStatsToContent;
+    this.statsEncryptionKey = statsEncryptionKey;
   }
 
   public String getContent() {
