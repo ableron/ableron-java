@@ -111,6 +111,11 @@ public class TransclusionProcessor {
       .toArray(CompletableFuture[]::new)
     ).join();
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
+
+    if (ableronConfig.statsAppendToContent()) {
+      transclusionResult.appendStatsToContent();
+    }
+
     return transclusionResult;
   }
 

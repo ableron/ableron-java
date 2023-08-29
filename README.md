@@ -74,6 +74,8 @@ Maven:
   * `Location`
   * `Refresh`
 * `cacheMaxSizeInBytes`: Maximum size in bytes the fragment cache may have. Defaults to `10 MB`
+* `statsAppendToContent`: Whether to append UI composition stats as HTML comment to the content. Defaults to `false`
+* `statsEncryptionKey`: Key to encrypt the stats with, in order to not have them plain text in the final content
 
 ### Include Tag
 * Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
