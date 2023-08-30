@@ -10,7 +10,7 @@ Add dependency [io.github.ableron:ableron](https://mvnrepository.com/artifact/io
 
 Gradle:
 ```groovy
-implementation 'io.github.ableron:ableron:1.3.1'
+implementation 'io.github.ableron:ableron:1.4.0'
 ```
 
 Maven:
@@ -18,7 +18,7 @@ Maven:
 <dependency>
   <groupId>io.github.ableron</groupId>
   <artifactId>ableron</artifactId>
-  <version>1.3.1</version>
+  <version>1.4.0</version>
 </dependency>
 ```
 
