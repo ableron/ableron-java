@@ -10,7 +10,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -254,7 +257,7 @@ public class Include {
             recordErroredPrimaryFragment(new Fragment(
               uri,
               response.statusCode(),
-              response.body(),
+              HttpUtil.getResponseBodyAsString(response),
               Instant.EPOCH,
               filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
             ));
@@ -266,7 +269,7 @@ public class Include {
         .map(response -> new Fragment(
           response.uri().toString(),
           response.statusCode(),
-          response.body(),
+          HttpUtil.getResponseBodyAsString(response),
           HttpUtil.calculateResponseExpirationTime(response.headers().map()),
           filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
         ))
@@ -319,10 +322,10 @@ public class Include {
     return HTTP_STATUS_CODES_CACHEABLE.contains(httpStatusCode);
   }
 
-  private Optional<HttpResponse<String>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
+  private Optional<HttpResponse<byte[]>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
     try {
       logger.debug("Loading fragment {} for include {} with timeout {}ms", uri, id, requestTimeout.toMillis());
-      var httpResponse = httpClient.sendAsync(buildHttpRequest(uri, requestHeaders), HttpResponse.BodyHandlers.ofString());
+      var httpResponse = httpClient.sendAsync(buildHttpRequest(uri, requestHeaders), HttpResponse.BodyHandlers.ofByteArray());
       return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
     } catch (TimeoutException e) {
       logger.error("Unable to load fragment {} for include {}: {}ms timeout exceeded", uri, id, requestTimeout.toMillis());
@@ -335,7 +338,8 @@ public class Include {
 
   private HttpRequest buildHttpRequest(String uri, Map<String, List<String>> requestHeaders) {
     var httpRequestBuilder = HttpRequest.newBuilder()
-      .uri(URI.create(uri));
+      .uri(URI.create(uri))
+      .header("Accept-Encoding", "gzip");
     requestHeaders.forEach((name, values) -> values.forEach(value -> httpRequestBuilder.header(name, value)));
     return httpRequestBuilder
       .GET()
