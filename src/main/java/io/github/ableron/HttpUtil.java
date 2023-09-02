@@ -133,7 +133,7 @@ public class HttpUtil {
       try {
         return Charset.forName(contentTypeMatcher.group(1).trim());
       } catch (UnsupportedCharsetException e) {
-        // ignored
+        logger.debug("Unknown charset '{}' found in Content-Type header. Falling back to UTF-8", e.getCharsetName());
       }
     }
 

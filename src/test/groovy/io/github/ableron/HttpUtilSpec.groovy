@@ -1,11 +1,18 @@
 package io.github.ableron
 
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import okio.Buffer
 import spock.lang.Specification
 
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.zip.GZIPOutputStream
 
 class HttpUtilSpec extends Specification {
 
@@ -99,5 +106,98 @@ class HttpUtilSpec extends Specification {
   def "should calculate expiration time in the past if no expiration time is indicated via response header"() {
     expect:
     HttpUtil.calculateResponseExpirationTime([:]) == Instant.EPOCH
+  }
+
+  def "should get plain text response body as string from http response"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setBody("plain text body")
+      .setResponseCode(200))
+
+    when:
+    def httpResponse = HttpClient.newHttpClient()
+      .send(HttpRequest.newBuilder()
+        .uri(mockWebServer.url("/").uri())
+        .build(), HttpResponse.BodyHandlers.ofByteArray())
+
+    then:
+    HttpUtil.getResponseBodyAsString(httpResponse) == "plain text body"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should get gzipped response body as string from http response"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
+      .addHeader("Content-Encoding", "gzip")
+      .setBody(new Buffer().write(gzip("gzipped body"))))
+
+    when:
+    def httpResponse = HttpClient.newHttpClient()
+      .send(HttpRequest.newBuilder()
+        .uri(mockWebServer.url("/").uri())
+        .build(), HttpResponse.BodyHandlers.ofByteArray())
+
+    then:
+    HttpUtil.getResponseBodyAsString(httpResponse) == "gzipped body"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should return empty response body from http response if gzip decoding failed"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
+      .addHeader("Content-Encoding", "gzip")
+      .setBody(new Buffer().write(Arrays.copyOfRange(gzip("gzipped body"), 4, 10))))
+
+    when:
+    def httpResponse = HttpClient.newHttpClient()
+      .send(HttpRequest.newBuilder()
+        .uri(mockWebServer.url("/").uri())
+        .build(), HttpResponse.BodyHandlers.ofByteArray())
+
+    then:
+    HttpUtil.getResponseBodyAsString(httpResponse) == ""
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should return empty response body from http response if content encoding is unknown"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
+      .addHeader("Content-Encoding", "br")
+      .setBody("plain text body but with wrong content-encoding"))
+
+    when:
+    def httpResponse = HttpClient.newHttpClient()
+      .send(HttpRequest.newBuilder()
+        .uri(mockWebServer.url("/").uri())
+        .build(), HttpResponse.BodyHandlers.ofByteArray())
+
+    then:
+    HttpUtil.getResponseBodyAsString(httpResponse) == ""
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  private byte[] gzip(String data) {
+    def bos = new ByteArrayOutputStream(data.length())
+    def gzipOutputStream = new GZIPOutputStream(bos)
+    gzipOutputStream.write(data.getBytes())
+    gzipOutputStream.close()
+    byte[] gzipped = bos.toByteArray()
+    bos.close()
+    return gzipped
   }
 }
