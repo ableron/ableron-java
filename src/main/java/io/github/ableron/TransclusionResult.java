@@ -122,9 +122,21 @@ public class TransclusionResult {
     processedIncludesCount++;
     resolvedIncludesLog.add(String.format("Resolved include %s with %s in %dms",
       include.getId(),
-      fragment.isRemote() ? "remote fragment" : "fallback content",
+      getFragmentDebugInfo(fragment),
       includeResolveTimeMillis
     ));
+  }
+
+  private String getFragmentDebugInfo(Fragment fragment) {
+    if (!fragment.isRemote()) {
+      return "fallback content";
+    }
+
+    if (fragment.getExpirationTime() == Instant.EPOCH) {
+      return "uncacheable remote fragment";
+    }
+
+    return "remote fragment with cache expiration time " + fragment.getExpirationTime().toString();
   }
 
   /**

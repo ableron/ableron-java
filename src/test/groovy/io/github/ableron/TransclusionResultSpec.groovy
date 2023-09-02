@@ -169,7 +169,7 @@ class TransclusionResultSpec extends Specification {
     )
     transclusionResult.addResolvedInclude(
       new Include([:], "fallback", "include#3"),
-      new Fragment("http://...", 404, "not found", Instant.EPOCH, [:]),
+      new Fragment("http://...", 404, "not found", Instant.ofEpochSecond(2524608000), [:]),
       999L
     )
 
@@ -177,8 +177,8 @@ class TransclusionResultSpec extends Specification {
     transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
       "Processed 3 include(s) in 0ms\n" +
       "Resolved include 1496920298 with fallback content in 0ms\n" +
-      "Resolved include 1496920297 with remote fragment in 233ms\n" +
-      "Resolved include 1496920296 with remote fragment in 999ms\n" +
+      "Resolved include 1496920297 with uncacheable remote fragment in 233ms\n" +
+      "Resolved include 1496920296 with remote fragment with cache expiration time 2050-01-01T00:00:00Z in 999ms\n" +
       "-->"
   }
 
