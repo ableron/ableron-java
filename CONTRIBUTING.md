@@ -1,6 +1,6 @@
-## Library Development
+# Contributing
 
-### Quick Start
+## Quick Start
 * Compile/test/package
    ```console
    $ ./mvnw clean install
@@ -14,10 +14,18 @@
    $ ./mvnw wrapper:wrapper -Dmaven=<version, e.g. 3.9.0>
    ```
 
-### Tooling
+## Tooling
 * See Artifacts in [nexus repository manager](https://s01.oss.sonatype.org/index.html#nexus-search;gav~io.github.ableron~ableron~~~)
 
-### Perform Release
+## Contributing
+To contribute you can either simply open an issue or fork the repository and create a pull request:
+1. Fork this repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Added some amazing feature'`)
+4. Push to your branch (`git push origin feature/amazing-feature`)
+5. Open a pull request
+
+## Perform Release
 1. Create new release branch (`git checkout -b release-x.x.x`)
 1. Prepare code:
    1. Set release version in `pom.xml` (remove `-SNAPSHOT`)

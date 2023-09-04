@@ -109,12 +109,5 @@ I.e. the fragment with the lowest expiration time defines the max-age of the pag
 is not below it.
 
 ## Contributing
-Contributions are greatly appreciated. To contribute you can either simply open an issue or fork the repository and create a pull request:
-1. Fork this repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Added some amazing feature'`)
-4. Push to your branch (`git push origin feature/amazing-feature`)
-5. Open a pull request
-
-## Library Development
-See [DEVELOPMENT.md](./DEVELOPMENT.md) for details regarding development of this library.
+Contributions are greatly appreciated.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for details regarding contributing and development of this library.
