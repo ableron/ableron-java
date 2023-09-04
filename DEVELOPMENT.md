@@ -19,13 +19,14 @@
 
 ### Perform Release
 1. Create new release branch (`git checkout -b release-x.x.x`)
-2. Set release version in `pom.xml` (remove `-SNAPSHOT`)
-3. Update version in maven and gradle dependency declaration code snippets in`README.md`
-4. Merge release branch into `main`
-5. Release and deploy to Maven Central is performed automatically
-6. Manually create [GitHub Release](https://github.com/ableron/ableron-java/releases/new)
+1. Prepare code:
+   1. Set release version in `pom.xml` (remove `-SNAPSHOT`)
+   1. Update version in maven and gradle dependency declaration code snippets in`README.md`
+1. Merge release branch into `main`
+1. Release and deploy to Maven Central is performed automatically
+1. Manually create [GitHub Release](https://github.com/ableron/ableron-java/releases/new)
    1. Set tag name to the version declared in `pom.xml`, e.g. `v0.0.1`
    2. Set release title to the version declared in `pom.xml`, e.g. `0.0.1`
    3. Let GitHub generate the release notes automatically
    4. Publish release
-7. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
+1. Set artifact version in `main` branch to next `-SNAPSHOT` version via new commit
