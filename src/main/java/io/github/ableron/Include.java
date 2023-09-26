@@ -160,7 +160,7 @@ public class Include {
     this.fallbackSrc = this.rawAttributes.get(ATTR_FALLBACK_SOURCE);
     this.fallbackSrcTimeout = parseTimeout(this.rawAttributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS));
     this.primary = this.rawAttributes.containsKey(ATTR_PRIMARY) && List.of("", "primary").contains(this.rawAttributes.get(ATTR_PRIMARY).toLowerCase());
-    this.fallbackContent = fallbackContent;
+    this.fallbackContent = Optional.ofNullable(fallbackContent).orElse("");
   }
 
   /**
@@ -244,8 +244,7 @@ public class Include {
       () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
         .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
         .or(() -> Optional.ofNullable(erroredPrimaryFragment))
-        .or(() -> Optional.ofNullable(fallbackContent).map(content -> new Fragment(200, content)))
-        .orElseGet(() -> new Fragment(200, "")), resolveThreadPool);
+        .orElseGet(() -> new Fragment(200, fallbackContent)), resolveThreadPool);
   }
 
   private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {

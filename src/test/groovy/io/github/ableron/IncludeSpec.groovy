@@ -44,7 +44,7 @@ class IncludeSpec extends Specification {
 
     where:
     include                       | expectedFallbackContent
-    new Include(null, null)       | null
+    new Include(null, null)       | ""
     new Include(null, "fallback") | "fallback"
   }
 
