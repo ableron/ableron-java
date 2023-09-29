@@ -27,7 +27,7 @@ public class TransclusionProcessor {
   /**
    * Regular expression for parsing include tag attributes.
    */
-  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z_0-9-]+)(=\"([^\"]+)\")?");
+  private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\s*([a-zA-Z0-9_-]+)(=\"([^\"]+)\")?");
 
   private static final long NANO_2_MILLIS = 1000000L;
 

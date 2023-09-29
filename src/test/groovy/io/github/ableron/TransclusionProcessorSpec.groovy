@@ -41,10 +41,10 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should not recognize includes with invalid format"() {
     expect:
-    transclusionProcessor.findIncludes(inputContent).isEmpty()
+    transclusionProcessor.findIncludes(content).isEmpty()
 
     where:
-    inputContent << [
+    content << [
       "<ableron-include/>",
       "<ableron-include >",
       "<ableron-include src=\"s\">",
@@ -67,10 +67,10 @@ class TransclusionProcessorSpec extends Specification {
 
   def "should parse include tag attributes"() {
     expect:
-    transclusionProcessor.findIncludes(include).first().rawAttributes == expectedRawAttributes
+    transclusionProcessor.findIncludes(content).first().rawAttributes == expectedRawAttributes
 
     where:
-    include                                                          | expectedRawAttributes
+    content                                                          | expectedRawAttributes
     '<ableron-include src="https://example.com"/>'                   | ["src": "https://example.com"]
     '<ableron-include  src="https://example.com"/>'                  | ["src": "https://example.com"]
     '<ableron-include   src="https://example.com"/>'                 | ["src": "https://example.com"]
