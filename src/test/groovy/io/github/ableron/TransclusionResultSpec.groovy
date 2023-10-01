@@ -159,7 +159,7 @@ class TransclusionResultSpec extends Specification {
     when:
     transclusionResult.addResolvedInclude(
       new Include([:], "", "include#1"),
-      new Fragment(null, 200, "", Instant.EPOCH, [:]),
+      new Fragment(200, ""),
       0L
     )
     transclusionResult.addResolvedInclude(
@@ -189,7 +189,7 @@ class TransclusionResultSpec extends Specification {
     when:
     transclusionResult.addResolvedInclude(
       new Include(["primary":""], "", "include#1"),
-      new Fragment(null, 200, "", Instant.EPOCH, [:]),
+      new Fragment(200, ""),
       0L
     )
 
@@ -208,12 +208,12 @@ class TransclusionResultSpec extends Specification {
     when:
     transclusionResult.addResolvedInclude(
       new Include(["primary":""], "", "include#1"),
-      new Fragment(null, 200, "", Instant.EPOCH, [:]),
+      new Fragment(200, ""),
       0L
     )
     transclusionResult.addResolvedInclude(
       new Include(["primary":""], "", "include#2"),
-      new Fragment(null, 200, "", Instant.EPOCH, [:]),
+      new Fragment(200, ""),
       33L
     )
 

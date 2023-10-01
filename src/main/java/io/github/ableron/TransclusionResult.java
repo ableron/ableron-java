@@ -171,7 +171,7 @@ public class TransclusionResult {
 
   /**
    * Calculates the <code>Cache-Control</code> header value based on the fragment with the lowest
-   * expiration time and the given response headers which max contain page expiration time.
+   * expiration time and the given response headers which may contain page expiration time.
    *
    * @return The Cache-Control header value. Either "no-store" or "max-age=xxx"
    */
