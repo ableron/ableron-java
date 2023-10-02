@@ -28,21 +28,7 @@ class HttpUtilSpec extends Specification {
     expirationTime.isAfter(Instant.now().plusSeconds(604800).minusSeconds(1))
   }
 
-  def "should calculate response expiration time based on max-age"() {
-    when:
-    def expirationTime = HttpUtil.calculateResponseExpirationTime(responseHeaders)
-
-    then:
-    expirationTime.isBefore(Instant.now().plusSeconds(expectedExpirationTimeSeconds).plusSeconds(1))
-    expirationTime.isAfter(Instant.now().plusSeconds(expectedExpirationTimeSeconds).minusSeconds(1))
-
-    where:
-    responseHeaders                                                                   | expectedExpirationTimeSeconds
-    ["Cache-Control": ["max-age=3600"], "Expires": ["Wed, 21 Oct 2015 07:28:00 GMT"]] | 3600
-    ["cache-control": ["MAX-AGE=3600"], "Expires": ["Wed, 21 Oct 2015 07:28:00 GMT"]] | 3600
-  }
-
-  def "should calculate response expiration time based on max-age and Age"() {
+  def "should calculate response expiration time based on max-age and optional Age"() {
     when:
     def expirationTime = HttpUtil.calculateResponseExpirationTime(responseHeaders)
 
@@ -52,6 +38,8 @@ class HttpUtilSpec extends Specification {
 
     where:
     responseHeaders                                                                                    | expectedExpirationTimeSeconds
+    ["Cache-Control": ["max-age=3600"], "Expires": ["Wed, 21 Oct 2015 07:28:00 GMT"]]                  | 3600
+    ["cache-control": ["MAX-AGE=3600"], "Expires": ["Wed, 21 Oct 2015 07:28:00 GMT"]]                  | 3600
     ["Cache-Control": ["max-age=3600"], "Age": ["600"], "Expires": ["Wed, 21 Oct 2015 07:28:00 GMT"]]  | 3000
     ["cache-control": ["MAX-AGE=3600"], "age": ["600"], "Expires": ["Wed, 21 Oct 2015 07:28:00 GMT"]]  | 3000
     ["Cache-Control": ["max-age=3600"], "Age": ["-100"], "Expires": ["Wed, 21 Oct 2015 07:28:00 GMT"]] | 3500
