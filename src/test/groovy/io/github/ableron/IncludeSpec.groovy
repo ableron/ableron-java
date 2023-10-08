@@ -406,13 +406,13 @@ class IncludeSpec extends Specification {
   }
 
   @Unroll
-  def "should cache fragment if status code is defined as cacheable in RFC 7231 - Status #responsStatus"() {
+  def "should cache fragment if status code is defined as cacheable in RFC 7231 - Status #responseStatus"() {
     given:
     def mockWebServer = new MockWebServer()
 
     when:
     mockWebServer.enqueue(new MockResponse()
-      .setResponseCode(responsStatus)
+      .setResponseCode(responseStatus)
       .setHeader("Cache-Control", "max-age=7200")
       .setBody(srcFragment))
     def includeSrcUrl = mockWebServer.url("/test-caching-" + UUID.randomUUID().toString()).toString()
@@ -431,7 +431,7 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
 
     where:
-    responsStatus | srcFragment | expectedFragmentCached | expectedFragment
+    responseStatus | srcFragment | expectedFragmentCached | expectedFragment
     100           | "fragment"  | false                  | ":("
     200           | "fragment"  | true                   | "fragment"
     202           | "fragment"  | false                  | ":("
