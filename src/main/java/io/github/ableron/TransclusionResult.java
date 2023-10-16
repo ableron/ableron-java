@@ -55,10 +55,10 @@ public class TransclusionResult {
   private long processingTimeMillis = 0;
 
   /**
-   * Log entries containing information about resolved includes to be used
+   * Messages containing information about resolved includes to be used
    * in stats.
    */
-  private final List<String> resolvedIncludesLog = new ArrayList<>();
+  private final List<String> statMessages = new ArrayList<>();
 
   public TransclusionResult(String content) {
     this(content, false);
@@ -105,12 +105,12 @@ public class TransclusionResult {
     if (include.isPrimary()) {
       if (hasPrimaryInclude) {
         logger.warn("Only one primary include per page allowed. Multiple found");
-        resolvedIncludesLog.add("Ignoring primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
+        statMessages.add("Ignoring primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
       } else {
         hasPrimaryInclude = true;
         statusCodeOverride = fragment.getStatusCode();
         responseHeadersToPass.putAll(fragment.getResponseHeaders());
-        resolvedIncludesLog.add("Primary include with status code " + fragment.getStatusCode());
+        statMessages.add("Primary include with status code " + fragment.getStatusCode());
       }
     }
 
@@ -120,7 +120,7 @@ public class TransclusionResult {
 
     content = content.replace(include.getRawIncludeTag(), fragment.getContent());
     processedIncludesCount++;
-    resolvedIncludesLog.add(String.format("Resolved include %s with %s in %dms",
+    statMessages.add(String.format("Resolved include %s with %s in %dms",
       include.getId(),
       getFragmentDebugInfo(fragment),
       includeResolveTimeMillis
@@ -186,7 +186,7 @@ public class TransclusionResult {
   private String getStats() {
     final var stats = new StringBuilder("\n<!-- Ableron stats:\n"
       + "Processed " + processedIncludesCount + " include(s) in " + processingTimeMillis + "ms\n");
-    resolvedIncludesLog.forEach(logEntry -> stats.append(logEntry).append("\n"));
+    statMessages.forEach(logEntry -> stats.append(logEntry).append("\n"));
     return stats.append("-->").toString();
   }
 }
