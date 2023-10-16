@@ -532,4 +532,19 @@ class TransclusionProcessorSpec extends Specification {
     cleanup:
     mockWebServer.shutdown()
   }
+
+  def "should handle unresolvable include"() {
+    given:
+    def transclusionProcessor = new TransclusionProcessor(AbleronConfig.builder().statsAppendToContent(true).build())
+    def presentRequestHeaders = Mock(Map)
+
+    when:
+    def result = transclusionProcessor.resolveIncludes(
+      "<ableron-include ><!-- fallback content --></ableron-include>",
+      presentRequestHeaders
+    )
+
+    then:
+    result.content.matches("(?s)<!-- fallback content -->\\n<!-- Ableron stats:\\nProcessed 1 include\\(s\\) in \\d+?ms\\nUnable to resolve include 125703905: Cannot invoke \"java\\.util\\.Set\\.stream\\(\\)\" because the return value of \"java\\.util\\.Map\\.entrySet\\(\\)\" is null\\n-->")
+  }
 }

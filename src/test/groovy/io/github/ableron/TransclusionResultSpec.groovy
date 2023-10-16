@@ -51,6 +51,23 @@ class TransclusionResultSpec extends Specification {
     transclusionResult.getProcessingTimeMillis() == 0
   }
 
+  def "should handle unresolvable include correctly"() {
+    given:
+    def transclusionResult = new TransclusionResult("content: <include>")
+
+    when:
+    transclusionResult.addUnresolvableInclude(new Include([:], "fallback", "<include>"), "error")
+
+    then:
+    transclusionResult.getContent() == "content: fallback"
+    transclusionResult.getContentExpirationTime() == Optional.of(Instant.EPOCH)
+    !transclusionResult.hasPrimaryInclude()
+    transclusionResult.getStatusCodeOverride() == Optional.empty()
+    transclusionResult.getResponseHeadersToPass() == [:]
+    transclusionResult.getProcessedIncludesCount() == 1
+    transclusionResult.getProcessingTimeMillis() == 0
+  }
+
   def "should calculate cache control header value"() {
     given:
     def transclusionResult = new TransclusionResult("content")

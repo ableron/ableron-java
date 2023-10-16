@@ -127,6 +127,16 @@ public class TransclusionResult {
     ));
   }
 
+  public synchronized void addUnresolvableInclude(Include include, String errorMessage) {
+    content = content.replace(include.getRawIncludeTag(), include.getFallbackContent());
+    contentExpirationTime = Instant.EPOCH;
+    processedIncludesCount++;
+    statMessages.add(String.format("Unable to resolve include %s%s",
+      include.getId(),
+      errorMessage != null ? ": " + errorMessage : ""
+    ));
+  }
+
   private String getFragmentDebugInfo(Fragment fragment) {
     if (!fragment.isRemote()) {
       return "fallback content";

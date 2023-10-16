@@ -96,17 +96,19 @@ public class TransclusionProcessor {
     var transclusionResult = new TransclusionResult(content, ableronConfig.statsAppendToContent());
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
-        var includeResolveStartTime = System.nanoTime();
-        return include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
-          .thenApply(fragment -> {
-            logger.debug("Resolved include {} in {}ms", include.getId(), (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
-            transclusionResult.addResolvedInclude(include, fragment, (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
-            return fragment;
-          })
-          .exceptionally(throwable -> {
-            logger.error("Unable to resolve include {}", include.getId(), throwable);
-            return null;
-          });
+        try {
+          var includeResolveStartTime = System.nanoTime();
+          return include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
+            .thenApply(fragment -> {
+              logger.debug("Resolved include {} in {}ms", include.getId(), (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
+              transclusionResult.addResolvedInclude(include, fragment, (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
+              return fragment;
+            });
+        } catch (Exception e) {
+          logger.error("Unable to resolve include {}", include.getId(), e);
+          transclusionResult.addUnresolvableInclude(include, e.getMessage());
+          return CompletableFuture.completedFuture(null);
+        }
       })
       .toArray(CompletableFuture[]::new)
     ).join();
