@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
-        javaVersion: [11, 17, 20]
+        javaVersion: [11, 17, 21]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -25,14 +25,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v3
         with:
-          java-version: 20
+          java-version: 21
           distribution: temurin
       - name: Build with Maven
         run: mvn -B package --file pom.xml -DskipTests
       - name: Set up Apache Maven Central
         uses: actions/setup-java@v3
         with:
-          java-version: 20
+          java-version: 21
           distribution: temurin
           cache: maven
           server-id: ossrh # value of the distributionManagement/repository/id field of the pom.xml
