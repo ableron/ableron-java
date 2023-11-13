@@ -977,4 +977,78 @@ class IncludeSpec extends Specification {
     cleanup:
     mockWebServer.shutdown()
   }
+
+  def "should consider cacheVaryByRequestHeaders"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
+      .setHeader("Cache-Control", "max-age=30")
+      .setBody("X-AB-Test=A"))
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
+      .setHeader("Cache-Control", "max-age=30")
+      .setBody("X-AB-Test=B"))
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
+      .setHeader("Cache-Control", "max-age=30")
+      .setBody("X-AB-Test=omitted"))
+    def config = AbleronConfig.builder()
+      .fragmentRequestHeadersToPass(["x-ab-TEST"])
+      .cacheVaryByRequestHeaders(["x-AB-test"])
+      .build()
+    def include = new Include(["src": mockWebServer.url("/").toString()])
+
+    when:
+    def fragment1 = include.resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool).get()
+    def fragment2 = include.resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool).get()
+    def fragment3 = include.resolve(httpClient, ["X-AB-TEST": ["B"]], cache, config, supplyPool).get()
+    def fragment4 = include.resolve(httpClient, ["X-AB-TEST": ["B"], "X-Foo": ["Bar"]], cache, config, supplyPool).get()
+    def fragment5 = include.resolve(httpClient, [:], cache, config, supplyPool).get()
+    def fragment6 = include.resolve(httpClient, ["x-ab-test": ["A"]], cache, config, supplyPool).get()
+
+    then:
+    fragment1.content == "X-AB-Test=A"
+    fragment2.content == "X-AB-Test=A"
+    fragment3.content == "X-AB-Test=B"
+    fragment4.content == "X-AB-Test=B"
+    fragment5.content == "X-AB-Test=omitted"
+    fragment6.content == "X-AB-Test=A"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should use consistent order of cacheVaryByRequestHeaders for cache key generation"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
+      .setHeader("Cache-Control", "max-age=30")
+      .setBody("A,B,C"))
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
+      .setHeader("Cache-Control", "max-age=30")
+      .setBody("A,B,B"))
+    def config = AbleronConfig.builder()
+      .fragmentRequestHeadersToPass(["x-test-A", "x-test-B", "x-test-C"])
+      .cacheVaryByRequestHeaders(["X-Test-A", "X-Test-B", "X-Test-C"])
+      .build()
+    def include = new Include(["src": mockWebServer.url("/").toString()])
+
+    when:
+    def fragment1 = include.resolve(httpClient, ["X-TEST-A": ["A"], "X-Test-B": ["B"], "X-Test-C": ["C"]], cache, config, supplyPool).get()
+    def fragment2 = include.resolve(httpClient, ["X-TEST-B": ["B"], "X-TEST-A": ["A"], "X-Test-C": ["C"]], cache, config, supplyPool).get()
+    def fragment3 = include.resolve(httpClient, ["X-TEST-C": ["C"], "X-test-B": ["B"], "X-Test-A": ["A"]], cache, config, supplyPool).get()
+    def fragment4 = include.resolve(httpClient, ["x-test-c": ["B"], "x-test-b": ["B"], "x-test-a": ["A"]], cache, config, supplyPool).get()
+
+    then:
+    fragment1.content == "A,B,C"
+    fragment2.content == "A,B,C"
+    fragment3.content == "A,B,C"
+    fragment4.content == "A,B,B"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
 }

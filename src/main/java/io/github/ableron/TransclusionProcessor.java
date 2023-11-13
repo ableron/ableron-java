@@ -138,24 +138,24 @@ public class TransclusionProcessor {
   private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
     return Caffeine.newBuilder()
       .maximumWeight(cacheMaxSizeInBytes)
-      .weigher((String url, Fragment fragment) -> fragment.getContent().length())
+      .weigher((String fragmentCacheKey, Fragment fragment) -> fragment.getContent().length())
       .expireAfter(new Expiry<String, Fragment>() {
-        public long expireAfterCreate(String url, Fragment fragment, long currentTime) {
+        public long expireAfterCreate(String fragmentCacheKey, Fragment fragment, long currentTime) {
           long milliseconds = fragment.getExpirationTime()
             .minusMillis(System.currentTimeMillis())
             .toEpochMilli();
           return TimeUnit.MILLISECONDS.toNanos(milliseconds);
         }
-        public long expireAfterUpdate(String url, Fragment fragment, long currentTime, long currentDuration) {
-          return expireAfterCreate(url, fragment, currentTime);
+        public long expireAfterUpdate(String fragmentCacheKey, Fragment fragment, long currentTime, long currentDuration) {
+          return expireAfterCreate(fragmentCacheKey, fragment, currentTime);
         }
-        public long expireAfterRead(String url, Fragment fragment, long currentTime, long currentDuration) {
+        public long expireAfterRead(String fragmentCacheKey, Fragment fragment, long currentTime, long currentDuration) {
           return currentDuration;
         }
       })
-      .evictionListener((String url, Fragment fragment, RemovalCause cause) -> {
+      .evictionListener((String fragmentCacheKey, Fragment fragment, RemovalCause cause) -> {
         if (cause == RemovalCause.SIZE) {
-          logger.info("Fragment cache size exceeded. Removing fragment {} from cache. Consider increasing cache size", url);
+          logger.info("Fragment cache size exceeded. Removing {} from cache. Consider increasing cache size", fragmentCacheKey);
         }
       })
       .build();

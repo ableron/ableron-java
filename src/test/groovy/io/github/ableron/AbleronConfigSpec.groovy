@@ -33,6 +33,7 @@ class AbleronConfigSpec extends Specification {
         "Refresh"
       ]
       cacheMaxSizeInBytes == 1024 * 1024 * 10
+      cacheVaryByRequestHeaders == []
       !statsAppendToContent()
     }
   }
@@ -45,6 +46,7 @@ class AbleronConfigSpec extends Specification {
       .fragmentRequestHeadersToPass(["X-Test-Request-Header", "X-Test-Request-Header-2"])
       .primaryFragmentResponseHeadersToPass(["X-Test-Response-Header", "X-Test-Response-Header-2"])
       .cacheMaxSizeInBytes(1024 * 100)
+      .cacheVaryByRequestHeaders(["X-Test-Groups", "X-ACME-Country"])
       .statsAppendToContent(true)
       .build()
 
@@ -55,6 +57,7 @@ class AbleronConfigSpec extends Specification {
       fragmentRequestHeadersToPass == ["X-Test-Request-Header", "X-Test-Request-Header-2"]
       primaryFragmentResponseHeadersToPass == ["X-Test-Response-Header", "X-Test-Response-Header-2"]
       cacheMaxSizeInBytes == 1024 * 100
+      cacheVaryByRequestHeaders == ["X-Test-Groups", "X-ACME-Country"]
       statsAppendToContent()
     }
   }
@@ -90,5 +93,16 @@ class AbleronConfigSpec extends Specification {
     then:
     def exception = thrown(NullPointerException)
     exception.message == "primaryFragmentResponseHeadersToPass must not be null"
+  }
+
+  def "should throw exception if cacheVaryByRequestHeaders is tried to be set to null"() {
+    when:
+    AbleronConfig.builder()
+      .cacheVaryByRequestHeaders(null)
+      .build()
+
+    then:
+    def exception = thrown(NullPointerException)
+    exception.message == "cacheVaryByRequestHeaders must not be null"
   }
 }

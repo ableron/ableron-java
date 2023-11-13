@@ -249,7 +249,7 @@ public class Include {
 
   private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
     return Optional.ofNullable(uri)
-      .map(uri1 -> fragmentCache.get(uri1, uri2 -> performRequest(uri2, httpClient, requestHeaders, requestTimeout)
+      .map(uri1 -> fragmentCache.get(this.buildFragmentCacheKey(uri, requestHeaders, config.getCacheVaryByRequestHeaders()), uri2 -> performRequest(uri, httpClient, requestHeaders, requestTimeout)
         .filter(response -> {
           if (!isHttpStatusCacheable(response.statusCode())) {
             logger.error("Fragment {} returned status code {}", uri, response.statusCode());
@@ -350,6 +350,17 @@ public class Include {
       .map(id -> id.replaceAll("[^A-Za-z0-9_-]", ""))
       .filter(id -> !id.isEmpty())
       .orElse(String.valueOf(Math.abs(rawIncludeTag.hashCode())));
+  }
+
+  private String buildFragmentCacheKey(String fragmentUrl, Map<String, List<String>> fragmentRequestHeaders, List<String> cacheVaryByRequestHeaders) {
+    return fragmentUrl +
+      fragmentRequestHeaders.entrySet()
+        .stream()
+        .filter(header -> cacheVaryByRequestHeaders.stream().anyMatch(headerName -> headerName.equalsIgnoreCase(header.getKey())))
+        .sorted((c1, c2) -> c1.getKey().compareToIgnoreCase(c2.getKey()))
+        .map(entry -> "|" + entry.getKey() + "=" + String.join(",", entry.getValue()))
+        .map(String::toLowerCase)
+        .collect(Collectors.joining());
   }
 
   @Override
