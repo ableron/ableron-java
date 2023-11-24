@@ -248,32 +248,41 @@ public class Include {
   }
 
   private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
+    var fragmentCacheKey = this.buildFragmentCacheKey(uri, requestHeaders, config.getCacheVaryByRequestHeaders());
+
     return Optional.ofNullable(uri)
-      .map(uri1 -> fragmentCache.get(this.buildFragmentCacheKey(uri, requestHeaders, config.getCacheVaryByRequestHeaders()), uri2 -> performRequest(uri, httpClient, requestHeaders, requestTimeout)
-        .filter(response -> {
-          if (!isHttpStatusCacheable(response.statusCode())) {
-            logger.error("Fragment {} returned status code {}", uri, response.statusCode());
-            recordErroredPrimaryFragment(new Fragment(
-              uri,
+      .map(uri1 -> {
+        var fragmentFromCache = fragmentCache.getIfPresent(fragmentCacheKey);
+
+        return fragmentFromCache != null ? fragmentFromCache : performRequest(uri, httpClient, requestHeaders, requestTimeout)
+          .filter(response -> {
+            if (!isHttpStatusCacheable(response.statusCode())) {
+              logger.error("Fragment {} returned status code {}", uri, response.statusCode());
+              recordErroredPrimaryFragment(new Fragment(
+                uri,
+                response.statusCode(),
+                HttpUtil.getResponseBodyAsString(response),
+                Instant.EPOCH,
+                filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
+              ));
+              return false;
+            }
+
+            return true;
+          })
+          .map(response -> {
+            var fragment = new Fragment(
+              response.uri().toString(),
               response.statusCode(),
               HttpUtil.getResponseBodyAsString(response),
-              Instant.EPOCH,
+              HttpUtil.calculateResponseExpirationTime(response.headers().map()),
               filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
-            ));
-            return false;
-          }
-
-          return true;
-        })
-        .map(response -> new Fragment(
-          response.uri().toString(),
-          response.statusCode(),
-          HttpUtil.getResponseBodyAsString(response),
-          HttpUtil.calculateResponseExpirationTime(response.headers().map()),
-          filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
-        ))
-        .orElse(null)
-      ))
+            );
+            fragmentCache.put(fragmentCacheKey, fragment);
+            return fragment;
+          })
+          .orElse(null);
+      })
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
           logger.error("Fragment {} returned status code {}", uri, fragment.getStatusCode());
