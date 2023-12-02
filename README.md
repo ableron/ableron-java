@@ -6,8 +6,6 @@
 Java Library for Ableron Server Side UI Composition
 
 ## Installation
-Add dependency [io.github.ableron:ableron](https://mvnrepository.com/artifact/io.github.ableron/ableron) to your project.
-
 Gradle:
 ```groovy
 implementation 'io.github.ableron:ableron:1.7.0'
@@ -29,7 +27,7 @@ Maven:
      .cacheMaxSizeInBytes(1024 * 1024 * 50)
      .build());
    ```
-1. Use includes in response body
+2. Use includes in response body
    ```html
    <html>
      <head>
@@ -40,7 +38,7 @@ Maven:
      </body>
    </html>
    ```
-1. Apply transclusion to response if applicable (HTTP status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
+3. Apply transclusion to response if applicable (HTTP status 2xx, 4xx or 5xx; Response content type is non-binary, ...)
    ```java
    // perform transclusion based on unprocessed response body and request headers from e.g. HttpServletRequest
    TransclusionResult transclusionResult = ableron.resolveIncludes(getOriginalResponseBody(), getRequestHeaders());
@@ -54,61 +52,69 @@ Maven:
    getResponse().setHeader(CACHE_CONTROL, transclusionResult.calculateCacheControlHeaderValue(getResponseHeaders()));
    ```
 
-### Configuration Options
-* `enabled`: Whether UI composition is enabled. Defaults to `true`
-* `fragmentRequestTimeout`: Timeout for requesting fragments. Defaults to `3 seconds`
-* `fragmentRequestHeadersToPass`: Request headers that are passed to fragment requests if present. Defaults to:
-  * `Accept-Language`
-  * `Correlation-ID`
-  * `Forwarded`
-  * `Referer`
-  * `User-Agent`
-  * `X-Correlation-ID`
-  * `X-Forwarded-For`
-  * `X-Forwarded-Proto`
-  * `X-Forwarded-Host`
-  * `X-Real-IP`
-  * `X-Request-ID`
-* `primaryFragmentResponseHeadersToPass`: Response headers of primary fragments to pass to the page response if present. Defaults to:
-  * `Content-Language`
-  * `Location`
-  * `Refresh`
-* `cacheMaxSizeInBytes`: Maximum size in bytes the fragment cache may have. Defaults to `10 MB`
-* `cacheVaryByRequestHeaders`: Fragment request headers which influence the requested fragment aside from its URL. Used to create fragment cache keys. Defaults to an empty list. Must be a subset of `fragmentRequestHeadersToPass`. Common example are headers used for steering A/B-tests
-* `statsAppendToContent`: Whether to append UI composition stats as HTML comment to the content. Defaults to `false`
+### Configuration
 
-### Include Tag
-* Must be closed, i.e. either `<ableron-include ... />` or `<ableron-include ...></ableron-include>`
-* Content between `<ableron-include>` and `</ableron-include>` is used as fallback content
-* Attributes
-  * `id`: Unique name of the include used within log messages
-  * `src`: URL of the fragment to include
-  * `src-timeout-millis`: Timeout for requesting the `src` URL. Defaults to global `requestTimeout`
-  * `fallback-src`: URL of the fragment to include in case the request to `src` failed
-  * `fallback-src-timeout-millis`: Timeout for requesting the `fallback-src` URL. Defaults to global `requestTimeout`
-  * `primary`: Denotes a fragment whose response code is set as response code for the page
-    * If `src` returns success status, this status code is set as response code for the page
-    * If `src` returns error status, `fallback-src` is defined and returns success status, this status code is set as response code for the page
-    * If `src` and `fallback-src` return error status, the status code returned by `src` is set as response code for the page
-    * If `src` and `fallback-src` return error status, the fragment content equals the body returned by `src`. Fallback content is ignored
-* Precedence for resolving: `src` → `fallback-src` → fallback content
+#### `enabled`
 
-### Redirects
-Redirects will not be followed when requesting fragments because they may introduce unwanted latency.
+Default: `true`
 
-### Caching
-Fragments are considered cacheable if they have HTTP status code
-   * `200`, `203`, `204`, `206`,
-   * `300`,
-   * `404`, `405`, `410`, `414`,
-   * `501`
+Whether UI composition is enabled.
 
-### Cache-Control
-The transclusion result provides a max-age for the content with all includes resolved,
-based on the fragment with the lowest expiration time.
-I.e. the fragment with the lowest expiration time defines the max-age of the page in case max age of the page
-is not below it.
+#### `fragmentRequestTimeout`
 
-## Contributing
-Contributions are greatly appreciated.
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for details regarding contributing and development of this library.
+Default: `3 seconds`
+
+Timeout for requesting fragments.
+
+#### `fragmentRequestHeadersToPass`
+
+Default:
+
+```java
+List.of(
+    "Accept-Language",
+    "Correlation-ID",
+    "Forwarded",
+    "Referer",
+    "User-Agent",
+    "X-Correlation-ID",
+    "X-Forwarded-For",
+    "X-Forwarded-Proto",
+    "X-Forwarded-Host",
+    "X-Real-IP",
+    "X-Request-ID"
+);
+```
+
+Request headers that are passed to fragment requests, if present.
+
+#### `primaryFragmentResponseHeadersToPass`
+
+```java
+List.of(
+    "Content-Language",
+    "Location",
+    "Refresh"
+);
+```
+
+Response headers of primary fragments to pass to the page response, if present.
+
+#### `cacheMaxSizeInBytes`
+
+Default: `10 MB`
+
+Maximum size in bytes the fragment cache may have.
+
+#### `cacheVaryByRequestHeaders`
+
+Default: `empty list`
+
+Fragment request headers which influence the requested fragment aside from its URL. Used to create fragment cache keys.
+Must be a subset of `fragmentRequestHeadersToPass`. Common example are headers used for steering A/B-tests.
+
+#### `statsAppendToContent`
+
+Default: `false`
+
+Whether to append UI composition stats as HTML comment to the content.

@@ -15,6 +15,7 @@
    ```
 
 ## Tooling
+* See `io.github.ableron:ableron` in [MvnRepository](https://mvnrepository.com/artifact/io.github.ableron/ableron)
 * See Artifacts in [nexus repository manager](https://s01.oss.sonatype.org/index.html#nexus-search;gav~io.github.ableron~ableron~~~)
 
 ## Perform Release
