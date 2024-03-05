@@ -10,10 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -83,7 +80,7 @@ public class Include {
   /**
    * Raw attributes of the include tag.
    */
-  private final Map<String, String> rawAttributes;
+  private final Map<String, String> rawAttributes = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
   /**
    * Fragment ID. Either generated or passed via attribute.
@@ -153,13 +150,13 @@ public class Include {
    */
   public Include(Map<String, String> rawAttributes, String fallbackContent, String rawIncludeTag) {
     this.rawIncludeTag = Optional.ofNullable(rawIncludeTag).orElse("");
-    this.rawAttributes = Optional.ofNullable(rawAttributes).orElseGet(Map::of);
+    this.rawAttributes.putAll(Optional.ofNullable(rawAttributes).orElseGet(Map::of));
     this.id = buildIncludeId(this.rawAttributes.get(ATTR_ID));
     this.src = this.rawAttributes.get(ATTR_SOURCE);
     this.srcTimeout = parseTimeout(this.rawAttributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
     this.fallbackSrc = this.rawAttributes.get(ATTR_FALLBACK_SOURCE);
     this.fallbackSrcTimeout = parseTimeout(this.rawAttributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS));
-    this.primary = this.rawAttributes.containsKey(ATTR_PRIMARY) && List.of("", "primary").contains(this.rawAttributes.get(ATTR_PRIMARY).toLowerCase());
+    this.primary = hasBooleanAttribute(ATTR_PRIMARY);
     this.fallbackContent = Optional.ofNullable(fallbackContent).orElse("");
   }
 
@@ -370,6 +367,11 @@ public class Include {
         .map(entry -> "|" + entry.getKey() + "=" + String.join(",", entry.getValue()))
         .map(String::toLowerCase)
         .collect(Collectors.joining());
+  }
+
+  private boolean hasBooleanAttribute(String attributeName) {
+    return rawAttributes.containsKey(attributeName)
+      && List.of("", attributeName.toLowerCase()).contains(rawAttributes.get(attributeName).toLowerCase());
   }
 
   @Override

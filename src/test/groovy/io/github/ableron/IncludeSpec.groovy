@@ -78,6 +78,7 @@ class IncludeSpec extends Specification {
     include                                     | expectedSrc
     new Include([:])                            | null
     new Include(["src": "https://example.com"]) | "https://example.com"
+    new Include(["SRC": "https://example.com"]) | "https://example.com"
   }
 
   def "constructor should set src timeout attribute"() {
@@ -118,8 +119,10 @@ class IncludeSpec extends Specification {
     include                             | expectedPrimary
     new Include([:])                    | false
     new Include(["primary": ""])        | true
+    new Include(["PRIMARY": ""])        | true
     new Include(["primary": "primary"]) | true
     new Include(["primary": "PRIMARY"]) | true
+    new Include(["priMARY": "PRImary"]) | true
     new Include(["primary": "nope"])    | false
   }
 
