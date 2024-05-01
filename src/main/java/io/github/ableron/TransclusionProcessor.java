@@ -88,17 +88,17 @@ public class TransclusionProcessor {
    * Resolves all includes in the given content.
    *
    * @param content The content to resolve the includes of
-   * @param presentRequestHeaders Request headers of the initial request having the includes in its response
+   * @param parentRequestHeaders Request headers of the initial request having the includes in its response
    * @return Content with resolved includes
    */
-  public TransclusionResult resolveIncludes(String content, Map<String, List<String>> presentRequestHeaders) {
+  public TransclusionResult resolveIncludes(String content, Map<String, List<String>> parentRequestHeaders) {
     var startTime = System.nanoTime();
     var transclusionResult = new TransclusionResult(content, ableronConfig.statsAppendToContent());
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         try {
           var includeResolveStartTime = System.nanoTime();
-          return include.resolve(httpClient, presentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
+          return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
             .thenApply(fragment -> {
               logger.debug("Resolved include {} in {}ms", include.getId(), (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
               transclusionResult.addResolvedInclude(include, fragment, (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);

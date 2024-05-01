@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Include {
 
@@ -227,19 +228,23 @@ public class Include {
    * Resolves this include.
    *
    * @param httpClient HTTP client used to resolve this include
-   * @param fragmentRequestHeaders Request headers which are passed to fragment requests if allowed by config
+   * @param parentRequestHeaders Parent request headers which are passed to fragment requests if allowed by config
    * @param fragmentCache Cache for fragments
    * @param config Global ableron configuration
    * @param resolveThreadPool Thread pool to use for resolving
    * @return The fragment the include has been resolved to
    */
-  public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> fragmentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
-    var filteredFragmentRequestHeaders = filterHeaders(fragmentRequestHeaders, config.getFragmentRequestHeadersToPass());
+  public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
+    var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, Stream.concat(
+        config.getFragmentRequestHeadersToPass().stream(),
+        config.getFragmentAdditionalRequestHeadersToPass().stream()
+      ).collect(Collectors.toList())
+    );
     erroredPrimaryFragment = null;
 
     return CompletableFuture.supplyAsync(
-      () -> load(src, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
-        .or(() -> load(fallbackSrc, httpClient, filteredFragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
+      () -> load(src, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
+        .or(() -> load(fallbackSrc, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
         .or(() -> Optional.ofNullable(erroredPrimaryFragment))
         .orElseGet(() -> new Fragment(200, fallbackContent)), resolveThreadPool);
   }

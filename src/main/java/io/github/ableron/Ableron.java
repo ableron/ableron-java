@@ -27,12 +27,12 @@ public class Ableron {
    * Resolves all includes in the given content.
    *
    * @param content The content to resolve the includes of
-   * @param presentRequestHeaders Request headers of the initial request having the includes in its response
+   * @param parentRequestHeaders Request headers of the initial request having the includes in its response
    * @return Transclusion result including the content with resolved includes as well as metadata
    */
-  public TransclusionResult resolveIncludes(String content, Map<String, List<String>> presentRequestHeaders) {
+  public TransclusionResult resolveIncludes(String content, Map<String, List<String>> parentRequestHeaders) {
     if (ableronConfig.isEnabled()) {
-      var transclusionResult = transclusionProcessor.resolveIncludes(content, presentRequestHeaders);
+      var transclusionResult = transclusionProcessor.resolveIncludes(content, parentRequestHeaders);
       logger.debug("Ableron UI composition processed {} include(s) in {}ms", transclusionResult.getProcessedIncludesCount(), transclusionResult.getProcessingTimeMillis());
       return transclusionResult;
     }

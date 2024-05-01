@@ -88,6 +88,14 @@ List.of(
 
 Request headers that are passed to fragment requests, if present.
 
+#### `fragmentAdditionalRequestHeadersToPass`
+
+Default: `[]`
+
+Extends `fragmentRequestHeadersToPass`. Use this property to pass all headers defined in `fragmentRequestHeadersToPass`
+plus the additional headers defined here. This prevents the need to duplicate `fragmentRequestHeadersToPass` if the only
+use case is to add additional headers instead of modifying the default ones.
+
 #### `primaryFragmentResponseHeadersToPass`
 
 ```java

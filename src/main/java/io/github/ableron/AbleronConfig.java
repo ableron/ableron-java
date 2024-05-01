@@ -36,6 +36,11 @@ public class AbleronConfig {
   );
 
   /**
+   * Request headers that are passed to fragment requests in addition to fragmentRequestHeadersToPass.
+   */
+  private List<String> fragmentAdditionalRequestHeadersToPass = List.of();
+
+  /**
    * Response headers of primary fragments to pass to the page response if present.
    */
   private List<String> primaryFragmentResponseHeadersToPass = List.of(
@@ -79,6 +84,10 @@ public class AbleronConfig {
     return fragmentRequestHeadersToPass;
   }
 
+  public List<String> getFragmentAdditionalRequestHeadersToPass() {
+    return fragmentAdditionalRequestHeadersToPass;
+  }
+
   public List<String> getPrimaryFragmentResponseHeadersToPass() {
     return primaryFragmentResponseHeadersToPass;
   }
@@ -111,6 +120,11 @@ public class AbleronConfig {
 
     public Builder fragmentRequestHeadersToPass(List<String> fragmentRequestHeadersToPass) {
       ableronConfig.fragmentRequestHeadersToPass = Objects.requireNonNull(fragmentRequestHeadersToPass, "fragmentRequestHeadersToPass must not be null");
+      return this;
+    }
+
+    public Builder fragmentAdditionalRequestHeadersToPass(List<String> fragmentAdditionalRequestHeadersToPass) {
+      ableronConfig.fragmentAdditionalRequestHeadersToPass = Objects.requireNonNull(fragmentAdditionalRequestHeadersToPass, "fragmentAdditionalRequestHeadersToPass must not be null");
       return this;
     }
 

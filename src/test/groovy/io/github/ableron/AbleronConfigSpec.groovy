@@ -27,6 +27,7 @@ class AbleronConfigSpec extends Specification {
         "X-Real-IP",
         "X-Request-ID"
       ]
+      fragmentAdditionalRequestHeadersToPass == []
       primaryFragmentResponseHeadersToPass == [
         "Content-Language",
         "Location",
@@ -44,6 +45,7 @@ class AbleronConfigSpec extends Specification {
       .enabled(false)
       .fragmentRequestTimeout(Duration.ofMillis(200))
       .fragmentRequestHeadersToPass(["X-Test-Request-Header", "X-Test-Request-Header-2"])
+      .fragmentAdditionalRequestHeadersToPass(["X-Additional-Req-Header", "X-Additional-Req-Header-2"])
       .primaryFragmentResponseHeadersToPass(["X-Test-Response-Header", "X-Test-Response-Header-2"])
       .cacheMaxSizeInBytes(1024 * 100)
       .cacheVaryByRequestHeaders(["X-Test-Groups", "X-ACME-Country"])
@@ -55,6 +57,7 @@ class AbleronConfigSpec extends Specification {
       !enabled
       fragmentRequestTimeout == Duration.ofMillis(200)
       fragmentRequestHeadersToPass == ["X-Test-Request-Header", "X-Test-Request-Header-2"]
+      fragmentAdditionalRequestHeadersToPass == ["X-Additional-Req-Header", "X-Additional-Req-Header-2"]
       primaryFragmentResponseHeadersToPass == ["X-Test-Response-Header", "X-Test-Response-Header-2"]
       cacheMaxSizeInBytes == 1024 * 100
       cacheVaryByRequestHeaders == ["X-Test-Groups", "X-ACME-Country"]
@@ -82,6 +85,17 @@ class AbleronConfigSpec extends Specification {
     then:
     def exception = thrown(NullPointerException)
     exception.message == "fragmentRequestHeadersToPass must not be null"
+  }
+
+  def "should throw exception if fragmentAdditionalRequestHeadersToPass is tried to be set to null"() {
+    when:
+    AbleronConfig.builder()
+      .fragmentAdditionalRequestHeadersToPass(null)
+      .build()
+
+    then:
+    def exception = thrown(NullPointerException)
+    exception.message == "fragmentAdditionalRequestHeadersToPass must not be null"
   }
 
   def "should throw exception if primaryFragmentResponseHeadersToPass is tried to be set to null"() {

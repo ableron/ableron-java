@@ -536,12 +536,12 @@ class TransclusionProcessorSpec extends Specification {
   def "should handle unresolvable include"() {
     given:
     def transclusionProcessor = new TransclusionProcessor(AbleronConfig.builder().statsAppendToContent(true).build())
-    def presentRequestHeaders = Mock(Map)
+    def parentRequestHeaders = Mock(Map)
 
     when:
     def result = transclusionProcessor.resolveIncludes(
       "<ableron-include ><!-- fallback content --></ableron-include>",
-      presentRequestHeaders
+      parentRequestHeaders
     )
 
     then:
