@@ -105,7 +105,7 @@ public class TransclusionResult {
     if (include.isPrimary()) {
       if (hasPrimaryInclude) {
         logger.warn("Only one primary include per page allowed. Multiple found");
-        statMessages.add("Ignoring primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
+        statMessages.add("Ignoring status code and response headers of primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
       } else {
         hasPrimaryInclude = true;
         statusCodeOverride = fragment.getStatusCode();

@@ -126,3 +126,9 @@ Must be a subset of `fragmentRequestHeadersToPass`. Common example are headers u
 Default: `false`
 
 Whether to append UI composition stats as HTML comment to the content.
+
+#### `statsExposeFragmentUrl`
+
+Default: `false`
+
+Whether to expose fragment URLs in the stats appended to the content.

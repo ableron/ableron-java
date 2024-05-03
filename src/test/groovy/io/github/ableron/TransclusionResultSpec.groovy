@@ -239,7 +239,7 @@ class TransclusionResultSpec extends Specification {
       "Processed 2 include(s) in 0ms\n" +
       "Primary include with status code 200\n" +
       "Resolved include 1496920298 with fallback content in 0ms\n" +
-      "Ignoring primary include with status code 200 because there is already another primary include\n" +
+      "Ignoring status code and response headers of primary include with status code 200 because there is already another primary include\n" +
       "Resolved include 1496920297 with fallback content in 33ms\n" +
       "-->"
   }
