@@ -66,6 +66,12 @@ public class AbleronConfig {
    */
   private boolean statsAppendToContent = false;
 
+  /**
+   * Whether to expose fragment URLs in the stats appended to the content.
+   * Defaults to false.
+   */
+  private boolean statsExposeFragmentUrl = false;
+
   private AbleronConfig() {}
 
   public static Builder builder() {
@@ -102,6 +108,10 @@ public class AbleronConfig {
 
   public boolean statsAppendToContent() {
     return statsAppendToContent;
+  }
+
+  public boolean statsExposeFragmentUrl() {
+    return statsExposeFragmentUrl;
   }
 
   public static class Builder {
@@ -145,6 +155,11 @@ public class AbleronConfig {
 
     public Builder statsAppendToContent(boolean statsAppendToContent) {
       ableronConfig.statsAppendToContent = statsAppendToContent;
+      return this;
+    }
+
+    public Builder statsExposeFragmentUrl(boolean statsExposeFragmentUrl) {
+      ableronConfig.statsExposeFragmentUrl = statsExposeFragmentUrl;
       return this;
     }
 

@@ -36,6 +36,7 @@ class AbleronConfigSpec extends Specification {
       cacheMaxSizeInBytes == 1024 * 1024 * 10
       cacheVaryByRequestHeaders == []
       !statsAppendToContent()
+      !statsExposeFragmentUrl()
     }
   }
 
@@ -50,6 +51,7 @@ class AbleronConfigSpec extends Specification {
       .cacheMaxSizeInBytes(1024 * 100)
       .cacheVaryByRequestHeaders(["X-Test-Groups", "X-ACME-Country"])
       .statsAppendToContent(true)
+      .statsExposeFragmentUrl(true)
       .build()
 
     then:
@@ -62,6 +64,7 @@ class AbleronConfigSpec extends Specification {
       cacheMaxSizeInBytes == 1024 * 100
       cacheVaryByRequestHeaders == ["X-Test-Groups", "X-ACME-Country"]
       statsAppendToContent()
+      statsExposeFragmentUrl()
     }
   }
 

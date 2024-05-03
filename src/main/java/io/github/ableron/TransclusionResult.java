@@ -18,6 +18,11 @@ public class TransclusionResult {
   private final boolean appendStatsToContent;
 
   /**
+   * Whether to include fragment URLs in stats.
+   */
+  private final boolean exposeFragmentUrl;
+
+  /**
    * Content with resolved includes.
    */
   private String content;
@@ -61,12 +66,13 @@ public class TransclusionResult {
   private final List<String> statMessages = new ArrayList<>();
 
   public TransclusionResult(String content) {
-    this(content, false);
+    this(content, false, false);
   }
 
-  public TransclusionResult(String content, boolean appendStatsToContent) {
+  public TransclusionResult(String content, boolean appendStatsToContent, boolean exposeFragmentUrl) {
     this.content = content;
     this.appendStatsToContent = appendStatsToContent;
+    this.exposeFragmentUrl = exposeFragmentUrl;
   }
 
   public String getContent() {
@@ -105,7 +111,7 @@ public class TransclusionResult {
     if (include.isPrimary()) {
       if (hasPrimaryInclude) {
         logger.warn("Only one primary include per page allowed. Multiple found");
-        statMessages.add("Ignoring primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
+        statMessages.add("Ignoring status code and response headers of primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
       } else {
         hasPrimaryInclude = true;
         statusCodeOverride = fragment.getStatusCode();
@@ -120,10 +126,11 @@ public class TransclusionResult {
 
     content = content.replace(include.getRawIncludeTag(), fragment.getContent());
     processedIncludesCount++;
-    statMessages.add(String.format("Resolved include %s with %s in %dms",
+    statMessages.add(String.format("Resolved include '%s' with %s in %dms%s",
       include.getId(),
       getFragmentDebugInfo(fragment),
-      includeResolveTimeMillis
+      includeResolveTimeMillis,
+      exposeFragmentUrl && fragment.getUrl().isPresent() ? ". Fragment-URL: " + fragment.getUrl().get() : ""
     ));
   }
 
@@ -138,8 +145,12 @@ public class TransclusionResult {
   }
 
   private String getFragmentDebugInfo(Fragment fragment) {
-    if (!fragment.isRemote()) {
-      return "fallback content";
+    if (fragment.getUrl().isEmpty()) {
+      return "static content";
+    }
+
+    if (fragment.isFromCache()) {
+      return "cached fragment with expiration time " + fragment.getExpirationTime().toString();
     }
 
     if (fragment.getExpirationTime() == Instant.EPOCH) {

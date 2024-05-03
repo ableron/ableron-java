@@ -4,7 +4,6 @@ import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
-import org.jetbrains.annotations.NotNull
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Timeout
@@ -102,10 +101,10 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=123" />'),
-      new Include(null, null, '<ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>'),
-      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>'),
-      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>')
+      new Include('<ableron-include src="https://foo.bar/baz?test=123" />'),
+      new Include('<ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>'),
+      new Include('<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>'),
+      new Include('<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>')
     ] as Set
   }
 
@@ -126,9 +125,9 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=123"/>'),
-      new Include(null, null, '<ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>'),
-      new Include(null, null, '<ableron-include src="...">...</ableron-include>')
+      new Include('<ableron-include src="https://foo.bar/baz?test=123"/>'),
+      new Include('<ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>'),
+      new Include('<ableron-include src="...">...</ableron-include>')
     ] as Set
   }
 
@@ -187,7 +186,7 @@ class TransclusionProcessorSpec extends Specification {
     def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
-      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
         switch (recordedRequest.getPath()) {
           case "/header":
             return new MockResponse()
@@ -234,7 +233,7 @@ class TransclusionProcessorSpec extends Specification {
     def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
-      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
         switch (recordedRequest.getPath()) {
           case "/header":
             return new MockResponse()
@@ -284,7 +283,7 @@ class TransclusionProcessorSpec extends Specification {
     def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
-      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
         switch (recordedRequest.getPath()) {
           case "/header":
             return new MockResponse()
@@ -331,7 +330,7 @@ class TransclusionProcessorSpec extends Specification {
     def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
-      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
         switch (recordedRequest.getPath()) {
           case "/header":
             return new MockResponse()
@@ -408,7 +407,7 @@ class TransclusionProcessorSpec extends Specification {
     def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
-      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
         switch (recordedRequest.getPath()) {
           case "/1":
             return new MockResponse()
@@ -463,7 +462,7 @@ class TransclusionProcessorSpec extends Specification {
     def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
-      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
         switch (recordedRequest.getPath()) {
           case "/503-route":
             return new MockResponse()

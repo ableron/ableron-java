@@ -13,6 +13,7 @@ public class Fragment {
   private final String url;
   private final int statusCode;
   private final Map<String, List<String>> responseHeaders;
+  private boolean fromCache = false;
 
   public Fragment(int statusCode, String content) {
     this(null, statusCode, content, Instant.EPOCH, Map.of());
@@ -38,15 +39,19 @@ public class Fragment {
     return Optional.ofNullable(url);
   }
 
-  public boolean isRemote() {
-    return url != null;
-  }
-
   public int getStatusCode() {
     return statusCode;
   }
 
   public Map<String, List<String>> getResponseHeaders() {
     return responseHeaders;
+  }
+
+  public boolean isFromCache() {
+    return fromCache;
+  }
+
+  public void setFromCache(boolean fromCache) {
+    this.fromCache = fromCache;
   }
 }

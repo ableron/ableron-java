@@ -80,7 +80,7 @@ public class TransclusionProcessor {
     return (firstIncludePosition == -1) ? Set.of() : INCLUDE_PATTERN.matcher(content.substring(firstIncludePosition))
       .results()
       .parallel()
-      .map(match -> new Include(parseAttributes(match.group(2)), match.group(5), match.group(0)))
+      .map(match -> new Include(match.group(0), parseAttributes(match.group(2)), match.group(5)))
       .collect(Collectors.toSet());
   }
 
@@ -93,7 +93,7 @@ public class TransclusionProcessor {
    */
   public TransclusionResult resolveIncludes(String content, Map<String, List<String>> parentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult(content, ableronConfig.statsAppendToContent());
+    var transclusionResult = new TransclusionResult(content, ableronConfig.statsAppendToContent(), ableronConfig.statsExposeFragmentUrl());
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         try {
