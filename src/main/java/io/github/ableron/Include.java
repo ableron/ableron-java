@@ -254,7 +254,7 @@ public class Include {
 
     return Optional.ofNullable(uri)
       .map(uri1 -> {
-        var fragmentFromCache = fragmentCache.getIfPresent(fragmentCacheKey);
+        var fragmentFromCache = getFragmentFromCache(fragmentCacheKey, fragmentCache);
 
         return fragmentFromCache != null ? fragmentFromCache : performRequest(uri, httpClient, requestHeaders, requestTimeout)
           .filter(response -> {
@@ -372,6 +372,16 @@ public class Include {
         .map(entry -> "|" + entry.getKey() + "=" + String.join(",", entry.getValue()))
         .map(String::toLowerCase)
         .collect(Collectors.joining());
+  }
+
+  private Fragment getFragmentFromCache(String cacheKey, Cache<String, Fragment> fragmentCache) {
+    var fragmentFromCache = fragmentCache.getIfPresent(cacheKey);
+
+    if (fragmentFromCache != null) {
+      fragmentFromCache.setFromCache(true);
+    }
+
+    return fragmentFromCache;
   }
 
   private boolean hasBooleanAttribute(String attributeName) {
