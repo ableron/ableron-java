@@ -8,7 +8,7 @@ Java Library for Ableron Server Side UI Composition
 ## Installation
 Gradle:
 ```groovy
-implementation 'io.github.ableron:ableron:1.8.0'
+implementation 'io.github.ableron:ableron:1.9.0'
 ```
 
 Maven:
@@ -16,7 +16,7 @@ Maven:
 <dependency>
   <groupId>io.github.ableron</groupId>
   <artifactId>ableron</artifactId>
-  <version>1.8.0</version>
+  <version>1.9.0</version>
 </dependency>
 ```
 
