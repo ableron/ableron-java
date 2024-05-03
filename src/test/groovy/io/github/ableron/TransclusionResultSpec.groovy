@@ -4,7 +4,6 @@ import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
-import org.jetbrains.annotations.NotNull
 import spock.lang.Specification
 
 import java.time.Duration
@@ -180,7 +179,7 @@ class TransclusionResultSpec extends Specification {
     def baseUrl = mockWebServer.url("/").toString()
     mockWebServer.setDispatcher(new Dispatcher() {
       @Override
-      MockResponse dispatch(@NotNull RecordedRequest recordedRequest) throws InterruptedException {
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
         switch (recordedRequest.getPath()) {
           case "/uncacheable-fragment":
             return new MockResponse()
