@@ -38,10 +38,6 @@ public class Fragment {
     return Optional.ofNullable(url);
   }
 
-  public boolean isRemote() {
-    return url != null;
-  }
-
   public int getStatusCode() {
     return statusCode;
   }

@@ -138,7 +138,7 @@ public class TransclusionResult {
   }
 
   private String getFragmentDebugInfo(Fragment fragment) {
-    if (!fragment.isRemote()) {
+    if (fragment.getUrl().isEmpty()) {
       return "fallback content";
     }
 
