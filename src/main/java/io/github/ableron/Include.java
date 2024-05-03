@@ -126,30 +126,30 @@ public class Include {
   /**
    * Constructs a new Include.
    *
-   * @param rawAttributes Raw attributes of the include tag
-   */
-  public Include(Map<String, String> rawAttributes) {
-    this(rawAttributes, null);
-  }
-
-  /**
-   * Constructs a new Include.
-   *
-   * @param rawAttributes Raw attributes of the include tag
-   * @param fallbackContent Fallback content to use in case the include could not be resolved
-   */
-  public Include(Map<String, String> rawAttributes, String fallbackContent) {
-    this(rawAttributes, fallbackContent, "");
-  }
-
-  /**
-   * Constructs a new Include.
-   *
-   * @param rawAttributes Raw attributes of the include tag
-   * @param fallbackContent Fallback content to use in case the include could not be resolved
    * @param rawIncludeTag Raw include tag
    */
-  public Include(Map<String, String> rawAttributes, String fallbackContent, String rawIncludeTag) {
+  public Include(String rawIncludeTag) {
+    this(rawIncludeTag, null, null);
+  }
+
+  /**
+   * Constructs a new Include.
+   *
+   * @param rawIncludeTag Raw include tag
+   * @param rawAttributes Raw attributes of the include tag
+   */
+  public Include(String rawIncludeTag, Map<String, String> rawAttributes) {
+    this(rawIncludeTag, rawAttributes, null);
+  }
+
+  /**
+   * Constructs a new Include.
+   *
+   * @param rawIncludeTag Raw include tag
+   * @param rawAttributes Raw attributes of the include tag
+   * @param fallbackContent Fallback content to use in case the include could not be resolved
+   */
+  public Include(String rawIncludeTag, Map<String, String> rawAttributes, String fallbackContent) {
     this.rawIncludeTag = Optional.ofNullable(rawIncludeTag).orElse("");
     this.rawAttributes.putAll(Optional.ofNullable(rawAttributes).orElseGet(Map::of));
     this.id = buildIncludeId(this.rawAttributes.get(ATTR_ID));

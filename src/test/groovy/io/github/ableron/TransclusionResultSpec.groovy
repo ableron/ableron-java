@@ -35,8 +35,8 @@ class TransclusionResultSpec extends Specification {
   def "should handle resolved include correctly"() {
     given:
     def transclusionResult = new TransclusionResult("content: <include>")
-    def include = new Include(["primary":""], "fallback", "<include>")
-    def fragment = new Fragment(null, 404, "not found", Instant.EPOCH, ["X-Test":["Foo"]])
+    def include = new Include("<include>", ["primary": ""], "fallback")
+    def fragment = new Fragment(null, 404, "not found", Instant.EPOCH, ["X-Test": ["Foo"]])
 
     when:
     transclusionResult.addResolvedInclude(include, fragment, 0L)
@@ -56,7 +56,7 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("content: <include>")
 
     when:
-    transclusionResult.addUnresolvableInclude(new Include([:], "fallback", "<include>"), "error")
+    transclusionResult.addUnresolvableInclude(new Include("<include>", null, "fallback"), "error")
 
     then:
     transclusionResult.getContent() == "content: fallback"
@@ -72,7 +72,7 @@ class TransclusionResultSpec extends Specification {
     given:
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
-      new Include([:]),
+      new Include(""),
       new Fragment(null, 200, "", fragmentExpirationTime, [:]),
       0L
     )
@@ -92,7 +92,7 @@ class TransclusionResultSpec extends Specification {
     given:
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
-      new Include([:]),
+      new Include(""),
       new Fragment(null, 200, "", fragmentExpirationTime, [:]),
       0L
     )
@@ -118,7 +118,7 @@ class TransclusionResultSpec extends Specification {
     given:
     def transclusionResult = new TransclusionResult("content")
     transclusionResult.addResolvedInclude(
-      new Include([:]),
+      new Include(""),
       new Fragment(null, 200, "", fragmentExpirationTime, [:]),
       0L
     )
@@ -175,17 +175,17 @@ class TransclusionResultSpec extends Specification {
 
     when:
     transclusionResult.addResolvedInclude(
-      new Include([:], "", "include#1"),
+      new Include("include#1"),
       new Fragment(200, ""),
       0L
     )
     transclusionResult.addResolvedInclude(
-      new Include([:], "", "include#2"),
+      new Include("include#2"),
       new Fragment("http://...", 404, "not found", Instant.EPOCH, [:]),
       233L
     )
     transclusionResult.addResolvedInclude(
-      new Include([:], "fallback", "include#3"),
+      new Include("include#3", null, "fallback"),
       new Fragment("http://...", 404, "not found", Instant.ofEpochSecond(2524608000), [:]),
       999L
     )
@@ -205,7 +205,7 @@ class TransclusionResultSpec extends Specification {
 
     when:
     transclusionResult.addResolvedInclude(
-      new Include(["primary":""], "", "include#1"),
+      new Include("include#1", ["primary":""]),
       new Fragment(200, ""),
       0L
     )
@@ -224,12 +224,12 @@ class TransclusionResultSpec extends Specification {
 
     when:
     transclusionResult.addResolvedInclude(
-      new Include(["primary":""], "", "include#1"),
+      new Include("include#1", ["primary":""]),
       new Fragment(200, ""),
       0L
     )
     transclusionResult.addResolvedInclude(
-      new Include(["primary":""], "", "include#2"),
+      new Include("include#2", ["primary":""]),
       new Fragment(200, ""),
       33L
     )

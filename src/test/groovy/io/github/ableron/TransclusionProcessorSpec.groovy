@@ -102,10 +102,10 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=123" />'),
-      new Include(null, null, '<ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>'),
-      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>'),
-      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>')
+      new Include('<ableron-include src="https://foo.bar/baz?test=123" />'),
+      new Include('<ableron-include foo="bar" src="https://foo.bar/baz?test=456"/>'),
+      new Include('<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com"/>'),
+      new Include('<ableron-include src="https://foo.bar/baz?test=789" fallback-src="https://example.com">fallback</ableron-include>')
     ] as Set
   }
 
@@ -126,9 +126,9 @@ class TransclusionProcessorSpec extends Specification {
       </body>
       </html>
     """) == [
-      new Include(null, null, '<ableron-include src="https://foo.bar/baz?test=123"/>'),
-      new Include(null, null, '<ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>'),
-      new Include(null, null, '<ableron-include src="...">...</ableron-include>')
+      new Include('<ableron-include src="https://foo.bar/baz?test=123"/>'),
+      new Include('<ableron-include foo="bar" src="https://foo.bar/baz?test=456"></ableron-include>'),
+      new Include('<ableron-include src="...">...</ableron-include>')
     ] as Set
   }
 
