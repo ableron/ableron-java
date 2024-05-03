@@ -93,7 +93,7 @@ public class TransclusionProcessor {
    */
   public TransclusionResult resolveIncludes(String content, Map<String, List<String>> parentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult(content, ableronConfig.statsAppendToContent());
+    var transclusionResult = new TransclusionResult(content, ableronConfig.statsAppendToContent(), ableronConfig.statsExposeFragmentUrl());
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         try {
