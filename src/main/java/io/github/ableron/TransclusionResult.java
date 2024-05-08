@@ -110,7 +110,7 @@ public class TransclusionResult {
   public synchronized void addResolvedInclude(Include include, Fragment fragment, long includeResolveTimeMillis) {
     if (include.isPrimary()) {
       if (hasPrimaryInclude) {
-        logger.warn("Only one primary include per page allowed. Multiple found");
+        logger.warn("[Ableron] Only one primary include per page allowed. Multiple found");
         statMessages.add("Ignoring status code and response headers of primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
       } else {
         hasPrimaryInclude = true;

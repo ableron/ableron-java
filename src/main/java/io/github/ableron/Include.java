@@ -259,7 +259,7 @@ public class Include {
         return fragmentFromCache != null ? fragmentFromCache : performRequest(uri, httpClient, requestHeaders, requestTimeout)
           .filter(response -> {
             if (!isHttpStatusCacheable(response.statusCode())) {
-              logger.error("Fragment {} returned status code {}", uri, response.statusCode());
+              logger.error("[Ableron] Fragment {} returned status code {}", uri, response.statusCode());
               recordErroredPrimaryFragment(new Fragment(
                 uri,
                 response.statusCode(),
@@ -287,7 +287,7 @@ public class Include {
       })
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
-          logger.error("Fragment {} returned status code {}", uri, fragment.getStatusCode());
+          logger.error("[Ableron] Fragment {} returned status code {}", uri, fragment.getStatusCode());
           recordErroredPrimaryFragment(fragment);
           return false;
         }
@@ -315,7 +315,7 @@ public class Include {
         try {
           return Long.parseLong(timeout);
         } catch (NumberFormatException e) {
-          logger.error("Invalid request timeout: {}", timeout);
+          logger.error("[Ableron] Invalid request timeout: {}", timeout);
           return null;
         }
       })
@@ -334,14 +334,14 @@ public class Include {
 
   private Optional<HttpResponse<byte[]>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
     try {
-      logger.debug("Loading fragment {} for include {} with timeout {}ms", uri, id, requestTimeout.toMillis());
+      logger.debug("[Ableron] Loading fragment {} for include {} with timeout {}ms", uri, id, requestTimeout.toMillis());
       var httpResponse = httpClient.sendAsync(buildHttpRequest(uri, requestHeaders), HttpResponse.BodyHandlers.ofByteArray());
       return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
     } catch (TimeoutException e) {
-      logger.error("Unable to load fragment {} for include {}: {}ms timeout exceeded", uri, id, requestTimeout.toMillis());
+      logger.error("[Ableron] Unable to load fragment {} for include {}: {}ms timeout exceeded", uri, id, requestTimeout.toMillis());
       return Optional.empty();
     } catch (Exception e) {
-      logger.error("Unable to load fragment {} for include {}: {}", uri, id, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
+      logger.error("[Ableron] Unable to load fragment {} for include {}: {}", uri, id, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
       return Optional.empty();
     }
   }

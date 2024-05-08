@@ -100,12 +100,12 @@ public class TransclusionProcessor {
           var includeResolveStartTime = System.nanoTime();
           return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
             .thenApply(fragment -> {
-              logger.debug("Resolved include {} in {}ms", include.getId(), (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
+              logger.debug("[Ableron] Resolved include {} in {}ms", include.getId(), (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
               transclusionResult.addResolvedInclude(include, fragment, (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
               return fragment;
             });
         } catch (Exception e) {
-          logger.error("Unable to resolve include {}", include.getId(), e);
+          logger.error("[Ableron] Unable to resolve include {}", include.getId(), e);
           transclusionResult.addUnresolvableInclude(include, e.getMessage());
           return CompletableFuture.completedFuture(null);
         }
@@ -155,7 +155,7 @@ public class TransclusionProcessor {
       })
       .evictionListener((String fragmentCacheKey, Fragment fragment, RemovalCause cause) -> {
         if (cause == RemovalCause.SIZE) {
-          logger.info("Fragment cache size exceeded. Removing {} from cache. Consider increasing cache size", fragmentCacheKey);
+          logger.info("[Ableron] Fragment cache size exceeded. Removing {} from cache. Consider increasing cache size", fragmentCacheKey);
         }
       })
       .build();

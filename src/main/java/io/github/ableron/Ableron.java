@@ -33,7 +33,7 @@ public class Ableron {
   public TransclusionResult resolveIncludes(String content, Map<String, List<String>> parentRequestHeaders) {
     if (ableronConfig.isEnabled()) {
       var transclusionResult = transclusionProcessor.resolveIncludes(content, parentRequestHeaders);
-      logger.debug("Ableron UI composition processed {} include(s) in {}ms", transclusionResult.getProcessedIncludesCount(), transclusionResult.getProcessingTimeMillis());
+      logger.debug("[Ableron] Processed {} include(s) in {}ms", transclusionResult.getProcessedIncludesCount(), transclusionResult.getProcessingTimeMillis());
       return transclusionResult;
     }
 

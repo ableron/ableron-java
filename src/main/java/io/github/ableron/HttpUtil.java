@@ -110,11 +110,11 @@ public class HttpUtil {
         try {
           return new String(new GZIPInputStream(new ByteArrayInputStream(httpResponse.body())).readAllBytes(), charset);
         } catch (IOException e) {
-          logger.error("Unable to decode response body with content encoding 'gzip'", e);
+          logger.error("[Ableron] Unable to decode response body with content encoding 'gzip'", e);
           return "";
         }
       default:
-        logger.error("Unknown content encoding '{}'. Discarding response body", contentEncoding);
+        logger.error("[Ableron] Unknown content encoding '{}'. Discarding response body", contentEncoding);
         return "";
     }
   }
@@ -133,7 +133,7 @@ public class HttpUtil {
       try {
         return Charset.forName(contentTypeMatcher.group(1).trim());
       } catch (UnsupportedCharsetException e) {
-        logger.debug("Unknown charset '{}' found in Content-Type header. Falling back to UTF-8", e.getCharsetName());
+        logger.debug("[Ableron] Unknown charset '{}' found in Content-Type header. Falling back to UTF-8", e.getCharsetName());
       }
     }
 
