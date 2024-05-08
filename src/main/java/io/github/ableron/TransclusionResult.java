@@ -146,7 +146,7 @@ public class TransclusionResult {
 
   private String getFragmentDebugInfo(Fragment fragment) {
     if (fragment.getUrl().isEmpty()) {
-      return "static content";
+      return "fallback content";
     }
 
     if (fragment.isFromCache()) {

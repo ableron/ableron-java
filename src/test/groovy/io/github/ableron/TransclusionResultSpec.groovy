@@ -209,7 +209,7 @@ class TransclusionResultSpec extends Specification {
 
     when:
     def result = transclusionProcessor.resolveIncludes("""
-      <ableron-include id="1">static content</ableron-include>
+      <ableron-include id="1">fallback content</ableron-include>
       <ableron-include id="2" src="${baseUrl}uncacheable-fragment" />
       <ableron-include id="3" src="${baseUrl}cacheable-fragment-1" />
       <ableron-include id="4" src="${baseUrl}cacheable-fragment-2" />
@@ -217,14 +217,14 @@ class TransclusionResultSpec extends Specification {
 
     then:
     result.content.startsWith("""
-      static content
+      fallback content
       uncacheable-fragment
       cacheable-fragment-1
       cacheable-fragment-2 from cache
     """)
     result.content.matches("(?s).*<!-- Ableron stats:.*")
     result.content.matches("(?s).*Processed 4 include\\(s\\) in \\d+ms.*")
-    result.content.matches("(?s).*Resolved include '1' with static content in \\d+ms.*")
+    result.content.matches("(?s).*Resolved include '1' with fallback content in \\d+ms.*")
     result.content.matches("(?s).*Resolved include '2' with uncacheable remote fragment in \\d+ms\\. Fragment-URL: http://localhost:\\d+/uncacheable-fragment.*")
     result.content.matches("(?s).*Resolved include '3' with remote fragment with cache expiration time 2050-10-12T07:28:00Z in \\d+ms\\. Fragment-URL: http://localhost:\\d+/cacheable-fragment-1.*")
     result.content.matches("(?s).*Resolved include '4' with cached fragment with expiration time 2050-01-01T00:00:00Z in \\d+ms\\. Fragment-URL: http://localhost:\\d+/cacheable-fragment-2.*")
@@ -248,7 +248,7 @@ class TransclusionResultSpec extends Specification {
     transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
       "Processed 1 include(s) in 0ms\n" +
       "Primary include with status code 200\n" +
-      "Resolved include '1496920298' with static content in 0ms\n" +
+      "Resolved include '1496920298' with fallback content in 0ms\n" +
       "-->"
   }
 
@@ -272,9 +272,9 @@ class TransclusionResultSpec extends Specification {
     transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
       "Processed 2 include(s) in 0ms\n" +
       "Primary include with status code 200\n" +
-      "Resolved include '1496920298' with static content in 0ms\n" +
+      "Resolved include '1496920298' with fallback content in 0ms\n" +
       "Ignoring status code and response headers of primary include with status code 200 because there is already another primary include\n" +
-      "Resolved include '1496920297' with static content in 33ms\n" +
+      "Resolved include '1496920297' with fallback content in 33ms\n" +
       "-->"
   }
 }
