@@ -71,6 +71,8 @@ public class Include {
     501
   );
 
+  private static final long NANO_2_MILLIS = 1000000L;
+
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   /**
@@ -122,6 +124,16 @@ public class Include {
    * Recorded response of the errored primary fragment.
    */
   private Fragment erroredPrimaryFragment = null;
+
+  /**
+   * Fragment source of the errored primary fragment
+   */
+  private String erroredPrimaryFragmentSource = null;
+
+  private boolean resolved = false;
+  private Fragment resolvedFragment = null;
+  private String resolvedFragmentSource = null;
+  private int resolveTimeMillis = 0;
 
   /**
    * Constructs a new Include.
@@ -224,6 +236,23 @@ public class Include {
     return fallbackContent;
   }
 
+  public boolean isResolved() {
+    return resolved;
+  }
+
+  //TODO: Make Optional<Fragment>
+  public Fragment getResolvedFragment() {
+    return resolvedFragment;
+  }
+
+  public String getResolvedFragmentSource() {
+    return resolvedFragmentSource;
+  }
+
+  public int getResolveTimeMillis() {
+    return resolveTimeMillis;
+  }
+
   /**
    * Resolves this include.
    *
@@ -232,9 +261,10 @@ public class Include {
    * @param fragmentCache Cache for fragments
    * @param config Global ableron configuration
    * @param resolveThreadPool Thread pool to use for resolving
-   * @return The fragment the include has been resolved to
+   * @return The resolved Include
    */
-  public CompletableFuture<Fragment> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
+  public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
+    var resolveStartTime = System.nanoTime();
     var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, Stream.concat(
         config.getFragmentRequestHeadersToPass().stream(),
         config.getFragmentAdditionalRequestHeadersToPass().stream()
@@ -243,18 +273,43 @@ public class Include {
     erroredPrimaryFragment = null;
 
     return CompletableFuture.supplyAsync(
-      () -> load(src, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config))
-        .or(() -> load(fallbackSrc, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config)))
-        .or(() -> Optional.ofNullable(erroredPrimaryFragment))
-        .orElseGet(() -> new Fragment(200, fallbackContent)), resolveThreadPool);
+      () -> load(src, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), ATTR_SOURCE)
+        .or(() -> load(fallbackSrc, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), ATTR_FALLBACK_SOURCE))
+        .or(() -> {
+          resolvedFragmentSource = erroredPrimaryFragmentSource;
+          return Optional.ofNullable(erroredPrimaryFragment);
+        })
+        .or(() -> {
+          resolvedFragmentSource = "fallback content";
+          return Optional.of(new Fragment(200, fallbackContent));
+        })
+        .map(fragment -> resolveWith(fragment, (int) ((System.nanoTime() - resolveStartTime) / NANO_2_MILLIS), resolvedFragmentSource))
+        .orElse(this), resolveThreadPool);
   }
 
-  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout) {
+  /**
+   * Resolves this Include with the given Fragment.
+   *
+   * @param fragment The Fragment to resolve this Include with
+   * @param resolveTimeMillis The time in milliseconds it took to resolve the Include
+   * @param resolvedFragmentSource Source of the fragment
+   */
+  public Include resolveWith(Fragment fragment, int resolveTimeMillis, String resolvedFragmentSource) {
+    this.resolved = true;
+    this.resolvedFragment = fragment;
+    this.resolvedFragmentSource = resolvedFragmentSource != null ? resolvedFragmentSource : "fallback content";
+    this.resolveTimeMillis = resolveTimeMillis;
+    this.logger.debug("[Ableron] Resolved include {} in {}ms", this.id, this.resolveTimeMillis);
+    return this;
+  }
+
+  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout, String urlSource) {
     var fragmentCacheKey = this.buildFragmentCacheKey(uri, requestHeaders, config.getCacheVaryByRequestHeaders());
 
     return Optional.ofNullable(uri)
       .map(uri1 -> {
-        var fragmentFromCache = getFragmentFromCache(fragmentCacheKey, fragmentCache);
+        var fragmentFromCache = fragmentCache.getIfPresent(fragmentCacheKey);
+        this.resolvedFragmentSource = (fragmentFromCache != null ? "cached " : "remote ") + urlSource;
 
         return fragmentFromCache != null ? fragmentFromCache : performRequest(uri, httpClient, requestHeaders, requestTimeout)
           .filter(response -> {
@@ -266,7 +321,7 @@ public class Include {
                 HttpUtil.getResponseBodyAsString(response),
                 Instant.EPOCH,
                 filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
-              ));
+              ), this.resolvedFragmentSource);
               return false;
             }
 
@@ -288,7 +343,7 @@ public class Include {
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
           logger.error("[Ableron] Fragment {} returned status code {}", uri, fragment.getStatusCode());
-          recordErroredPrimaryFragment(fragment);
+          recordErroredPrimaryFragment(fragment, this.resolvedFragmentSource);
           return false;
         }
 
@@ -296,9 +351,10 @@ public class Include {
       });
   }
 
-  private void recordErroredPrimaryFragment(Fragment fragment) {
+  private void recordErroredPrimaryFragment(Fragment fragment, String fragmentSource) {
     if (primary && erroredPrimaryFragment == null) {
-      erroredPrimaryFragment = fragment;
+      this.erroredPrimaryFragment = fragment;
+      this.erroredPrimaryFragmentSource = fragmentSource;
     }
   }
 
@@ -372,16 +428,6 @@ public class Include {
         .map(entry -> "|" + entry.getKey() + "=" + String.join(",", entry.getValue()))
         .map(String::toLowerCase)
         .collect(Collectors.joining());
-  }
-
-  private Fragment getFragmentFromCache(String cacheKey, Cache<String, Fragment> fragmentCache) {
-    var fragmentFromCache = fragmentCache.getIfPresent(cacheKey);
-
-    if (fragmentFromCache != null) {
-      fragmentFromCache.setFromCache(true);
-    }
-
-    return fragmentFromCache;
   }
 
   private boolean hasBooleanAttribute(String attributeName) {

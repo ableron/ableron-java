@@ -50,20 +50,14 @@ public class TransclusionResult {
   private final Map<String, List<String>> responseHeadersToPass = new HashMap<>();
 
   /**
-   * Number of includes that have been processed.
-   */
-  private int processedIncludesCount = 0;
-
-  /**
    * Time in milliseconds it took to resolve the includes in the content.
    */
   private long processingTimeMillis = 0;
 
   /**
-   * Messages containing information about resolved includes to be used
-   * in stats.
+   * List of processed Includes.
    */
-  private final List<String> statMessages = new ArrayList<>();
+  private final List<Include> processedIncludes = new ArrayList<>();
 
   public TransclusionResult(String content) {
     this(content, false, false);
@@ -96,7 +90,7 @@ public class TransclusionResult {
   }
 
   public int getProcessedIncludesCount() {
-    return processedIncludesCount;
+    return processedIncludes.size();
   }
 
   public long getProcessingTimeMillis() {
@@ -107,16 +101,16 @@ public class TransclusionResult {
     this.processingTimeMillis = processingTimeMillis;
   }
 
-  public synchronized void addResolvedInclude(Include include, Fragment fragment, long includeResolveTimeMillis) {
+  public synchronized void addResolvedInclude(Include include) {
+    Fragment fragment = include.getResolvedFragment();
+
     if (include.isPrimary()) {
       if (hasPrimaryInclude) {
-        logger.warn("[Ableron] Only one primary include per page allowed. Multiple found");
-        statMessages.add("Ignoring status code and response headers of primary include with status code " + fragment.getStatusCode() + " because there is already another primary include");
+        logger.error("[Ableron] Found multiple primary includes in one page. Only treating one of them as primary");
       } else {
         hasPrimaryInclude = true;
         statusCodeOverride = fragment.getStatusCode();
         responseHeadersToPass.putAll(fragment.getResponseHeaders());
-        statMessages.add("Primary include with status code " + fragment.getStatusCode());
       }
     }
 
@@ -125,39 +119,7 @@ public class TransclusionResult {
     }
 
     content = content.replace(include.getRawIncludeTag(), fragment.getContent());
-    processedIncludesCount++;
-    statMessages.add(String.format("Resolved include '%s' with %s in %dms%s",
-      include.getId(),
-      getFragmentDebugInfo(fragment),
-      includeResolveTimeMillis,
-      exposeFragmentUrl && fragment.getUrl().isPresent() ? ". Fragment-URL: " + fragment.getUrl().get() : ""
-    ));
-  }
-
-  public synchronized void addUnresolvableInclude(Include include, String errorMessage) {
-    content = content.replace(include.getRawIncludeTag(), include.getFallbackContent());
-    contentExpirationTime = Instant.EPOCH;
-    processedIncludesCount++;
-    statMessages.add(String.format("Unable to resolve include %s%s",
-      include.getId(),
-      errorMessage != null ? ": " + errorMessage : ""
-    ));
-  }
-
-  private String getFragmentDebugInfo(Fragment fragment) {
-    if (fragment.getUrl().isEmpty()) {
-      return "fallback content";
-    }
-
-    if (fragment.isFromCache()) {
-      return "cached fragment with expiration time " + fragment.getExpirationTime().toString();
-    }
-
-    if (fragment.getExpirationTime() == Instant.EPOCH) {
-      return "uncacheable remote fragment";
-    }
-
-    return "remote fragment with cache expiration time " + fragment.getExpirationTime().toString();
+    processedIncludes.add(include);
   }
 
   /**
@@ -205,9 +167,65 @@ public class TransclusionResult {
   }
 
   private String getStats() {
-    final var stats = new StringBuilder("\n<!-- Ableron stats:\n"
-      + "Processed " + processedIncludesCount + " include(s) in " + processingTimeMillis + "ms\n");
-    statMessages.forEach(logEntry -> stats.append(logEntry).append("\n"));
-    return stats.append("-->").toString();
+    return getStatsHeader() + getStatsProcessedIncludes() + getStatsFooter();
+  }
+
+  private String getStatsHeader() {
+    return "\n<!-- Ableron stats:\nProcessed " + getProcessedIncludesCount() + " include(s) in " + this.processingTimeMillis + "ms\n";
+  }
+
+  private String getStatsFooter() {
+    return "\n-->";
+  }
+
+  private String getStatsProcessedIncludes() {
+    var stats = new StringBuilder();
+
+    if (!this.processedIncludes.isEmpty()) {
+      stats
+        .append("\n\nTime | Include | Resolved With | Fragment Cacheability")
+        .append(this.exposeFragmentUrl ? " | Fragment URL" : "")
+        .append("\n------------------------------------------------------");
+
+      this.processedIncludes.stream()
+        .sorted((a, b) -> a.getId().compareToIgnoreCase(b.getId()))
+        .forEach((include -> stats.append("\n").append(getProcessedIncludeStatsRow(include))));
+    }
+
+    return stats.toString();
+  }
+
+  private String getProcessedIncludeStatsRow(Include include) {
+    return include.getResolveTimeMillis() + "ms"
+      + " | " + getProcessedIncludeStatIncludeId(include)
+      + " | " + getProcessedIncludeStatFragmentSource(include)
+      + " | " + getProcessedIncludeStatCacheDetails(include)
+      + (this.exposeFragmentUrl ? " | " + getProcessedIncludeStatFragmentUrl(include) : "");
+  }
+
+  private String getProcessedIncludeStatIncludeId(Include include) {
+    return include.getId() + (include.isPrimary() ? " (primary)" : "");
+  }
+
+  private String getProcessedIncludeStatFragmentSource(Include include) {
+    return Optional.ofNullable(include.getResolvedFragmentSource()).orElse("-");
+  }
+
+  private String getProcessedIncludeStatCacheDetails(Include include) {
+    if (include.getResolvedFragment() == null || include.getResolvedFragment().getUrl().isEmpty()) {
+      return "-";
+    }
+
+    if (include.getResolvedFragment().getExpirationTime() == Instant.EPOCH) {
+      return "not cacheable";
+    }
+
+    return "expires in " + Math.ceil((include.getResolvedFragment().getExpirationTime().toEpochMilli() - Instant.now().toEpochMilli()) / 1000) + 's';
+  }
+
+  private String getProcessedIncludeStatFragmentUrl(Include include) {
+    return Optional.ofNullable(include.getResolvedFragment())
+      .flatMap(Fragment::getUrl)
+      .orElse("-");
   }
 }
