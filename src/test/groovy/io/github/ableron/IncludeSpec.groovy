@@ -138,26 +138,30 @@ class IncludeSpec extends Specification {
     include2 != include3
   }
 
-  def "should resolve include with URL provided via src attribute"() {
+  def "should resolve with src"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
       .setBody("response")
-      .setResponseCode(200))
+      .setResponseCode(206))
 
     when:
-    def fragment = new Include("", ["src": mockWebServer.url("/fragment").toString()])
+    def include = new Include("", ["src": mockWebServer.url("/fragment").toString()])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "response"
+    include.resolved
+    include.resolvedFragment.content == "response"
+    include.resolvedFragment.statusCode == 206
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
     mockWebServer.takeRequest().getPath() == "/fragment"
 
     cleanup:
     mockWebServer.shutdown()
   }
 
-  def "should resolve include with URL provided via fallback-src attribute if src could not be loaded"() {
+  def "should resolve with fallback-src if src could not be loaded"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
@@ -168,21 +172,23 @@ class IncludeSpec extends Specification {
       .setResponseCode(200))
 
     when:
-    def fragment = new Include("", [
+    def include = new Include("", [
       "src": mockWebServer.url("/src").toString(),
       "fallback-src": mockWebServer.url("/fallback-src").toString()
     ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fragment from fallback-src"
-    mockWebServer.takeRequest().getPath() == "/src"
-    mockWebServer.takeRequest().getPath() == "/fallback-src"
+    include.resolved
+    include.resolvedFragment.content == "fragment from fallback-src"
+    include.resolvedFragment.statusCode == 200
+    include.resolvedFragmentSource == "remote fallback-src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
   }
 
-  def "should resolve include with fallback content if src and fallback-src could not be loaded"() {
+  def "should resolve with fallback content if src and fallback-src could not be loaded"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
@@ -193,13 +199,17 @@ class IncludeSpec extends Specification {
       .setResponseCode(500))
 
     when:
-    def fragment = new Include("", [
+    def include = new Include("", [
       "src": mockWebServer.url("/src").toString(),
       "fallback-src": mockWebServer.url("/fallback-src").toString()
     ], "fallback content").resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fallback content"
+    include.resolved
+    include.resolvedFragment.content == "fallback content"
+    include.resolvedFragment.statusCode == 200
+    include.resolvedFragmentSource == "fallback content"
+    include.resolveTimeMillis > 0
     mockWebServer.takeRequest().getPath() == "/src"
     mockWebServer.takeRequest().getPath() == "/fallback-src"
 
@@ -207,9 +217,15 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  def "should resolve include to empty string if src, fallback src and fallback content are not present"() {
-    expect:
-    new Include(null).resolve(httpClient, [:], cache, config, supplyPool).get().content == ""
+  def "should resolve to empty string if src, fallback src and fallback content are not present"() {
+    when:
+    def include = new Include(null).resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    include.resolved
+    include.resolvedFragment.content == ""
+    include.resolvedFragment.statusCode == 200
+    include.resolvedFragmentSource == "fallback content"
   }
 
   def "should set fragment status code for successfully resolved src"() {
