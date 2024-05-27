@@ -171,7 +171,7 @@ public class TransclusionResult {
   }
 
   private String getStatsHeader() {
-    return "\n<!-- Ableron stats:\nProcessed " + getProcessedIncludesCount() + " include(s) in " + this.processingTimeMillis + "ms\n";
+    return "\n<!-- Ableron stats:\nProcessed " + getProcessedIncludesCount() + " include(s) in " + this.processingTimeMillis + "ms";
   }
 
   private String getStatsFooter() {
@@ -220,7 +220,7 @@ public class TransclusionResult {
       return "not cacheable";
     }
 
-    return "expires in " + Math.ceil((include.getResolvedFragment().getExpirationTime().toEpochMilli() - Instant.now().toEpochMilli()) / 1000) + 's';
+    return "expires in " + (int) Math.ceil((include.getResolvedFragment().getExpirationTime().toEpochMilli() - Instant.now().toEpochMilli()) / 1000.0) + 's';
   }
 
   private String getProcessedIncludeStatFragmentUrl(Include include) {

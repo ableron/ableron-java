@@ -39,11 +39,13 @@ class TransclusionResultSpec extends Specification {
   def "should handle resolved include correctly"() {
     given:
     def transclusionResult = new TransclusionResult("content: <include>")
-    def include = new Include("<include>", ["primary": ""], "fallback")
-    def fragment = new Fragment(null, 404, "not found", Instant.EPOCH, ["X-Test": ["Foo"]])
 
     when:
-    transclusionResult.addResolvedInclude(include, fragment, 0L)
+    transclusionResult.addResolvedInclude(new Include("<include>", ["primary": ""], "fallback").resolveWith(
+      new Fragment(null, 404, "not found", Instant.EPOCH, ["X-Test": ["Foo"]]),
+      0,
+      "fallback content"
+    ))
 
     then:
     transclusionResult.getContent() == "content: not found"
@@ -55,31 +57,12 @@ class TransclusionResultSpec extends Specification {
     transclusionResult.getProcessingTimeMillis() == 0
   }
 
-  def "should handle unresolvable include correctly"() {
-    given:
-    def transclusionResult = new TransclusionResult("content: <include>")
-
-    when:
-    transclusionResult.addUnresolvableInclude(new Include("<include>", null, "fallback"), "error")
-
-    then:
-    transclusionResult.getContent() == "content: fallback"
-    transclusionResult.getContentExpirationTime() == Optional.of(Instant.EPOCH)
-    !transclusionResult.hasPrimaryInclude()
-    transclusionResult.getStatusCodeOverride() == Optional.empty()
-    transclusionResult.getResponseHeadersToPass() == [:]
-    transclusionResult.getProcessedIncludesCount() == 1
-    transclusionResult.getProcessingTimeMillis() == 0
-  }
-
   def "should calculate cache control header value"() {
     given:
     def transclusionResult = new TransclusionResult("content")
-    transclusionResult.addResolvedInclude(
-      new Include(""),
-      new Fragment(null, 200, "", fragmentExpirationTime, [:]),
-      0L
-    )
+    transclusionResult.addResolvedInclude(new Include("").resolveWith(
+      new Fragment(null, 200, "", fragmentExpirationTime, [:]), 0, ""
+    ))
 
     expect:
     transclusionResult.calculateCacheControlHeaderValue() == expectedCacheControlHeaderValue
@@ -95,11 +78,9 @@ class TransclusionResultSpec extends Specification {
   def "should calculate cache control header value based on given page max age"() {
     given:
     def transclusionResult = new TransclusionResult("content")
-    transclusionResult.addResolvedInclude(
-      new Include(""),
-      new Fragment(null, 200, "", fragmentExpirationTime, [:]),
-      0L
-    )
+    transclusionResult.addResolvedInclude(new Include("").resolveWith(
+      new Fragment(null, 200, "", fragmentExpirationTime, [:]), 0, ""
+    ))
 
     expect:
     transclusionResult.calculateCacheControlHeaderValue(pageMaxAge) == expectedCacheControlHeaderValue
@@ -121,11 +102,9 @@ class TransclusionResultSpec extends Specification {
   def "should calculate cache control header value based on given response headers"() {
     given:
     def transclusionResult = new TransclusionResult("content")
-    transclusionResult.addResolvedInclude(
-      new Include(""),
-      new Fragment(null, 200, "", fragmentExpirationTime, [:]),
-      0L
-    )
+    transclusionResult.addResolvedInclude(new Include("").resolveWith(
+      new Fragment(null, 200, "", fragmentExpirationTime, [:]), 0, ""
+    ))
 
     expect:
     transclusionResult.calculateCacheControlHeaderValue(responseHeaders) == expectedCacheControlHeaderValue
@@ -167,10 +146,8 @@ class TransclusionResultSpec extends Specification {
 
   def "should append stats to content - zero includes"() {
     expect:
-    new TransclusionResult("content", true, true).getContent() == "content\n" +
-      "<!-- Ableron stats:\n" +
-      "Processed 0 include(s) in 0ms\n" +
-      "-->"
+    new TransclusionResult("content", true, true).getContent()
+      == "content\n<!-- Ableron stats:\nProcessed 0 include(s) in 0ms\n-->"
   }
 
   def "should append stats to content"() {
@@ -191,6 +168,11 @@ class TransclusionResultSpec extends Specification {
               .setResponseCode(200)
               .setHeader("Expires", "Wed, 12 Oct 2050 07:28:00 GMT")
               .setBody("cacheable-fragment-1")
+          case "/cacheable-fragment-2":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setHeader("Cache-Control", "max-age=10")
+              .setBody("cacheable-fragment-2")
         }
         return new MockResponse().setResponseCode(404)
       }
@@ -199,20 +181,16 @@ class TransclusionResultSpec extends Specification {
       .statsAppendToContent(true)
       .statsExposeFragmentUrl(true)
       .build())
-    transclusionProcessor.fragmentCache.put(baseUrl + "cacheable-fragment-2", new Fragment(
-      baseUrl + "cacheable-fragment-2",
-      200,
-      "cacheable-fragment-2 from cache",
-      Instant.parse("2050-01-01T00:00:00Z"),
-      [:])
-    )
+    transclusionProcessor.resolveIncludes("""
+      <ableron-include src="${baseUrl}cacheable-fragment-2" />
+    """, [:])
 
     when:
     def result = transclusionProcessor.resolveIncludes("""
       <ableron-include id="1">fallback content</ableron-include>
       <ableron-include id="2" src="${baseUrl}uncacheable-fragment" />
       <ableron-include id="3" src="${baseUrl}cacheable-fragment-1" />
-      <ableron-include id="4" src="${baseUrl}cacheable-fragment-2" />
+      <ableron-include id="4" fallback-src="${baseUrl}cacheable-fragment-2" />
     """, [:])
 
     then:
@@ -220,17 +198,37 @@ class TransclusionResultSpec extends Specification {
       fallback content
       uncacheable-fragment
       cacheable-fragment-1
-      cacheable-fragment-2 from cache
+      cacheable-fragment-2
     """)
-    result.content.matches("(?s).*<!-- Ableron stats:.*")
-    result.content.matches("(?s).*Processed 4 include\\(s\\) in \\d+ms.*")
-    result.content.matches("(?s).*Resolved include '1' with fallback content in \\d+ms.*")
-    result.content.matches("(?s).*Resolved include '2' with uncacheable remote fragment in \\d+ms\\. Fragment-URL: http://localhost:\\d+/uncacheable-fragment.*")
-    result.content.matches("(?s).*Resolved include '3' with remote fragment with cache expiration time 2050-10-12T07:28:00Z in \\d+ms\\. Fragment-URL: http://localhost:\\d+/cacheable-fragment-1.*")
-    result.content.matches("(?s).*Resolved include '4' with cached fragment with expiration time 2050-01-01T00:00:00Z in \\d+ms\\. Fragment-URL: http://localhost:\\d+/cacheable-fragment-2.*")
+    result.content.matches("(?s).+<!-- Ableron stats:\\nProcessed 4 include\\(s\\) in \\d+ms.+")
+    result.content.contains("Time | Include | Resolved With | Fragment Cacheability | Fragment URL")
+    result.content.contains("------------------------------------------------------")
+    result.content.matches("(?s).+\\d+ms \\| 1 \\| fallback content \\| - \\| -\\n.+")
+    result.content.matches("(?s).+\\d+ms \\| 2 \\| remote src \\| not cacheable \\| http://localhost:\\d+/uncacheable-fragment\\n.+")
+    result.content.matches("(?s).+\\d+ms \\| 3 \\| remote src \\| expires in \\d+s \\| http://localhost:\\d+/cacheable-fragment-1\\n.+")
+    result.content.matches("(?s).+\\d+ms \\| 4 \\| cached fallback-src \\| expires in 10s \\| http://localhost:\\d+/cacheable-fragment-2\\n.+")
 
     cleanup:
     mockWebServer.shutdown()
+  }
+
+  def "should not expose fragment URL to stats by default"() {
+    given:
+    def transclusionResult = new TransclusionResult("", true, false)
+
+    when:
+    transclusionResult.addResolvedInclude(new Include("").resolveWith(
+      new Fragment("example.com", 200, "", Instant.EPOCH, [:]), 71, "src"
+    ))
+
+    then:
+    transclusionResult.getContent() ==
+      "\n<!-- Ableron stats:\n" +
+      "Processed 1 include(s) in 0ms\n\n" +
+      "Time | Include | Resolved With | Fragment Cacheability\n" +
+      "------------------------------------------------------\n" +
+      "71ms | 0 | src | not cacheable\n" +
+      "-->"
   }
 
   def "should append stats for primary include"() {
@@ -238,17 +236,17 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("", true, false)
 
     when:
-    transclusionResult.addResolvedInclude(
-      new Include("include#1", ["primary":""]),
-      new Fragment(200, ""),
-      0L
-    )
+    transclusionResult.addResolvedInclude(new Include("include#1", ["primary":""]).resolveWith(
+      new Fragment(200, ""), 0, "fallback content"
+    ))
 
     then:
-    transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
-      "Processed 1 include(s) in 0ms\n" +
-      "Primary include with status code 200\n" +
-      "Resolved include '1496920298' with fallback content in 0ms\n" +
+    transclusionResult.getContent() ==
+      "\n<!-- Ableron stats:\n" +
+      "Processed 1 include(s) in 0ms\n\n" +
+      "Time | Include | Resolved With | Fragment Cacheability\n" +
+      "------------------------------------------------------\n" +
+      "0ms | 1496920298 (primary) | fallback content | -\n" +
       "-->"
   }
 
@@ -257,24 +255,21 @@ class TransclusionResultSpec extends Specification {
     def transclusionResult = new TransclusionResult("", true, false)
 
     when:
-    transclusionResult.addResolvedInclude(
-      new Include("include#1", ["primary":""]),
-      new Fragment(200, ""),
-      0L
-    )
-    transclusionResult.addResolvedInclude(
-      new Include("include#2", ["primary":""]),
-      new Fragment(200, ""),
-      33L
-    )
+    transclusionResult.addResolvedInclude(new Include("include#1", ["primary":""]).resolveWith(
+      new Fragment(200, ""), 0, "fallback content"
+    ))
+    transclusionResult.addResolvedInclude(new Include("include#2", ["primary":""]).resolveWith(
+      new Fragment(200, ""), 33, "fallback content"
+    ))
 
     then:
-    transclusionResult.getContent() == "\n<!-- Ableron stats:\n" +
-      "Processed 2 include(s) in 0ms\n" +
-      "Primary include with status code 200\n" +
-      "Resolved include '1496920298' with fallback content in 0ms\n" +
-      "Ignoring status code and response headers of primary include with status code 200 because there is already another primary include\n" +
-      "Resolved include '1496920297' with fallback content in 33ms\n" +
+    transclusionResult.getContent() ==
+      "\n<!-- Ableron stats:\n" +
+      "Processed 2 include(s) in 0ms\n\n" +
+      "Time | Include | Resolved With | Fragment Cacheability\n" +
+      "------------------------------------------------------\n" +
+      "33ms | 1496920297 (primary) | fallback content | -\n" +
+      "0ms | 1496920298 (primary) | fallback content | -\n" +
       "-->"
   }
 }
