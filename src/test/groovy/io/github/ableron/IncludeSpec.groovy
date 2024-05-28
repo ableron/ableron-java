@@ -228,91 +228,105 @@ class IncludeSpec extends Specification {
     include.resolvedFragmentSource == "fallback content"
   }
 
-  def "should set fragment status code for successfully resolved src"() {
+  def "should handle primary include with errored src"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("response")
-      .setResponseCode(206))
+      .setResponseCode(503)
+      .setBody("fragment from src"))
 
     when:
-    def fragment = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, [:], cache, config, supplyPool).get()
-
-    then:
-    fragment.content == "response"
-    fragment.statusCode == 206
-
-    cleanup:
-    mockWebServer.shutdown()
-  }
-
-  def "should set fragment status code for successfully resolved fallback-src of primary include"() {
-    given:
-    def mockWebServer = new MockWebServer()
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("src")
-      .setResponseCode(500))
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("fallback")
-      .setResponseCode(206))
-
-    when:
-    def fragment = new Include("", [
-      "src": mockWebServer.url("/").toString(),
-      "fallback-src": mockWebServer.url("/").toString(),
-      "primary": ""
-    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
-
-    then:
-    fragment.content == "fallback"
-    fragment.statusCode == 206
-
-    cleanup:
-    mockWebServer.shutdown()
-  }
-
-  def "should set fragment status code and body of errored src"() {
-    given:
-    def mockWebServer = new MockWebServer()
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("response")
-      .setResponseCode(503))
-
-    when:
-    def fragment = new Include("", [
+    def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "primary": "primary"
     ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "response"
-    fragment.statusCode == 503
+    include.resolved
+    include.resolvedFragment.content == "fragment from src"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
   }
 
-  def "should set fragment status code of errored src also if fallback-src errored for primary include"() {
+  def "should handle primary include without src and with errored fallback-src"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("src")
-      .setResponseCode(503))
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("fallback")
-      .setResponseCode(500))
+      .setResponseCode(503)
+      .setBody("503"))
 
     when:
-    def fragment = new Include("", [
+    def include = new Include("", [
+      "fallback-src": mockWebServer.url("/").toString(),
+      "primary": "primary"
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    include.resolved
+    include.resolvedFragment.content == "503"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote fallback-src"
+    include.resolveTimeMillis > 0
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should handle primary include with errored src and successfully resolved fallback-src"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(500)
+      .setBody("src-500"))
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(206)
+      .setBody("fallback-src-206"))
+
+    when:
+    def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "fallback-src": mockWebServer.url("/").toString(),
       "primary": ""
     ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "src"
-    fragment.statusCode == 503
+    include.resolved
+    include.resolvedFragment.content == "fallback-src-206"
+    include.resolvedFragment.statusCode == 206
+    include.resolvedFragmentSource == "remote fallback-src"
+    include.resolveTimeMillis > 0
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should handle primary include with errored src and errored fallback-src"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(503)
+      .setBody("src"))
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(500)
+      .setBody("fallback"))
+
+    when:
+    def include = new Include("", [
+      "src": mockWebServer.url("/").toString(),
+      "fallback-src": mockWebServer.url("/").toString(),
+      "primary": ""
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    include.resolved
+    include.resolvedFragment.content == "src"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
@@ -322,17 +336,17 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("src")
-      .setResponseCode(503))
+      .setResponseCode(503)
+      .setBody("src"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fallback")
-      .setResponseCode(500))
+      .setResponseCode(500)
+      .setBody("fallback"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("src 2nd call")
-      .setResponseCode(504))
+      .setResponseCode(504)
+      .setBody("src 2nd call"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fallback 2nd call")
-      .setResponseCode(500))
+      .setResponseCode(500)
+      .setBody("fallback 2nd call"))
     def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "fallback-src": mockWebServer.url("/").toString(),
@@ -340,18 +354,24 @@ class IncludeSpec extends Specification {
     ])
 
     when:
-    def fragment = include.resolve(httpClient, [:], cache, config, supplyPool).get()
+    include.resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "src"
-    fragment.statusCode == 503
+    include.resolved
+    include.resolvedFragment.content == "src"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     when:
-    def fragment2 = include.resolve(httpClient, [:], cache, config, supplyPool).get()
+    include.resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment2.content == "src 2nd call"
-    fragment2.statusCode == 504
+    include.resolved
+    include.resolvedFragment.content == "src 2nd call"
+    include.resolvedFragment.statusCode == 504
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
