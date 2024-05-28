@@ -138,68 +138,78 @@ class IncludeSpec extends Specification {
     include2 != include3
   }
 
-  def "should resolve include with URL provided via src attribute"() {
+  def "should resolve with src"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("response")
-      .setResponseCode(200))
+      .setResponseCode(206)
+      .setBody("response"))
 
     when:
-    def fragment = new Include("", ["src": mockWebServer.url("/fragment").toString()])
+    def include = new Include("", ["src": mockWebServer.url("/fragment").toString()])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "response"
+    include.resolved
+    include.resolvedFragment.content == "response"
+    include.resolvedFragment.statusCode == 206
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
     mockWebServer.takeRequest().getPath() == "/fragment"
 
     cleanup:
     mockWebServer.shutdown()
   }
 
-  def "should resolve include with URL provided via fallback-src attribute if src could not be loaded"() {
+  def "should resolve with fallback-src if src could not be loaded"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fragment from src")
-      .setResponseCode(500))
+      .setResponseCode(500)
+      .setBody("fragment from src"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fragment from fallback-src")
-      .setResponseCode(200))
+      .setResponseCode(200)
+      .setBody("fragment from fallback-src"))
 
     when:
-    def fragment = new Include("", [
+    def include = new Include("", [
       "src": mockWebServer.url("/src").toString(),
       "fallback-src": mockWebServer.url("/fallback-src").toString()
     ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fragment from fallback-src"
-    mockWebServer.takeRequest().getPath() == "/src"
-    mockWebServer.takeRequest().getPath() == "/fallback-src"
+    include.resolved
+    include.resolvedFragment.content == "fragment from fallback-src"
+    include.resolvedFragment.statusCode == 200
+    include.resolvedFragmentSource == "remote fallback-src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
   }
 
-  def "should resolve include with fallback content if src and fallback-src could not be loaded"() {
+  def "should resolve with fallback content if src and fallback-src could not be loaded"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fragment from src")
-      .setResponseCode(500))
+      .setResponseCode(500)
+      .setBody("fragment from src"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fragment from fallback-src")
-      .setResponseCode(500))
+      .setResponseCode(500)
+      .setBody("fragment from fallback-src"))
 
     when:
-    def fragment = new Include("", [
+    def include = new Include("", [
       "src": mockWebServer.url("/src").toString(),
       "fallback-src": mockWebServer.url("/fallback-src").toString()
     ], "fallback content").resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fallback content"
+    include.resolved
+    include.resolvedFragment.content == "fallback content"
+    include.resolvedFragment.statusCode == 200
+    include.resolvedFragmentSource == "fallback content"
+    include.resolveTimeMillis > 0
     mockWebServer.takeRequest().getPath() == "/src"
     mockWebServer.takeRequest().getPath() == "/fallback-src"
 
@@ -207,96 +217,116 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
   }
 
-  def "should resolve include to empty string if src, fallback src and fallback content are not present"() {
-    expect:
-    new Include(null).resolve(httpClient, [:], cache, config, supplyPool).get().content == ""
-  }
-
-  def "should set fragment status code for successfully resolved src"() {
-    given:
-    def mockWebServer = new MockWebServer()
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("response")
-      .setResponseCode(206))
-
+  def "should resolve to empty string if src, fallback src and fallback content are not present"() {
     when:
-    def fragment = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, [:], cache, config, supplyPool).get()
+    def include = new Include(null).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "response"
-    fragment.statusCode == 206
-
-    cleanup:
-    mockWebServer.shutdown()
+    include.resolved
+    include.resolvedFragment.content == ""
+    include.resolvedFragment.statusCode == 200
+    include.resolvedFragmentSource == "fallback content"
   }
 
-  def "should set fragment status code for successfully resolved fallback-src of primary include"() {
+  def "should handle primary include with errored src"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("src")
-      .setResponseCode(500))
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("fallback")
-      .setResponseCode(206))
+      .setResponseCode(503)
+      .setBody("fragment from src"))
 
     when:
-    def fragment = new Include("", [
-      "src": mockWebServer.url("/").toString(),
-      "fallback-src": mockWebServer.url("/").toString(),
-      "primary": ""
-    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
-
-    then:
-    fragment.content == "fallback"
-    fragment.statusCode == 206
-
-    cleanup:
-    mockWebServer.shutdown()
-  }
-
-  def "should set fragment status code and body of errored src"() {
-    given:
-    def mockWebServer = new MockWebServer()
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("response")
-      .setResponseCode(503))
-
-    when:
-    def fragment = new Include("", [
+    def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "primary": "primary"
     ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "response"
-    fragment.statusCode == 503
+    include.resolved
+    include.resolvedFragment.content == "fragment from src"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
   }
 
-  def "should set fragment status code of errored src also if fallback-src errored for primary include"() {
+  def "should handle primary include without src and with errored fallback-src"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("src")
-      .setResponseCode(503))
-    mockWebServer.enqueue(new MockResponse()
-      .setBody("fallback")
-      .setResponseCode(500))
+      .setResponseCode(503)
+      .setBody("503"))
 
     when:
-    def fragment = new Include("", [
+    def include = new Include("", [
+      "fallback-src": mockWebServer.url("/").toString(),
+      "primary": "primary"
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    include.resolved
+    include.resolvedFragment.content == "503"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote fallback-src"
+    include.resolveTimeMillis > 0
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should handle primary include with errored src and successfully resolved fallback-src"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(500)
+      .setBody("src-500"))
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(206)
+      .setBody("fallback-src-206"))
+
+    when:
+    def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "fallback-src": mockWebServer.url("/").toString(),
       "primary": ""
     ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "src"
-    fragment.statusCode == 503
+    include.resolved
+    include.resolvedFragment.content == "fallback-src-206"
+    include.resolvedFragment.statusCode == 206
+    include.resolvedFragmentSource == "remote fallback-src"
+    include.resolveTimeMillis > 0
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should handle primary include with errored src and errored fallback-src"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(503)
+      .setBody("src"))
+    mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(500)
+      .setBody("fallback"))
+
+    when:
+    def include = new Include("", [
+      "src": mockWebServer.url("/").toString(),
+      "fallback-src": mockWebServer.url("/").toString(),
+      "primary": ""
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
+
+    then:
+    include.resolved
+    include.resolvedFragment.content == "src"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
@@ -306,17 +336,17 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("src")
-      .setResponseCode(503))
+      .setResponseCode(503)
+      .setBody("src"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fallback")
-      .setResponseCode(500))
+      .setResponseCode(500)
+      .setBody("fallback"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("src 2nd call")
-      .setResponseCode(504))
+      .setResponseCode(504)
+      .setBody("src 2nd call"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fallback 2nd call")
-      .setResponseCode(500))
+      .setResponseCode(500)
+      .setBody("fallback 2nd call"))
     def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "fallback-src": mockWebServer.url("/").toString(),
@@ -324,18 +354,24 @@ class IncludeSpec extends Specification {
     ])
 
     when:
-    def fragment = include.resolve(httpClient, [:], cache, config, supplyPool).get()
+    include.resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "src"
-    fragment.statusCode == 503
+    include.resolved
+    include.resolvedFragment.content == "src"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     when:
-    def fragment2 = include.resolve(httpClient, [:], cache, config, supplyPool).get()
+    include.resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment2.content == "src 2nd call"
-    fragment2.statusCode == 504
+    include.resolved
+    include.resolvedFragment.content == "src 2nd call"
+    include.resolvedFragment.statusCode == 504
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
@@ -345,18 +381,21 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("response")
-      .setResponseCode(503))
+      .setResponseCode(503)
+      .setBody("response"))
 
     when:
-    def fragment = new Include("", [
+    def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "primary": ""
     ], "fallback content").resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "response"
-    fragment.statusCode == 503
+    include.resolved
+    include.resolvedFragment.content == "response"
+    include.resolvedFragment.statusCode == 503
+    include.resolvedFragmentSource == "remote src"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
@@ -366,18 +405,22 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setHeader("Location", "foo")
-      .setResponseCode(302))
+      .setResponseCode(302)
+      .setHeader("Location", "foo"))
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fragment after redirect")
-      .setResponseCode(200))
+      .setResponseCode(200)
+      .setBody("fragment after redirect"))
 
     when:
-    def fragment = new Include("", ["src": mockWebServer.url("/test-redirect").toString()], "fallback")
+    def include = new Include("", ["src": mockWebServer.url("/test-redirect").toString()], "fallback")
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fallback"
+    include.resolved
+    include.resolvedFragment.content == "fallback"
+    include.resolvedFragment.statusCode == 200
+    include.resolvedFragmentSource == "fallback content"
+    include.resolveTimeMillis > 0
 
     cleanup:
     mockWebServer.shutdown()
@@ -387,25 +430,29 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fragment from src")
-      .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/test-caching").toString()
+      .setResponseCode(200)
+      .setBody("fragment from src"))
+    def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
     cache.put(includeSrcUrl, new Fragment(null, 200, "from cache", expirationTime, [:]))
-    def fragment = new Include("", ["src": includeSrcUrl])
+    sleep(2000)
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == expectedFragment
+    include.resolved
+    include.resolvedFragment.content == expectedFragment
+    include.resolvedFragment.statusCode == 200
+    include.resolvedFragmentSource == expectedFragmentSource
 
     cleanup:
     mockWebServer.shutdown()
 
     where:
-    expirationTime                | expectedFragment
-    Instant.now().plusSeconds(5)  | "from cache"
-    Instant.now().minusSeconds(5) | "fragment from src"
+    expirationTime                | expectedFragment    | expectedFragmentSource
+    Instant.now().plusSeconds(5)  | "from cache"        | "cached src"
+    Instant.now().minusSeconds(5) | "fragment from src" | "remote src"
   }
 
   @Unroll
@@ -419,11 +466,15 @@ class IncludeSpec extends Specification {
       .setHeader("Cache-Control", "max-age=7200")
       .setBody(srcFragment))
     def includeSrcUrl = mockWebServer.url("/test-caching-" + UUID.randomUUID().toString()).toString()
-    def fragment = new Include("", ["src": includeSrcUrl], ":(")
+    def include = new Include("", ["src": includeSrcUrl], ":(")
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == expectedFragment
+    include.resolved
+    include.resolvedFragment.content == expectedFragment
+    include.resolvedFragment.statusCode == expectedFragmentStatusCode
+    include.resolvedFragmentSource == (expectedFragment == ':(' ? 'fallback content' : 'remote src')
+
     if (expectedFragmentCached) {
       assert cache.getIfPresent(includeSrcUrl) != null
     } else {
@@ -434,53 +485,54 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
 
     where:
-    responseStatus | srcFragment | expectedFragmentCached | expectedFragment
-    100           | "fragment"  | false                  | ":("
-    200           | "fragment"  | true                   | "fragment"
-    202           | "fragment"  | false                  | ":("
-    203           | "fragment"  | true                   | "fragment"
-    204           | ""          | true                   | ""
-    205           | "fragment"  | false                  | ":("
-    206           | "fragment"  | true                   | "fragment"
+    responseStatus | srcFragment | expectedFragmentCached | expectedFragment | expectedFragmentStatusCode
+    100            | "fragment"  | false                  | ":("             | 200
+    200            | "fragment"  | true                   | "fragment"       | 200
+    202            | "fragment"  | false                  | ":("             | 200
+    203            | "fragment"  | true                   | "fragment"       | 203
+    204            | ""          | true                   | ""               | 204
+    205            | "fragment"  | false                  | ":("             | 200
+    206            | "fragment"  | true                   | "fragment"       | 206
     // TODO: Testing status code 300 does not work on Java 11 because HttpClient fails with "IOException: Invalid redirection"
-    // 300           | "fragment"  | true                   | ":("
-    302           | "fragment"  | false                  | ":("
-    400           | "fragment"  | false                  | ":("
-    404           | "fragment"  | true                   | ":("
-    405           | "fragment"  | true                   | ":("
-    410           | "fragment"  | true                   | ":("
-    414           | "fragment"  | true                   | ":("
-    500           | "fragment"  | false                  | ":("
-    501           | "fragment"  | true                   | ":("
-    502           | "fragment"  | false                  | ":("
-    503           | "fragment"  | false                  | ":("
-    504           | "fragment"  | false                  | ":("
-    505           | "fragment"  | false                  | ":("
-    506           | "fragment"  | false                  | ":("
-    507           | "fragment"  | false                  | ":("
-    508           | "fragment"  | false                  | ":("
-    509           | "fragment"  | false                  | ":("
-    510           | "fragment"  | false                  | ":("
-    511           | "fragment"  | false                  | ":("
+    // 300           | "fragment"  | true                   | ":("             | 200
+    302            | "fragment"  | false                  | ":("             | 200
+    400            | "fragment"  | false                  | ":("             | 200
+    404            | "fragment"  | true                   | ":("             | 200
+    405            | "fragment"  | true                   | ":("             | 200
+    410            | "fragment"  | true                   | ":("             | 200
+    414            | "fragment"  | true                   | ":("             | 200
+    500            | "fragment"  | false                  | ":("             | 200
+    501            | "fragment"  | true                   | ":("             | 200
+    502            | "fragment"  | false                  | ":("             | 200
+    503            | "fragment"  | false                  | ":("             | 200
+    504            | "fragment"  | false                  | ":("             | 200
+    505            | "fragment"  | false                  | ":("             | 200
+    506            | "fragment"  | false                  | ":("             | 200
+    507            | "fragment"  | false                  | ":("             | 200
+    508            | "fragment"  | false                  | ":("             | 200
+    509            | "fragment"  | false                  | ":("             | 200
+    510            | "fragment"  | false                  | ":("             | 200
+    511            | "fragment"  | false                  | ":("             | 200
   }
 
   def "should cache fragment for s-maxage seconds if directive is present"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
       .setHeader("Cache-Control", "max-age=3600, s-maxage=604800 , public")
-      .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT")
-      .setResponseCode(200))
+      .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT"))
     def includeSrcUrl = mockWebServer.url("/test-s-maxage").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(604800).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(604800).minusSeconds(1))
 
@@ -492,19 +544,20 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
       .setHeader("Cache-Control", "max-age=3600")
-      .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT")
-      .setResponseCode(200))
+      .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT"))
     def includeSrcUrl = mockWebServer.url("/-test-max-age").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(3600).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(3600).minusSeconds(1))
 
@@ -516,18 +569,19 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
-      .setHeader("cache-control", "max-age=3600")
-      .setResponseCode(200))
-    def includeSrcUrl = mockWebServer.url("/test-cache-headers-case-insensitive").toString()
+      .setHeader("cache-control", "max-age=3600"))
+    def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(3600).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(3600).minusSeconds(1))
 
@@ -539,20 +593,21 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
       .setHeader("Cache-Control", "max-age=3600")
       .setHeader("Age", "600")
-      .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT")
-      .setResponseCode(200))
+      .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT"))
     def includeSrcUrl = mockWebServer.url("/test-age-header").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(3000).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(3000).minusSeconds(1))
 
@@ -564,20 +619,21 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
       .setHeader("Cache-Control", "max-age=3600")
       .setHeader("Age", "-100")
-      .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT")
-      .setResponseCode(200))
+      .setHeader("Expires", "Wed, 21 Oct 2015 07:28:00 GMT"))
     def includeSrcUrl = mockWebServer.url("/test-age-header").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cacheExpirationTime.isBefore(Instant.now().plusSeconds(3500).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plusSeconds(3500).minusSeconds(1))
 
@@ -589,19 +645,20 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
       .setHeader("Cache-Control", "public")
-      .setHeader("Expires", "Wed, 12 Oct 2050 07:28:00 GMT")
-      .setResponseCode(200))
+      .setHeader("Expires", "Wed, 12 Oct 2050 07:28:00 GMT"))
     def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cacheExpirationTime == ZonedDateTime.parse("Wed, 12 Oct 2050 07:28:00 GMT", DateTimeFormatter.RFC_1123_DATE_TIME).toInstant()
 
     cleanup:
@@ -612,17 +669,18 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
-      .setHeader("Expires", "0")
-      .setResponseCode(200))
+      .setHeader("Expires", "0"))
     def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cache.getIfPresent(includeSrcUrl) == null
 
     cleanup:
@@ -633,19 +691,20 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
       .setHeader("Date", "Wed, 05 Oct 2050 07:28:00 GMT")
-      .setHeader("Expires", "Wed, 12 Oct 2050 07:28:00 GMT")
-      .setResponseCode(200))
+      .setHeader("Expires", "Wed, 12 Oct 2050 07:28:00 GMT"))
     def includeSrcUrl = mockWebServer.url("/test-expires-header").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cacheExpirationTime.isBefore(Instant.now().plus(7, ChronoUnit.DAYS).plusSeconds(1))
     cacheExpirationTime.isAfter(Instant.now().plus(7, ChronoUnit.DAYS).minusSeconds(1))
 
@@ -657,17 +716,18 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
-      .setHeader("Cache-Control", "no-cache,no-store,must-revalidate")
-      .setResponseCode(200))
+      .setHeader("Cache-Control", "no-cache,no-store,must-revalidate"))
     def includeSrcUrl = mockWebServer.url("/test-caching").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cache.getIfPresent(includeSrcUrl) == null
 
     cleanup:
@@ -680,15 +740,15 @@ class IncludeSpec extends Specification {
 
     when:
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
       .setHeader(header1Name, header1Value)
-      .setHeader(header2Name, header2Value)
-      .setResponseCode(200))
-    def fragment = new Include("", ["src": mockWebServer.url("/test-should-not-crash").toString()])
+      .setHeader(header2Name, header2Value))
+    def include = new Include("", ["src": mockWebServer.url("/test-should-not-crash").toString()])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fragment"
+    include.resolvedFragment.content == "fragment"
 
     cleanup:
     mockWebServer.shutdown()
@@ -706,16 +766,17 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("fragment")
-      .setResponseCode(200))
+      .setResponseCode(200)
+      .setBody("fragment"))
     def includeSrcUrl = mockWebServer.url("/test-default-cache-duration").toString()
 
     when:
-    def fragment = new Include("", ["src": includeSrcUrl])
+    def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fragment"
+    include.resolved
+    include.resolvedFragment.content == "fragment"
     cache.getIfPresent(includeSrcUrl) == null
 
     cleanup:
@@ -726,16 +787,17 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment from src")
-      .setHeadersDelay(2, TimeUnit.SECONDS)
-      .setResponseCode(200))
+      .setHeadersDelay(2, TimeUnit.SECONDS))
 
     when:
-    def fragment = new Include("", ["src": mockWebServer.url("/test-timeout-handling").toString()], "fallback")
+    def include = new Include("", ["src": mockWebServer.url("/test-timeout-handling").toString()], "fallback")
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fallback"
+    include.resolved
+    include.resolvedFragment.content == "fallback"
 
     cleanup:
     mockWebServer.shutdown()
@@ -745,16 +807,17 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment from src")
-      .setBodyDelay(2, TimeUnit.SECONDS)
-      .setResponseCode(200))
+      .setBodyDelay(2, TimeUnit.SECONDS))
 
     when:
-    def fragment = new Include("", ["src": mockWebServer.url("/test-timeout-handling").toString()], "fallback")
+    def include = new Include("", ["src": mockWebServer.url("/test-timeout-handling").toString()], "fallback")
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    fragment.content == "fallback"
+    include.resolved
+    include.resolvedFragment.content == "fallback"
 
     cleanup:
     mockWebServer.shutdown()
@@ -764,9 +827,9 @@ class IncludeSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
+      .setResponseCode(200)
       .setBody("fragment")
-      .setBodyDelay(1500, TimeUnit.MILLISECONDS)
-      .setResponseCode(200))
+      .setBodyDelay(1500, TimeUnit.MILLISECONDS))
 
     when:
     def attributes = new HashMap()
@@ -774,7 +837,8 @@ class IncludeSpec extends Specification {
     attributes.putAll(timeoutAttribute)
 
     then:
-    new Include("", attributes).resolve(httpClient, [:], cache, config, supplyPool).get().content == expectedFragment
+    new Include("", attributes).resolve(httpClient, [:], cache, config, supplyPool).get()
+      .resolvedFragment.content == expectedFragment
 
     cleanup:
     mockWebServer.shutdown()
@@ -941,11 +1005,11 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    def result = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
+    def include = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    result.responseHeaders == ["x-test": ["Test"]]
+    include.resolvedFragment.responseHeaders == ["x-test": ["Test"]]
 
     cleanup:
     mockWebServer.shutdown()
@@ -958,11 +1022,11 @@ class IncludeSpec extends Specification {
       .addHeader("X-Test", "Test"))
 
     when:
-    def result = new Include("", ["src": mockWebServer.url("/").toString(), "primary": "false"])
+    def include = new Include("", ["src": mockWebServer.url("/").toString(), "primary": "false"])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    result.responseHeaders.isEmpty()
+    include.resolvedFragment.responseHeaders.isEmpty()
 
     cleanup:
     mockWebServer.shutdown()
@@ -978,11 +1042,11 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    def result = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
+    def include = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    result.responseHeaders == ["x-test": ["Test"]]
+    include.resolvedFragment.responseHeaders == ["x-test": ["Test"]]
 
     cleanup:
     mockWebServer.shutdown()
@@ -999,11 +1063,11 @@ class IncludeSpec extends Specification {
       .build()
 
     when:
-    def result = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
+    def include = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
       .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
-    result.responseHeaders.get("x-test") == ["Test", "Test2"]
+    include.resolvedFragment.responseHeaders.get("x-test") == ["Test", "Test2"]
 
     cleanup:
     mockWebServer.shutdown()
@@ -1028,23 +1092,28 @@ class IncludeSpec extends Specification {
       .fragmentRequestHeadersToPass(["x-ab-TEST"])
       .cacheVaryByRequestHeaders(["x-AB-test"])
       .build()
-    def include = new Include("", ["src": mockWebServer.url("/").toString()])
 
     when:
-    def fragment1 = include.resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool).get()
-    def fragment2 = include.resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool).get()
-    def fragment3 = include.resolve(httpClient, ["X-AB-TEST": ["B"]], cache, config, supplyPool).get()
-    def fragment4 = include.resolve(httpClient, ["X-AB-TEST": ["B"], "X-Foo": ["Bar"]], cache, config, supplyPool).get()
-    def fragment5 = include.resolve(httpClient, [:], cache, config, supplyPool).get()
-    def fragment6 = include.resolve(httpClient, ["x-ab-test": ["A"]], cache, config, supplyPool).get()
+    def include1 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool).get()
+    def include2 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool).get()
+    def include3 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["X-AB-TEST": ["B"]], cache, config, supplyPool).get()
+    def include4 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["X-AB-TEST": ["B"], "X-Foo": ["Bar"]], cache, config, supplyPool).get()
+    def include5 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
+    def include6 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["x-ab-test": ["A"]], cache, config, supplyPool).get()
 
     then:
-    fragment1.content == "X-AB-Test=A"
-    fragment2.content == "X-AB-Test=A"
-    fragment3.content == "X-AB-Test=B"
-    fragment4.content == "X-AB-Test=B"
-    fragment5.content == "X-AB-Test=omitted"
-    fragment6.content == "X-AB-Test=A"
+    include1.resolvedFragment.content == "X-AB-Test=A"
+    include2.resolvedFragment.content == "X-AB-Test=A"
+    include3.resolvedFragment.content == "X-AB-Test=B"
+    include4.resolvedFragment.content == "X-AB-Test=B"
+    include5.resolvedFragment.content == "X-AB-Test=omitted"
+    include6.resolvedFragment.content == "X-AB-Test=A"
 
     cleanup:
     mockWebServer.shutdown()
@@ -1065,19 +1134,22 @@ class IncludeSpec extends Specification {
       .fragmentRequestHeadersToPass(["x-test-A", "x-test-B", "x-test-C"])
       .cacheVaryByRequestHeaders(["X-Test-A", "X-Test-B", "X-Test-C"])
       .build()
-    def include = new Include("", ["src": mockWebServer.url("/").toString()])
 
     when:
-    def fragment1 = include.resolve(httpClient, ["X-TEST-A": ["A"], "X-Test-B": ["B"], "X-Test-C": ["C"]], cache, config, supplyPool).get()
-    def fragment2 = include.resolve(httpClient, ["X-TEST-B": ["B"], "X-TEST-A": ["A"], "X-Test-C": ["C"]], cache, config, supplyPool).get()
-    def fragment3 = include.resolve(httpClient, ["X-TEST-C": ["C"], "X-test-B": ["B"], "X-Test-A": ["A"]], cache, config, supplyPool).get()
-    def fragment4 = include.resolve(httpClient, ["x-test-c": ["B"], "x-test-b": ["B"], "x-test-a": ["A"]], cache, config, supplyPool).get()
+    def include1 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["X-TEST-A": ["A"], "X-Test-B": ["B"], "X-Test-C": ["C"]], cache, config, supplyPool).get()
+    def include2 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["X-TEST-B": ["B"], "X-TEST-A": ["A"], "X-Test-C": ["C"]], cache, config, supplyPool).get()
+    def include3 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["X-TEST-C": ["C"], "X-test-B": ["B"], "X-Test-A": ["A"]], cache, config, supplyPool).get()
+    def include4 = new Include("", ["src": mockWebServer.url("/").toString()])
+      .resolve(httpClient, ["x-test-c": ["B"], "x-test-b": ["B"], "x-test-a": ["A"]], cache, config, supplyPool).get()
 
     then:
-    fragment1.content == "A,B,C"
-    fragment2.content == "A,B,C"
-    fragment3.content == "A,B,C"
-    fragment4.content == "A,B,B"
+    include1.resolvedFragment.content == "A,B,C"
+    include2.resolvedFragment.content == "A,B,C"
+    include3.resolvedFragment.content == "A,B,C"
+    include4.resolvedFragment.content == "A,B,B"
 
     cleanup:
     mockWebServer.shutdown()

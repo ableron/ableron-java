@@ -100,8 +100,8 @@ class HttpUtilSpec extends Specification {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse()
-      .setBody("plain text body")
-      .setResponseCode(200))
+      .setResponseCode(200)
+      .setBody("plain text body"))
 
     when:
     def httpResponse = HttpClient.newHttpClient()

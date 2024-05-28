@@ -544,6 +544,9 @@ class TransclusionProcessorSpec extends Specification {
     )
 
     then:
-    result.content.matches("(?s)<!-- fallback content -->\\n<!-- Ableron stats:\\nProcessed 1 include\\(s\\) in \\d+?ms\\nUnable to resolve include 125703905(: Cannot invoke \"java\\.util\\.Set\\.stream\\(\\)\" because the return value of \"java\\.util\\.Map\\.entrySet\\(\\)\" is null)?\\n-->")
+    result.content.matches("(?s)<!-- fallback content -->\\n<!-- Ableron stats:\\nProcessed 1 include\\(s\\) in \\d+ms.+")
+    result.content.matches("(?s).+\\d+ms \\| 125703905 \\| fallback content \\| -\\n-->")
+    result.contentExpirationTime.get() <= Instant.now().plusSeconds(60)
+    result.contentExpirationTime.get() >= Instant.now().plusSeconds(58)
   }
 }

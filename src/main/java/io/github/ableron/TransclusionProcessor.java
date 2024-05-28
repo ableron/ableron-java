@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.http.HttpClient;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -97,16 +98,10 @@ public class TransclusionProcessor {
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         try {
-          var includeResolveStartTime = System.nanoTime();
           return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
-            .thenApply(fragment -> {
-              logger.debug("[Ableron] Resolved include {} in {}ms", include.getId(), (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
-              transclusionResult.addResolvedInclude(include, fragment, (System.nanoTime() - includeResolveStartTime) / NANO_2_MILLIS);
-              return fragment;
-            });
+            .thenAccept(transclusionResult::addResolvedInclude);
         } catch (Exception e) {
-          logger.error("[Ableron] Unable to resolve include {}", include.getId(), e);
-          transclusionResult.addUnresolvableInclude(include, e.getMessage());
+          handleResolveError(include, e, transclusionResult, startTime);
           return CompletableFuture.completedFuture(null);
         }
       })
@@ -114,6 +109,14 @@ public class TransclusionProcessor {
     ).join();
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
     return transclusionResult;
+  }
+
+  private void handleResolveError(Include include, Exception e, TransclusionResult transclusionResult, long resolveStartTimeMillis) {
+    logger.error("[Ableron] Unable to resolve include {}", include.getId(), e);
+    transclusionResult.addResolvedInclude(include.resolveWith(
+      new Fragment(null, 200, include.getFallbackContent(), Instant.now().plusSeconds(60), Map.of()),
+      (int) ((System.nanoTime() - resolveStartTimeMillis) / NANO_2_MILLIS),
+      "fallback content"));
   }
 
   /**
