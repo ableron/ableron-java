@@ -240,7 +240,6 @@ public class Include {
     return resolved;
   }
 
-  //TODO: Make Optional<Fragment>
   public Fragment getResolvedFragment() {
     return resolvedFragment;
   }
