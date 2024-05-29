@@ -167,7 +167,7 @@ public class TransclusionResult {
   }
 
   private String getStats() {
-    return getStatsHeader() + getStatsProcessedIncludes() + getStatsFooter();
+    return getStatsHeader() + getProcessedIncludesStats() + getStatsFooter();
   }
 
   private String getStatsHeader() {
@@ -178,7 +178,7 @@ public class TransclusionResult {
     return "\n-->";
   }
 
-  private String getStatsProcessedIncludes() {
+  private String getProcessedIncludesStats() {
     var stats = new StringBuilder();
 
     if (!this.processedIncludes.isEmpty()) {
