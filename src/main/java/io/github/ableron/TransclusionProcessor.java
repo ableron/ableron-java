@@ -46,6 +46,8 @@ public class TransclusionProcessor {
    */
   private final Cache<String, Fragment> fragmentCache;
 
+  private final Stats stats = new Stats();
+
   /**
    * Thread pool used to resolve includes in parallel.
    */
@@ -94,11 +96,11 @@ public class TransclusionProcessor {
    */
   public TransclusionResult resolveIncludes(String content, Map<String, List<String>> parentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult(content, ableronConfig.statsAppendToContent(), ableronConfig.statsExposeFragmentUrl());
+    var transclusionResult = new TransclusionResult(content, this.stats, ableronConfig.statsAppendToContent(), ableronConfig.statsExposeFragmentUrl());
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         try {
-          return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
+          return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool, stats)
             .thenAccept(transclusionResult::addResolvedInclude);
         } catch (Exception e) {
           handleResolveError(include, e, transclusionResult, startTime);
