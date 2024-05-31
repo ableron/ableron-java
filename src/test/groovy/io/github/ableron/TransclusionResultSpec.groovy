@@ -146,8 +146,14 @@ class TransclusionResultSpec extends Specification {
 
   def "should append stats to content - zero includes"() {
     expect:
-    new TransclusionResult("content", true, true).getContent()
-      == "content\n<!-- Ableron stats:\nProcessed 0 include(s) in 0ms\n-->"
+    new TransclusionResult("content", new Stats(), true, true).getContent()
+      ==
+      "content\n"+
+      "<!-- Ableron stats:\n"+
+      "Processed 0 include(s) in 0ms\n"+
+      "\n"+
+      "Cache Stats: 0 overall hits, 0 overall misses\n"+
+      "-->"
   }
 
   def "should append stats to content"() {
