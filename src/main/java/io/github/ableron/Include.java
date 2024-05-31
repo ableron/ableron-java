@@ -260,9 +260,10 @@ public class Include {
    * @param fragmentCache Cache for fragments
    * @param config Global ableron configuration
    * @param resolveThreadPool Thread pool to use for resolving
+   * @param stats Stats object used to record stats while resolving the Include
    * @return The resolved Include
    */
-  public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
+  public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool, Stats stats) {
     var resolveStartTime = System.nanoTime();
     var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, Stream.concat(
         config.getFragmentRequestHeadersToPass().stream(),
@@ -272,8 +273,8 @@ public class Include {
     erroredPrimaryFragment = null;
 
     return CompletableFuture.supplyAsync(
-      () -> load(src, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), ATTR_SOURCE)
-        .or(() -> load(fallbackSrc, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), ATTR_FALLBACK_SOURCE))
+      () -> load(src, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), ATTR_SOURCE, stats)
+        .or(() -> load(fallbackSrc, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), ATTR_FALLBACK_SOURCE, stats))
         .or(() -> {
           resolvedFragmentSource = erroredPrimaryFragmentSource;
           return Optional.ofNullable(erroredPrimaryFragment);
@@ -302,12 +303,20 @@ public class Include {
     return this;
   }
 
-  private Optional<Fragment> load(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, Duration requestTimeout, String urlSource) {
-    var fragmentCacheKey = this.buildFragmentCacheKey(uri, requestHeaders, config.getCacheVaryByRequestHeaders());
+  private Optional<Fragment> load(
+    String uri,
+    HttpClient httpClient,
+    Map<String, List<String>> requestHeaders,
+    Cache<String, Fragment> fragmentCache,
+    AbleronConfig config,
+    Duration requestTimeout,
+    String urlSource,
+    Stats stats) {
+    var fragmentCacheKey = buildFragmentCacheKey(uri, requestHeaders, config.getCacheVaryByRequestHeaders());
 
     return Optional.ofNullable(uri)
       .map(uri1 -> {
-        var fragmentFromCache = fragmentCache.getIfPresent(fragmentCacheKey);
+        var fragmentFromCache = getFragmentFromCache(fragmentCacheKey, fragmentCache, stats);
         this.resolvedFragmentSource = (fragmentFromCache != null ? "cached " : "remote ") + urlSource;
 
         return fragmentFromCache != null ? fragmentFromCache : performRequest(uri, httpClient, requestHeaders, requestTimeout)
@@ -427,6 +436,18 @@ public class Include {
         .map(entry -> "|" + entry.getKey() + "=" + String.join(",", entry.getValue()))
         .map(String::toLowerCase)
         .collect(Collectors.joining());
+  }
+
+  private Fragment getFragmentFromCache(String cacheKey, Cache<String, Fragment> fragmentCache, Stats stats) {
+    var fragmentFromCache = fragmentCache.getIfPresent(cacheKey);
+
+    if (fragmentFromCache != null) {
+      stats.recordCacheHit();
+    } else {
+      stats.recordCacheMiss();
+    }
+
+    return fragmentFromCache;
   }
 
   private boolean hasBooleanAttribute(String attributeName) {

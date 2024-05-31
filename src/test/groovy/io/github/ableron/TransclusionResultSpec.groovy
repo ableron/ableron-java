@@ -146,8 +146,14 @@ class TransclusionResultSpec extends Specification {
 
   def "should append stats to content - zero includes"() {
     expect:
-    new TransclusionResult("content", true, true).getContent()
-      == "content\n<!-- Ableron stats:\nProcessed 0 include(s) in 0ms\n-->"
+    new TransclusionResult("content", new Stats(), true, true).getContent()
+      ==
+      "content\n"+
+      "<!-- Ableron stats:\n"+
+      "Processed 0 include(s) in 0ms\n"+
+      "\n"+
+      "Cache Stats: 0 overall hits, 0 overall misses\n"+
+      "-->"
   }
 
   def "should append stats to content"() {
@@ -194,19 +200,27 @@ class TransclusionResultSpec extends Specification {
     """, [:])
 
     then:
-    result.content.startsWith("""
-      fallback content
-      uncacheable-fragment
-      cacheable-fragment-1
-      cacheable-fragment-2
-    """)
-    result.content.matches("(?s).+<!-- Ableron stats:\\nProcessed 4 include\\(s\\) in \\d+ms.+")
-    result.content.contains("Time | Include | Resolved With | Fragment Cacheability | Fragment URL")
-    result.content.contains("------------------------------------------------------")
-    result.content.matches("(?s).+\\d+ms \\| 1 \\| fallback content \\| - \\| -\\n.+")
-    result.content.matches("(?s).+\\d+ms \\| 2 \\| remote src \\| not cacheable \\| http://localhost:\\d+/uncacheable-fragment\\n.+")
-    result.content.matches("(?s).+\\d+ms \\| 3 \\| remote src \\| expires in \\d+s \\| http://localhost:\\d+/cacheable-fragment-1\\n.+")
-    result.content.matches("(?s).+\\d+ms \\| 4 \\| cached fallback-src \\| expires in 10s \\| http://localhost:\\d+/cacheable-fragment-2\\n.+")
+    result.content
+      .replaceAll("\\d+ms", "XXXms")
+      .replaceAll("localhost:\\d+/", "localhost:80/")
+      .replaceAll("expires in \\d{3,}s", "expires in XXXs") ==
+      "\n      fallback content\n" +
+      "      uncacheable-fragment\n" +
+      "      cacheable-fragment-1\n" +
+      "      cacheable-fragment-2\n" +
+      "    \n" +
+      "<!-- Ableron stats:\n" +
+      "Processed 4 include(s) in XXXms\n" +
+      "\n" +
+      "Time | Include | Resolved With | Fragment Cacheability | Fragment URL\n"+
+      "------------------------------------------------------\n" +
+      "XXXms | 1 | fallback content | - | -\n" +
+      "XXXms | 2 | remote src | not cacheable | http://localhost:80/uncacheable-fragment\n" +
+      "XXXms | 3 | remote src | expires in XXXs | http://localhost:80/cacheable-fragment-1\n" +
+      "XXXms | 4 | cached fallback-src | expires in 10s | http://localhost:80/cacheable-fragment-2\n" +
+      "\n" +
+      "Cache Stats: 1 overall hits, 3 overall misses\n" +
+      "-->"
 
     cleanup:
     mockWebServer.shutdown()
@@ -214,7 +228,7 @@ class TransclusionResultSpec extends Specification {
 
   def "should not expose fragment URL to stats by default"() {
     given:
-    def transclusionResult = new TransclusionResult("", true, false)
+    def transclusionResult = new TransclusionResult("", new Stats(), true, false)
 
     when:
     transclusionResult.addResolvedInclude(new Include("").resolveWith(
@@ -224,16 +238,19 @@ class TransclusionResultSpec extends Specification {
     then:
     transclusionResult.getContent() ==
       "\n<!-- Ableron stats:\n" +
-      "Processed 1 include(s) in 0ms\n\n" +
+      "Processed 1 include(s) in 0ms\n" +
+      "\n" +
       "Time | Include | Resolved With | Fragment Cacheability\n" +
       "------------------------------------------------------\n" +
       "71ms | 0 | src | not cacheable\n" +
+      "\n" +
+      "Cache Stats: 0 overall hits, 0 overall misses\n" +
       "-->"
   }
 
   def "should append stats for primary include"() {
     given:
-    def transclusionResult = new TransclusionResult("", true, false)
+    def transclusionResult = new TransclusionResult("", new Stats(), true, false)
 
     when:
     transclusionResult.addResolvedInclude(new Include("include#1", ["primary":""]).resolveWith(
@@ -243,16 +260,19 @@ class TransclusionResultSpec extends Specification {
     then:
     transclusionResult.getContent() ==
       "\n<!-- Ableron stats:\n" +
-      "Processed 1 include(s) in 0ms\n\n" +
+      "Processed 1 include(s) in 0ms\n" +
+      "\n" +
       "Time | Include | Resolved With | Fragment Cacheability\n" +
       "------------------------------------------------------\n" +
       "0ms | 1496920298 (primary) | fallback content | -\n" +
+      "\n" +
+      "Cache Stats: 0 overall hits, 0 overall misses\n" +
       "-->"
   }
 
   def "should append stats for primary include - multiple primary includes"() {
     given:
-    def transclusionResult = new TransclusionResult("", true, false)
+    def transclusionResult = new TransclusionResult("", new Stats(), true, false)
 
     when:
     transclusionResult.addResolvedInclude(new Include("include#1", ["primary":""]).resolveWith(
@@ -265,11 +285,14 @@ class TransclusionResultSpec extends Specification {
     then:
     transclusionResult.getContent() ==
       "\n<!-- Ableron stats:\n" +
-      "Processed 2 include(s) in 0ms\n\n" +
+      "Processed 2 include(s) in 0ms\n" +
+      "\n" +
       "Time | Include | Resolved With | Fragment Cacheability\n" +
       "------------------------------------------------------\n" +
       "33ms | 1496920297 (primary) | fallback content | -\n" +
       "0ms | 1496920298 (primary) | fallback content | -\n" +
+      "\n" +
+      "Cache Stats: 0 overall hits, 0 overall misses\n" +
       "-->"
   }
 }

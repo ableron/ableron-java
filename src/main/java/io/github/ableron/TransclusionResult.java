@@ -27,6 +27,8 @@ public class TransclusionResult {
    */
   private String content;
 
+  private final Stats stats;
+
   /**
    * Expiration time of the content as defined by the fragment with the lowest expiration
    * time.
@@ -60,11 +62,12 @@ public class TransclusionResult {
   private final List<Include> processedIncludes = new ArrayList<>();
 
   public TransclusionResult(String content) {
-    this(content, false, false);
+    this(content, new Stats(), false, false);
   }
 
-  public TransclusionResult(String content, boolean appendStatsToContent, boolean exposeFragmentUrl) {
+  public TransclusionResult(String content, Stats stats, boolean appendStatsToContent, boolean exposeFragmentUrl) {
     this.content = content;
+    this.stats = stats;
     this.appendStatsToContent = appendStatsToContent;
     this.exposeFragmentUrl = exposeFragmentUrl;
   }
@@ -167,11 +170,11 @@ public class TransclusionResult {
   }
 
   private String getStats() {
-    return getStatsHeader() + getProcessedIncludesStats() + getStatsFooter();
+    return getStatsHeader() + getProcessedIncludesStats() + getCacheStats() + getStatsFooter();
   }
 
   private String getStatsHeader() {
-    return "\n<!-- Ableron stats:\nProcessed " + getProcessedIncludesCount() + " include(s) in " + this.processingTimeMillis + "ms";
+    return "\n<!-- Ableron stats:";
   }
 
   private String getStatsFooter() {
@@ -179,7 +182,7 @@ public class TransclusionResult {
   }
 
   private String getProcessedIncludesStats() {
-    var stats = new StringBuilder();
+    var stats = new StringBuilder("\nProcessed " + getProcessedIncludesCount() + " include(s) in " + this.processingTimeMillis + "ms");
 
     if (!this.processedIncludes.isEmpty()) {
       stats
@@ -193,6 +196,10 @@ public class TransclusionResult {
     }
 
     return stats.toString();
+  }
+
+  private String getCacheStats() {
+    return "\n\nCache Stats: " + this.stats.getTotalCacheHits() + " overall hits, " + this.stats.getTotalCacheMisses() + " overall misses";
   }
 
   private String getProcessedIncludeStatsRow(Include include) {
