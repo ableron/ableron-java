@@ -545,8 +545,95 @@ class TransclusionProcessorSpec extends Specification {
 
     then:
     result.content.matches("(?s)<!-- fallback content -->\\n<!-- Ableron stats:\\nProcessed 1 include\\(s\\) in \\d+ms.+")
-    result.content.matches("(?s).+\\d+ms \\| 125703905 \\| fallback content \\| -\\n-->")
+    result.content.matches("(?s).+\\d+ms \\| 125703905 \\| fallback content \\| -\\n.+")
     result.contentExpirationTime.get() <= Instant.now().plusSeconds(60)
     result.contentExpirationTime.get() >= Instant.now().plusSeconds(58)
+  }
+
+  def "should record stats"() {
+    given:
+    def transclusionProcessor = new TransclusionProcessor(AbleronConfig.builder()
+      .statsAppendToContent(true)
+      .build())
+    def mockWebServer = new MockWebServer()
+    def baseUrl = mockWebServer.url("/").toString()
+    mockWebServer.setDispatcher(new Dispatcher() {
+      @Override
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
+        switch (recordedRequest.getPath()) {
+          case "/200-cacheable":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setHeader("Cache-Control", "max-age=60")
+              .setBody("200-cacheable")
+          case "/200-not-cacheable":
+            return new MockResponse()
+              .setResponseCode(200)
+              .setBody("200-not-cacheable")
+          case "/404":
+            return new MockResponse()
+              .setResponseCode(404)
+              .setBody("404")
+          case "/503":
+            return new MockResponse()
+              .setResponseCode(503)
+              .setBody("503")
+        }
+        return new MockResponse().setResponseCode(404)
+      }
+    })
+
+    when:
+    transclusionProcessor.resolveIncludes("""
+      <ableron-include src="${baseUrl}200-cacheable"/>
+      <ableron-include src="${baseUrl}200-not-cacheable"/>
+      <ableron-include src="${baseUrl}404"/>
+      <ableron-include src="${baseUrl}503"/>
+    """, [:])
+    transclusionProcessor.resolveIncludes("""
+      <ableron-include src="${baseUrl}200-cacheable"/>
+      <ableron-include src="${baseUrl}200-not-cacheable"/>
+      <ableron-include src="${baseUrl}404" primary/>
+      <ableron-include src="${baseUrl}503" fallback-src="${baseUrl}404" primary/>
+    """, [:])
+    transclusionProcessor.resolveIncludes("""
+      <ableron-include src="${baseUrl}200-cacheable"/>
+      <ableron-include src="${baseUrl}200-not-cacheable"/>
+      <ableron-include src="${baseUrl}404" fallback-src="${baseUrl}200-cacheable" primary/>
+      <ableron-include src="${baseUrl}404" fallback-src="${baseUrl}503"/>
+    """, [:])
+    def result = transclusionProcessor.resolveIncludes("""
+      <ableron-include id="5" src="${baseUrl}200-cacheable"/>
+      <ableron-include id="e" src="${baseUrl}200-not-cacheable"/>
+      <ableron-include id="4" src="${baseUrl}404"><!-- error --></ableron-include>
+      <ableron-include id="h" src="${baseUrl}404" fallback-src="${baseUrl}503" primary><!-- error --></ableron-include>
+      <ableron-include id="z" fallback-src="${baseUrl}200-not-cacheable"/>
+      <ableron-include id="b" src="${baseUrl}503" fallback-src="${baseUrl}200-cacheable"><!-- error --></ableron-include>""", [:])
+
+    then:
+    result.content.replaceAll("\\d+ms", "XXXms") == """
+      200-cacheable
+      200-not-cacheable
+      <!-- error -->
+      404
+      200-not-cacheable
+      200-cacheable
+<!-- Ableron stats:
+Processed 6 include(s) in XXXms
+
+Time | Include | Resolved With | Fragment Cacheability
+------------------------------------------------------
+XXXms | 4 | fallback content | -
+XXXms | 5 | cached src | expires in 60s
+XXXms | b | cached fallback-src | expires in 60s
+XXXms | e | remote src | not cacheable
+XXXms | h (primary) | remote src | not cacheable
+XXXms | z | remote fallback-src | not cacheable
+
+Cache Stats: 5 overall hits, 18 overall misses
+-->"""
+
+    cleanup:
+    mockWebServer.shutdown()
   }
 }
