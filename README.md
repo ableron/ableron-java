@@ -132,3 +132,12 @@ Whether to append UI composition stats as HTML comment to the content.
 Default: `false`
 
 Whether to expose fragment URLs in the stats appended to the content.
+
+## Contributing
+
+All contributions are greatly appreciated, be it pull requests, feature requests or bug reports. See
+[ableron.github.io](https://ableron.github.io/) for details.
+
+## License
+
+Licensed under [MIT](./LICENSE).
