@@ -61,6 +61,11 @@ public class AbleronConfig {
   private List<String> cacheVaryByRequestHeaders = List.of();
 
   /**
+   * Whether to enable auto-refreshing of cached fragments.
+   */
+  private boolean cacheAutoRefreshEnabled = false;
+
+  /**
    * Whether to append UI composition stats as HTML comment to the content.
    * Defaults to false.
    */
@@ -104,6 +109,10 @@ public class AbleronConfig {
 
   public List<String> getCacheVaryByRequestHeaders() {
     return cacheVaryByRequestHeaders;
+  }
+
+  public boolean cacheAutoRefreshEnabled() {
+    return cacheAutoRefreshEnabled;
   }
 
   public boolean statsAppendToContent() {
@@ -155,6 +164,11 @@ public class AbleronConfig {
 
     public Builder statsAppendToContent(boolean statsAppendToContent) {
       ableronConfig.statsAppendToContent = statsAppendToContent;
+      return this;
+    }
+
+    public Builder cacheAutoRefreshEnabled(boolean cacheAutoRefreshEnabled) {
+      ableronConfig.cacheAutoRefreshEnabled = cacheAutoRefreshEnabled;
       return this;
     }
 
