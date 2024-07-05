@@ -5,11 +5,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,6 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
@@ -43,6 +49,24 @@ public class HttpUtil {
   private static final String HEADER_EXPIRES = "Expires";
 
   private static final Pattern CHARSET_PATTERN = Pattern.compile("(?i)\\bcharset\\s*=\\s*\"?([^\\s;\"]+)");
+
+  public static Optional<HttpResponse<byte[]>> loadUrl(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
+    try {
+      logger.debug("[Ableron] Loading {} with timeout {}ms", uri, requestTimeout.toMillis());
+      var httpRequestBuilder = HttpRequest.newBuilder()
+        .uri(URI.create(uri))
+        .header("Accept-Encoding", "gzip");
+      requestHeaders.forEach((name, values) -> values.forEach(value -> httpRequestBuilder.header(name, value)));
+      var httpResponse = httpClient.sendAsync(httpRequestBuilder.GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+      return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
+    } catch (TimeoutException e) {
+      logger.error("[Ableron] Unable to load {}: {}ms timeout exceeded", uri, requestTimeout.toMillis());
+      return Optional.empty();
+    } catch (Exception e) {
+      logger.error("[Ableron] Unable to load {}: {}", uri, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
+      return Optional.empty();
+    }
+  }
 
   public static Instant calculateResponseExpirationTime(Map<String, List<String>> responseHeaders) {
     var headers = HttpHeaders.of(responseHeaders, (name, value) -> true);

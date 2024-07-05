@@ -3,17 +3,12 @@ package io.github.ableron;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -306,7 +301,7 @@ public class Include {
         var fragmentFromCache = getFragmentFromCache(fragmentCacheKey, fragmentCache, stats);
         this.resolvedFragmentSource = (fragmentFromCache.isPresent() ? "cached " : "remote ") + urlSource;
 
-        return fragmentFromCache.orElseGet(() -> performRequest(uri, httpClient, requestHeaders, requestTimeout)
+        return fragmentFromCache.orElseGet(() -> HttpUtil.loadUrl(uri, httpClient, requestHeaders, requestTimeout)
           .filter(response -> {
             if (!isHttpStatusCacheable(response.statusCode())) {
               logger.error("[Ableron] Fragment {} returned status code {}", uri, response.statusCode());
@@ -381,30 +376,6 @@ public class Include {
 
   private boolean isHttpStatusCacheable(int httpStatusCode) {
     return HttpUtil.HTTP_STATUS_CODES_CACHEABLE.contains(httpStatusCode);
-  }
-
-  private Optional<HttpResponse<byte[]>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
-    try {
-      logger.debug("[Ableron] Loading fragment {} for include {} with timeout {}ms", uri, id, requestTimeout.toMillis());
-      var httpResponse = httpClient.sendAsync(buildHttpRequest(uri, requestHeaders), HttpResponse.BodyHandlers.ofByteArray());
-      return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
-    } catch (TimeoutException e) {
-      logger.error("[Ableron] Unable to load fragment {} for include {}: {}ms timeout exceeded", uri, id, requestTimeout.toMillis());
-      return Optional.empty();
-    } catch (Exception e) {
-      logger.error("[Ableron] Unable to load fragment {} for include {}: {}", uri, id, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
-      return Optional.empty();
-    }
-  }
-
-  private HttpRequest buildHttpRequest(String uri, Map<String, List<String>> requestHeaders) {
-    var httpRequestBuilder = HttpRequest.newBuilder()
-      .uri(URI.create(uri))
-      .header("Accept-Encoding", "gzip");
-    requestHeaders.forEach((name, values) -> values.forEach(value -> httpRequestBuilder.header(name, value)));
-    return httpRequestBuilder
-      .GET()
-      .build();
   }
 
   private String buildIncludeId(String providedId) {
