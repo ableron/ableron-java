@@ -1,6 +1,5 @@
 package io.github.ableron;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -263,7 +262,7 @@ public class Include {
    * @param stats Stats object used to record stats while resolving the Include
    * @return The resolved Include
    */
-  public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool, Stats stats) {
+  public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, FragmentCache fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool, Stats stats) {
     var resolveStartTime = System.nanoTime();
     var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, Stream.concat(
         config.getFragmentRequestHeadersToPass().stream(),
@@ -307,7 +306,7 @@ public class Include {
     String uri,
     HttpClient httpClient,
     Map<String, List<String>> requestHeaders,
-    Cache<String, Fragment> fragmentCache,
+    FragmentCache fragmentCache,
     AbleronConfig config,
     Duration requestTimeout,
     String urlSource,
@@ -317,9 +316,9 @@ public class Include {
     return Optional.ofNullable(uri)
       .map(uri1 -> {
         var fragmentFromCache = getFragmentFromCache(fragmentCacheKey, fragmentCache, stats);
-        this.resolvedFragmentSource = (fragmentFromCache != null ? "cached " : "remote ") + urlSource;
+        this.resolvedFragmentSource = (fragmentFromCache.isPresent() ? "cached " : "remote ") + urlSource;
 
-        return fragmentFromCache != null ? fragmentFromCache : performRequest(uri, httpClient, requestHeaders, requestTimeout)
+        return fragmentFromCache.orElseGet(() -> performRequest(uri, httpClient, requestHeaders, requestTimeout)
           .filter(response -> {
             if (!isHttpStatusCacheable(response.statusCode())) {
               logger.error("[Ableron] Fragment {} returned status code {}", uri, response.statusCode());
@@ -343,10 +342,10 @@ public class Include {
               HttpUtil.calculateResponseExpirationTime(response.headers().map()),
               filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
             );
-            fragmentCache.put(fragmentCacheKey, fragment);
+            fragmentCache.set(fragmentCacheKey, fragment);
             return fragment;
           })
-          .orElse(null);
+          .orElse(null));
       })
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
@@ -438,10 +437,10 @@ public class Include {
         .collect(Collectors.joining());
   }
 
-  private Fragment getFragmentFromCache(String cacheKey, Cache<String, Fragment> fragmentCache, Stats stats) {
-    var fragmentFromCache = fragmentCache.getIfPresent(cacheKey);
+  private Optional<Fragment> getFragmentFromCache(String cacheKey, FragmentCache fragmentCache, Stats stats) {
+    var fragmentFromCache = fragmentCache.get(cacheKey);
 
-    if (fragmentFromCache != null) {
+    if (fragmentFromCache.isPresent()) {
       stats.recordCacheHit();
     } else {
       stats.recordCacheMiss();

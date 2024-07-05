@@ -1,6 +1,5 @@
 package io.github.ableron
 
-import com.github.benmanes.caffeine.cache.Cache
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import spock.lang.Shared
@@ -25,7 +24,7 @@ class IncludeSpec extends Specification {
   @Shared
   def httpClient = new TransclusionProcessor().getHttpClient()
 
-  Cache<String, Fragment> cache = new TransclusionProcessor().getFragmentCache()
+  FragmentCache cache = new TransclusionProcessor().getFragmentCache()
 
   Stats stats = new Stats()
 
@@ -437,7 +436,7 @@ class IncludeSpec extends Specification {
     def includeSrcUrl = mockWebServer.url("/").toString()
 
     when:
-    cache.put(includeSrcUrl, new Fragment(null, 200, "from cache", expirationTime, [:]))
+    cache.set(includeSrcUrl, new Fragment(null, 200, "from cache", expirationTime, [:]))
     sleep(2000)
     def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
@@ -478,9 +477,9 @@ class IncludeSpec extends Specification {
     include.resolvedFragmentSource == (expectedFragment == ':(' ? 'fallback content' : 'remote src')
 
     if (expectedFragmentCached) {
-      assert cache.getIfPresent(includeSrcUrl) != null
+      assert cache.get(includeSrcUrl).isPresent()
     } else {
-      assert cache.getIfPresent(includeSrcUrl) == null
+      assert cache.get(includeSrcUrl).isEmpty()
     }
 
     cleanup:
@@ -530,7 +529,7 @@ class IncludeSpec extends Specification {
     when:
     def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
-    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
+    def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
     include.resolved
@@ -555,7 +554,7 @@ class IncludeSpec extends Specification {
     when:
     def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
-    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
+    def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
     include.resolved
@@ -579,7 +578,7 @@ class IncludeSpec extends Specification {
     when:
     def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
-    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
+    def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
     include.resolved
@@ -605,7 +604,7 @@ class IncludeSpec extends Specification {
     when:
     def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
-    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
+    def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
     include.resolved
@@ -631,7 +630,7 @@ class IncludeSpec extends Specification {
     when:
     def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
-    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
+    def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
     include.resolved
@@ -656,7 +655,7 @@ class IncludeSpec extends Specification {
     when:
     def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
-    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
+    def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
     include.resolved
@@ -683,7 +682,7 @@ class IncludeSpec extends Specification {
     then:
     include.resolved
     include.resolvedFragment.content == "fragment"
-    cache.getIfPresent(includeSrcUrl) == null
+    cache.get(includeSrcUrl).isEmpty()
 
     cleanup:
     mockWebServer.shutdown()
@@ -702,7 +701,7 @@ class IncludeSpec extends Specification {
     when:
     def include = new Include("", ["src": includeSrcUrl])
       .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
-    def cacheExpirationTime = cache.getIfPresent(includeSrcUrl).expirationTime
+    def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
     include.resolved
@@ -730,7 +729,7 @@ class IncludeSpec extends Specification {
     then:
     include.resolved
     include.resolvedFragment.content == "fragment"
-    cache.getIfPresent(includeSrcUrl) == null
+    cache.get(includeSrcUrl).isEmpty()
 
     cleanup:
     mockWebServer.shutdown()
@@ -779,7 +778,7 @@ class IncludeSpec extends Specification {
     then:
     include.resolved
     include.resolvedFragment.content == "fragment"
-    cache.getIfPresent(includeSrcUrl) == null
+    cache.get(includeSrcUrl).isEmpty()
 
     cleanup:
     mockWebServer.shutdown()

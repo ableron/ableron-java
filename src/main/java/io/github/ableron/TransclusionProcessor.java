@@ -1,9 +1,5 @@
 package io.github.ableron;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Expiry;
-import com.github.benmanes.caffeine.cache.RemovalCause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +9,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -44,7 +39,7 @@ public class TransclusionProcessor {
   /**
    * Cache for fragments.
    */
-  private final Cache<String, Fragment> fragmentCache;
+  private final FragmentCache fragmentCache;
 
   private final Stats stats = new Stats();
 
@@ -60,14 +55,14 @@ public class TransclusionProcessor {
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = ableronConfig;
     this.httpClient = buildHttpClient();
-    this.fragmentCache = buildFragmentCache(this.ableronConfig.getCacheMaxSizeInBytes());
+    this.fragmentCache = new FragmentCache(this.ableronConfig.getCacheMaxSizeInBytes(), this.ableronConfig.cacheAutoRefreshEnabled());
   }
 
   public HttpClient getHttpClient() {
     return httpClient;
   }
 
-  public Cache<String, Fragment> getFragmentCache() {
+  public FragmentCache getFragmentCache() {
     return fragmentCache;
   }
 
@@ -137,32 +132,6 @@ public class TransclusionProcessor {
   private HttpClient buildHttpClient() {
     return HttpClient.newBuilder()
       .followRedirects(HttpClient.Redirect.NEVER)
-      .build();
-  }
-
-  private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
-    return Caffeine.newBuilder()
-      .maximumWeight(cacheMaxSizeInBytes)
-      .weigher((String fragmentCacheKey, Fragment fragment) -> fragment.getContent().length())
-      .expireAfter(new Expiry<String, Fragment>() {
-        public long expireAfterCreate(String fragmentCacheKey, Fragment fragment, long currentTime) {
-          long milliseconds = fragment.getExpirationTime()
-            .minusMillis(System.currentTimeMillis())
-            .toEpochMilli();
-          return TimeUnit.MILLISECONDS.toNanos(milliseconds);
-        }
-        public long expireAfterUpdate(String fragmentCacheKey, Fragment fragment, long currentTime, long currentDuration) {
-          return expireAfterCreate(fragmentCacheKey, fragment, currentTime);
-        }
-        public long expireAfterRead(String fragmentCacheKey, Fragment fragment, long currentTime, long currentDuration) {
-          return currentDuration;
-        }
-      })
-      .evictionListener((String fragmentCacheKey, Fragment fragment, RemovalCause cause) -> {
-        if (cause == RemovalCause.SIZE) {
-          logger.info("[Ableron] Fragment cache size exceeded. Removing {} from cache. Consider increasing cache size", fragmentCacheKey);
-        }
-      })
       .build();
   }
 }
