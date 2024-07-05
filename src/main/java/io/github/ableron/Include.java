@@ -58,18 +58,6 @@ public class Include {
     200, 203, 204, 206
   );
 
-  /**
-   * HTTP status codes indicating cacheable responses.
-   *
-   * @link <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.1">RFC 9110 Section 15.1. Overview of Status Codes</a>
-   */
-  private static final List<Integer> HTTP_STATUS_CODES_CACHEABLE = Arrays.asList(
-    200, 203, 204, 206,
-    300,
-    404, 405, 410, 414,
-    501
-  );
-
   private static final long NANO_2_MILLIS = 1000000L;
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -392,7 +380,7 @@ public class Include {
   }
 
   private boolean isHttpStatusCacheable(int httpStatusCode) {
-    return HTTP_STATUS_CODES_CACHEABLE.contains(httpStatusCode);
+    return HttpUtil.HTTP_STATUS_CODES_CACHEABLE.contains(httpStatusCode);
   }
 
   private Optional<HttpResponse<byte[]>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {

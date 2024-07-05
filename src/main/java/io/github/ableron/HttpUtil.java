@@ -25,6 +25,18 @@ public class HttpUtil {
 
   private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
 
+  /**
+   * HTTP status codes indicating cacheable responses.
+   *
+   * @link <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.1">RFC 9110 Section 15.1. Overview of Status Codes</a>
+   */
+  public static final List<Integer> HTTP_STATUS_CODES_CACHEABLE = Arrays.asList(
+    200, 203, 204, 206,
+    300,
+    404, 405, 410, 414,
+    501
+  );
+
   private static final String HEADER_AGE = "Age";
   private static final String HEADER_CACHE_CONTROL = "Cache-Control";
   private static final String HEADER_DATE = "Date";
