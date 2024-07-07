@@ -199,7 +199,7 @@ public class TransclusionResult {
   }
 
   private String getCacheStats() {
-    return "\n\nCache Stats: " + this.cacheStats.getTotalCacheHits() + " overall hits, " + this.cacheStats.getTotalCacheMisses() + " overall misses";
+    return "\n\nCache Stats: " + this.cacheStats.hitCount() + " overall hits, " + this.cacheStats.missCount() + " overall misses";
   }
 
   private String getProcessedIncludeStatsRow(Include include) {

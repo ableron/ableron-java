@@ -4,40 +4,40 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class CacheStats {
 
-  private final AtomicLong totalCacheHits = new AtomicLong();
-  private final AtomicLong totalCacheMisses = new AtomicLong();
-  private final AtomicLong totalSuccessfulCacheRefreshs = new AtomicLong();
-  private final AtomicLong totalFailedCacheRefreshs = new AtomicLong();
+  private final AtomicLong hitCount = new AtomicLong();
+  private final AtomicLong missCount = new AtomicLong();
+  private final AtomicLong refreshSuccessCount = new AtomicLong();
+  private final AtomicLong refreshFailureCount = new AtomicLong();
 
-  public long getTotalCacheHits() {
-    return totalCacheHits.get();
+  public long hitCount() {
+    return hitCount.get();
   }
 
-  public void recordCacheHit() {
-    totalCacheHits.incrementAndGet();
+  public void recordHit() {
+    hitCount.incrementAndGet();
   }
 
-  public long getTotalCacheMisses() {
-    return totalCacheMisses.get();
+  public long missCount() {
+    return missCount.get();
   }
 
-  public void recordCacheMiss() {
-    totalCacheMisses.incrementAndGet();
+  public void recordMiss() {
+    missCount.incrementAndGet();
   }
 
-  public long getTotalSuccessfulCacheRefreshs() {
-    return totalSuccessfulCacheRefreshs.get();
+  public long refreshSuccessCount() {
+    return refreshSuccessCount.get();
   }
 
-  public void recordSuccessfulCacheRefresh() {
-    totalSuccessfulCacheRefreshs.incrementAndGet();
+  public void recordRefreshSuccess() {
+    refreshSuccessCount.incrementAndGet();
   }
 
-  public long getTotalFailedCacheRefreshs() {
-    return totalFailedCacheRefreshs.get();
+  public long refreshFailureCount() {
+    return refreshFailureCount.get();
   }
 
-  public void recordFailedCacheRefresh() {
-    totalFailedCacheRefreshs.incrementAndGet();
+  public void recordRefreshFailure() {
+    refreshFailureCount.incrementAndGet();
   }
 }

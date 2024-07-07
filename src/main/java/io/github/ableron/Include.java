@@ -400,9 +400,9 @@ public class Include {
     var fragmentFromCache = fragmentCache.get(cacheKey);
 
     if (fragmentFromCache.isPresent()) {
-      cacheStats.recordCacheHit();
+      cacheStats.recordHit();
     } else {
-      cacheStats.recordCacheMiss();
+      cacheStats.recordMiss();
     }
 
     return fragmentFromCache;

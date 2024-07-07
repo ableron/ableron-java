@@ -9,11 +9,11 @@ class CacheStatsSpec extends Specification {
     def stats = new CacheStats()
 
     expect:
-    stats.getTotalCacheHits() == 0
-    stats.recordCacheHit()
-    stats.getTotalCacheHits() == 1
-    stats.recordCacheHit()
-    stats.getTotalCacheHits() == 2
+    stats.hitCount() == 0
+    stats.recordHit()
+    stats.hitCount() == 1
+    stats.recordHit()
+    stats.hitCount() == 2
   }
 
   def "should record cache miss"() {
@@ -21,11 +21,11 @@ class CacheStatsSpec extends Specification {
     def stats = new CacheStats()
 
     expect:
-    stats.getTotalCacheMisses() == 0
-    stats.recordCacheMiss()
-    stats.getTotalCacheMisses() == 1
-    stats.recordCacheMiss()
-    stats.getTotalCacheMisses() == 2
+    stats.missCount() == 0
+    stats.recordMiss()
+    stats.missCount() == 1
+    stats.recordMiss()
+    stats.missCount() == 2
   }
 
   def "should record successful cache refresh"() {
@@ -33,11 +33,11 @@ class CacheStatsSpec extends Specification {
     def stats = new CacheStats()
 
     expect:
-    stats.getTotalSuccessfulCacheRefreshs() == 0
-    stats.recordSuccessfulCacheRefresh()
-    stats.getTotalSuccessfulCacheRefreshs() == 1
-    stats.recordSuccessfulCacheRefresh()
-    stats.getTotalSuccessfulCacheRefreshs() == 2
+    stats.refreshSuccessCount() == 0
+    stats.recordRefreshSuccess()
+    stats.refreshSuccessCount() == 1
+    stats.recordRefreshSuccess()
+    stats.refreshSuccessCount() == 2
   }
 
   def "should record failed cache refresh"() {
@@ -45,10 +45,10 @@ class CacheStatsSpec extends Specification {
     def stats = new CacheStats()
 
     expect:
-    stats.getTotalFailedCacheRefreshs() == 0
-    stats.recordFailedCacheRefresh()
-    stats.getTotalFailedCacheRefreshs() == 1
-    stats.recordFailedCacheRefresh()
-    stats.getTotalFailedCacheRefreshs() == 2
+    stats.refreshFailureCount() == 0
+    stats.recordRefreshFailure()
+    stats.refreshFailureCount() == 1
+    stats.recordRefreshFailure()
+    stats.refreshFailureCount() == 2
   }
 }
