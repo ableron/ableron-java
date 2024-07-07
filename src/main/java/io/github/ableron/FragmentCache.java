@@ -15,14 +15,24 @@ public class FragmentCache {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final Cache<String, Fragment> fragmentCache;
   private final boolean autoRefreshEnabled;
+  private final CacheStats stats;
 
-  public FragmentCache(long cacheMaxSizeInBytes, boolean autoRefreshEnabled) {
-    this.autoRefreshEnabled = autoRefreshEnabled;
+  public FragmentCache(long cacheMaxSizeInBytes, boolean autoRefreshEnabled, CacheStats stats) {
     this.fragmentCache = buildFragmentCache(cacheMaxSizeInBytes);
+    this.autoRefreshEnabled = autoRefreshEnabled;
+    this.stats = stats;
   }
 
   public Optional<Fragment> get(String cacheKey) {
-    return Optional.ofNullable(fragmentCache.getIfPresent(cacheKey));
+    var fragmentFromCache = Optional.ofNullable(fragmentCache.getIfPresent(cacheKey));
+
+    if (fragmentFromCache.isPresent()) {
+      this.stats.recordHit();
+    } else {
+      this.stats.recordMiss();
+    }
+
+    return fragmentFromCache;
   }
 
   public void set(String cacheKey, Fragment fragment) {

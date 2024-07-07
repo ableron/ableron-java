@@ -26,8 +26,6 @@ class IncludeSpec extends Specification {
 
   FragmentCache cache = new TransclusionProcessor().getFragmentCache()
 
-  CacheStats stats = new CacheStats()
-
   @Shared
   def supplyPool = Executors.newFixedThreadPool(4)
 
@@ -148,7 +146,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": mockWebServer.url("/fragment").toString()])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -176,7 +174,7 @@ class IncludeSpec extends Specification {
     def include = new Include("", [
       "src": mockWebServer.url("/src").toString(),
       "fallback-src": mockWebServer.url("/fallback-src").toString()
-    ]).resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -203,7 +201,7 @@ class IncludeSpec extends Specification {
     def include = new Include("", [
       "src": mockWebServer.url("/src").toString(),
       "fallback-src": mockWebServer.url("/fallback-src").toString()
-    ], "fallback content").resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    ], "fallback content").resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -220,7 +218,7 @@ class IncludeSpec extends Specification {
 
   def "should resolve to empty string if src, fallback src and fallback content are not present"() {
     when:
-    def include = new Include(null).resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    def include = new Include(null).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -240,7 +238,7 @@ class IncludeSpec extends Specification {
     def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "primary": "primary"
-    ]).resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -264,7 +262,7 @@ class IncludeSpec extends Specification {
     def include = new Include("", [
       "fallback-src": mockWebServer.url("/").toString(),
       "primary": "primary"
-    ]).resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -292,7 +290,7 @@ class IncludeSpec extends Specification {
       "src": mockWebServer.url("/").toString(),
       "fallback-src": mockWebServer.url("/").toString(),
       "primary": ""
-    ]).resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -320,7 +318,7 @@ class IncludeSpec extends Specification {
       "src": mockWebServer.url("/").toString(),
       "fallback-src": mockWebServer.url("/").toString(),
       "primary": ""
-    ]).resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    ]).resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -355,7 +353,7 @@ class IncludeSpec extends Specification {
     ])
 
     when:
-    include.resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    include.resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -365,7 +363,7 @@ class IncludeSpec extends Specification {
     include.resolveTimeMillis > 0
 
     when:
-    include.resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    include.resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -389,7 +387,7 @@ class IncludeSpec extends Specification {
     def include = new Include("", [
       "src": mockWebServer.url("/").toString(),
       "primary": ""
-    ], "fallback content").resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    ], "fallback content").resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -414,7 +412,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": mockWebServer.url("/test-redirect").toString()], "fallback")
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -439,7 +437,7 @@ class IncludeSpec extends Specification {
     cache.set(includeSrcUrl, new Fragment(null, 200, "from cache", expirationTime, [:]))
     sleep(2000)
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -468,7 +466,7 @@ class IncludeSpec extends Specification {
       .setBody(srcFragment))
     def includeSrcUrl = mockWebServer.url("/test-caching-" + UUID.randomUUID().toString()).toString()
     def include = new Include("", ["src": includeSrcUrl], ":(")
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -528,7 +526,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
@@ -553,7 +551,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
@@ -577,7 +575,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
@@ -603,7 +601,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
@@ -629,7 +627,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
@@ -654,7 +652,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
@@ -677,7 +675,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -700,7 +698,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def cacheExpirationTime = cache.get(includeSrcUrl).get().expirationTime
 
     then:
@@ -724,7 +722,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -746,7 +744,7 @@ class IncludeSpec extends Specification {
       .setHeader(header1Name, header1Value)
       .setHeader(header2Name, header2Value))
     def include = new Include("", ["src": mockWebServer.url("/test-should-not-crash").toString()])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolvedFragment.content == "fragment"
@@ -773,7 +771,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": includeSrcUrl])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -794,7 +792,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": mockWebServer.url("/test-timeout-handling").toString()], "fallback")
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -814,7 +812,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": mockWebServer.url("/test-timeout-handling").toString()], "fallback")
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolved
@@ -838,7 +836,7 @@ class IncludeSpec extends Specification {
     attributes.putAll(timeoutAttribute)
 
     then:
-    new Include("", attributes).resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+    new Include("", attributes).resolve(httpClient, [:], cache, config, supplyPool).get()
       .resolvedFragment.content == expectedFragment
 
     cleanup:
@@ -865,7 +863,7 @@ class IncludeSpec extends Specification {
 
     when:
     new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-Default": ["Foo"], "X-Additional": ["Bar"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-Default": ["Foo"], "X-Additional": ["Bar"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -890,7 +888,7 @@ class IncludeSpec extends Specification {
         "X-Correlation-ID": ["Foo"],
         "X-Additional": ["Bar"],
         "X-Test": ["Baz"]
-      ], cache, config, supplyPool, stats).get()
+      ], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -912,7 +910,7 @@ class IncludeSpec extends Specification {
 
     when:
     new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["x-tEsT":["Foo"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["x-tEsT":["Foo"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -932,7 +930,7 @@ class IncludeSpec extends Specification {
 
     when:
     new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-Test":["Foo"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-Test":["Foo"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -949,7 +947,7 @@ class IncludeSpec extends Specification {
 
     when:
     new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -966,7 +964,7 @@ class IncludeSpec extends Specification {
 
     when:
     new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["user-agent":["test"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["user-agent":["test"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -986,7 +984,7 @@ class IncludeSpec extends Specification {
 
     when:
     new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-Test":["Foo", "Bar", "Baz"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-Test":["Foo", "Bar", "Baz"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
@@ -1007,7 +1005,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolvedFragment.responseHeaders == ["x-test": ["Test"]]
@@ -1024,7 +1022,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": mockWebServer.url("/").toString(), "primary": "false"])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolvedFragment.responseHeaders.isEmpty()
@@ -1044,7 +1042,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolvedFragment.responseHeaders == ["x-test": ["Test"]]
@@ -1065,7 +1063,7 @@ class IncludeSpec extends Specification {
 
     when:
     def include = new Include("", ["src": mockWebServer.url("/").toString(), "primary": ""])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
 
     then:
     include.resolvedFragment.responseHeaders.get("x-test") == ["Test", "Test2"]
@@ -1096,17 +1094,17 @@ class IncludeSpec extends Specification {
 
     when:
     def include1 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool).get()
     def include2 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-AB-TEST": ["A"]], cache, config, supplyPool).get()
     def include3 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-AB-TEST": ["B"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-AB-TEST": ["B"]], cache, config, supplyPool).get()
     def include4 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-AB-TEST": ["B"], "X-Foo": ["Bar"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-AB-TEST": ["B"], "X-Foo": ["Bar"]], cache, config, supplyPool).get()
     def include5 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, [:], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, [:], cache, config, supplyPool).get()
     def include6 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["x-ab-test": ["A"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["x-ab-test": ["A"]], cache, config, supplyPool).get()
 
     then:
     include1.resolvedFragment.content == "X-AB-Test=A"
@@ -1138,13 +1136,13 @@ class IncludeSpec extends Specification {
 
     when:
     def include1 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-TEST-A": ["A"], "X-Test-B": ["B"], "X-Test-C": ["C"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-TEST-A": ["A"], "X-Test-B": ["B"], "X-Test-C": ["C"]], cache, config, supplyPool).get()
     def include2 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-TEST-B": ["B"], "X-TEST-A": ["A"], "X-Test-C": ["C"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-TEST-B": ["B"], "X-TEST-A": ["A"], "X-Test-C": ["C"]], cache, config, supplyPool).get()
     def include3 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["X-TEST-C": ["C"], "X-test-B": ["B"], "X-Test-A": ["A"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["X-TEST-C": ["C"], "X-test-B": ["B"], "X-Test-A": ["A"]], cache, config, supplyPool).get()
     def include4 = new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["x-test-c": ["B"], "x-test-b": ["B"], "x-test-a": ["A"]], cache, config, supplyPool, stats).get()
+      .resolve(httpClient, ["x-test-c": ["B"], "x-test-b": ["B"], "x-test-a": ["A"]], cache, config, supplyPool).get()
 
     then:
     include1.resolvedFragment.content == "A,B,C"

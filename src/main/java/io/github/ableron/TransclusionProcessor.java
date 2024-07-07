@@ -55,7 +55,7 @@ public class TransclusionProcessor {
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = ableronConfig;
     this.httpClient = buildHttpClient();
-    this.fragmentCache = new FragmentCache(this.ableronConfig.getCacheMaxSizeInBytes(), this.ableronConfig.cacheAutoRefreshEnabled());
+    this.fragmentCache = new FragmentCache(this.ableronConfig.getCacheMaxSizeInBytes(), this.ableronConfig.cacheAutoRefreshEnabled(), this.cacheStats);
   }
 
   public HttpClient getHttpClient() {
@@ -95,7 +95,7 @@ public class TransclusionProcessor {
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         try {
-          return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool, cacheStats)
+          return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
             .thenAccept(transclusionResult::addResolvedInclude);
         } catch (Exception e) {
           handleResolveError(include, e, transclusionResult, startTime);
