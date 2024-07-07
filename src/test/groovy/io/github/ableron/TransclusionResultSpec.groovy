@@ -146,7 +146,7 @@ class TransclusionResultSpec extends Specification {
 
   def "should append stats to content - zero includes"() {
     expect:
-    new TransclusionResult("content", new Stats(), true, true).getContent()
+    new TransclusionResult("content", new CacheStats(), true, true).getContent()
       ==
       "content\n"+
       "<!-- Ableron stats:\n"+
@@ -228,7 +228,7 @@ class TransclusionResultSpec extends Specification {
 
   def "should not expose fragment URL to stats by default"() {
     given:
-    def transclusionResult = new TransclusionResult("", new Stats(), true, false)
+    def transclusionResult = new TransclusionResult("", new CacheStats(), true, false)
 
     when:
     transclusionResult.addResolvedInclude(new Include("").resolveWith(
@@ -250,7 +250,7 @@ class TransclusionResultSpec extends Specification {
 
   def "should append stats for primary include"() {
     given:
-    def transclusionResult = new TransclusionResult("", new Stats(), true, false)
+    def transclusionResult = new TransclusionResult("", new CacheStats(), true, false)
 
     when:
     transclusionResult.addResolvedInclude(new Include("include#1", ["primary":""]).resolveWith(
@@ -272,7 +272,7 @@ class TransclusionResultSpec extends Specification {
 
   def "should append stats for primary include - multiple primary includes"() {
     given:
-    def transclusionResult = new TransclusionResult("", new Stats(), true, false)
+    def transclusionResult = new TransclusionResult("", new CacheStats(), true, false)
 
     when:
     transclusionResult.addResolvedInclude(new Include("include#1", ["primary":""]).resolveWith(

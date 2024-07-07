@@ -26,7 +26,7 @@ class IncludeSpec extends Specification {
 
   FragmentCache cache = new TransclusionProcessor().getFragmentCache()
 
-  Stats stats = new Stats()
+  CacheStats stats = new CacheStats()
 
   @Shared
   def supplyPool = Executors.newFixedThreadPool(4)

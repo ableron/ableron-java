@@ -2,7 +2,7 @@ package io.github.ableron;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class Stats {
+public class CacheStats {
 
   private final AtomicLong totalCacheHits = new AtomicLong();
   private final AtomicLong totalCacheMisses = new AtomicLong();

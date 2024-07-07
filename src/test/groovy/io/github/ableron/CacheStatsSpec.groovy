@@ -2,11 +2,11 @@ package io.github.ableron
 
 import spock.lang.Specification
 
-class StatsSpec extends Specification {
+class CacheStatsSpec extends Specification {
 
   def "should record cache hit"() {
     given:
-    def stats = new Stats()
+    def stats = new CacheStats()
 
     expect:
     stats.getTotalCacheHits() == 0
@@ -18,7 +18,7 @@ class StatsSpec extends Specification {
 
   def "should record cache miss"() {
     given:
-    def stats = new Stats()
+    def stats = new CacheStats()
 
     expect:
     stats.getTotalCacheMisses() == 0
@@ -30,7 +30,7 @@ class StatsSpec extends Specification {
 
   def "should record successful cache refresh"() {
     given:
-    def stats = new Stats()
+    def stats = new CacheStats()
 
     expect:
     stats.getTotalSuccessfulCacheRefreshs() == 0
@@ -42,7 +42,7 @@ class StatsSpec extends Specification {
 
   def "should record failed cache refresh"() {
     given:
-    def stats = new Stats()
+    def stats = new CacheStats()
 
     expect:
     stats.getTotalFailedCacheRefreshs() == 0

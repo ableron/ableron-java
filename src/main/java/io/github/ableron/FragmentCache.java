@@ -30,6 +30,10 @@ public class FragmentCache {
     this.fragmentCache.put(cacheKey, fragment);
   }
 
+  public long estimatedSize() {
+    return this.fragmentCache.estimatedSize();
+  }
+
   private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
     return Caffeine.newBuilder()
       .maximumWeight(cacheMaxSizeInBytes)
@@ -50,7 +54,7 @@ public class FragmentCache {
       })
       .evictionListener((String fragmentCacheKey, Fragment fragment, RemovalCause cause) -> {
         if (cause == RemovalCause.SIZE) {
-          logger.info("[Ableron] Fragment cache size exceeded. Removing {} from cache. Consider increasing cache size", fragmentCacheKey);
+          logger.info("[Ableron] Fragment cache size exceeded. Removing key '{}' from cache. Consider increasing cache size", fragmentCacheKey);
         }
       })
       .build();
