@@ -15,12 +15,11 @@ public class FragmentCache {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final Cache<String, Fragment> fragmentCache;
   private final boolean autoRefreshEnabled;
-  private final CacheStats stats;
+  private final CacheStats stats = new CacheStats();
 
-  public FragmentCache(long cacheMaxSizeInBytes, boolean autoRefreshEnabled, CacheStats stats) {
+  public FragmentCache(long cacheMaxSizeInBytes, boolean autoRefreshEnabled) {
     this.fragmentCache = buildFragmentCache(cacheMaxSizeInBytes);
     this.autoRefreshEnabled = autoRefreshEnabled;
-    this.stats = stats;
   }
 
   public Optional<Fragment> get(String cacheKey) {
@@ -42,6 +41,10 @@ public class FragmentCache {
 
   public long estimatedSize() {
     return this.fragmentCache.estimatedSize();
+  }
+
+  public CacheStats stats() {
+    return this.stats;
   }
 
   private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {

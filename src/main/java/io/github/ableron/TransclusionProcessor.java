@@ -41,8 +41,6 @@ public class TransclusionProcessor {
    */
   private final FragmentCache fragmentCache;
 
-  private final CacheStats cacheStats = new CacheStats();
-
   /**
    * Thread pool used to resolve includes in parallel.
    */
@@ -55,7 +53,7 @@ public class TransclusionProcessor {
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = ableronConfig;
     this.httpClient = buildHttpClient();
-    this.fragmentCache = new FragmentCache(this.ableronConfig.getCacheMaxSizeInBytes(), this.ableronConfig.cacheAutoRefreshEnabled(), this.cacheStats);
+    this.fragmentCache = new FragmentCache(this.ableronConfig.getCacheMaxSizeInBytes(), this.ableronConfig.cacheAutoRefreshEnabled());
   }
 
   public HttpClient getHttpClient() {
@@ -91,7 +89,7 @@ public class TransclusionProcessor {
    */
   public TransclusionResult resolveIncludes(String content, Map<String, List<String>> parentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult(content, this.cacheStats, ableronConfig.statsAppendToContent(), ableronConfig.statsExposeFragmentUrl());
+    var transclusionResult = new TransclusionResult(content, this.fragmentCache.stats(), ableronConfig.statsAppendToContent(), ableronConfig.statsExposeFragmentUrl());
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         try {
