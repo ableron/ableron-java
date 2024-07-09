@@ -7,14 +7,22 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class FragmentCache {
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final Cache<String, Fragment> fragmentCache;
   private final boolean autoRefreshEnabled;
+  private final Map<String, Integer> autoRefreshRetries = new HashMap<>();
+  private final int autoRefreshMaxRetries = 3;
   private final CacheStats stats = new CacheStats();
 
   public FragmentCache(long cacheMaxSizeInBytes, boolean autoRefreshEnabled) {
@@ -34,9 +42,18 @@ public class FragmentCache {
     return fragmentFromCache;
   }
 
-  public void set(String cacheKey, Fragment fragment) {
-    //TODO: Implement
+  public FragmentCache set(String cacheKey, Fragment fragment) {
+    return set(cacheKey, fragment, null);
+  }
+
+  public FragmentCache set(String cacheKey, Fragment fragment, Supplier<Fragment> autoRefresh) {
     this.fragmentCache.put(cacheKey, fragment);
+
+    if (this.autoRefreshEnabled && autoRefresh != null && fragment.getExpirationTime().isAfter(Instant.now())) {
+      this.registerAutoRefresh(cacheKey, autoRefresh, this.calculateFragmentRefreshDelay(fragment));
+    }
+
+    return this;
   }
 
   public long estimatedSize() {
@@ -45,6 +62,62 @@ public class FragmentCache {
 
   public CacheStats stats() {
     return this.stats;
+  }
+
+  private void registerAutoRefresh(String cacheKey, Supplier<Fragment> autoRefresh, long refreshDelayMs) {
+    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    scheduler.schedule(() -> {
+      try {
+        var fragment = autoRefresh.get();
+
+        if (isFragmentCacheable(fragment)) {
+          var oldCacheEntry = this.get(cacheKey);
+          this.set(cacheKey, fragment, autoRefresh);
+          this.handleSuccessfulCacheRefresh(cacheKey, oldCacheEntry.orElse(null));
+        } else {
+          this.handleFailedCacheRefreshAttempt(cacheKey, autoRefresh);
+        }
+      } catch (Exception e) {
+        logger.error("[Ableron] Unable to refresh cached fragment '{}'", cacheKey, e);
+      }
+    }, refreshDelayMs, TimeUnit.MILLISECONDS);
+  }
+
+  private long calculateFragmentRefreshDelay(Fragment fragment) {
+    return Math.max(Math.round(fragment.getExpirationTime()
+      .minusMillis(Instant.now().toEpochMilli())
+      .toEpochMilli() * 0.85), 10);
+  }
+
+  private boolean isFragmentCacheable(Fragment fragment) {
+    return fragment != null
+      && HttpUtil.HTTP_STATUS_CODES_CACHEABLE.contains(fragment.getStatusCode())
+      && fragment.getExpirationTime().isAfter(Instant.now());
+  }
+
+  private void handleSuccessfulCacheRefresh(String cacheKey, Fragment oldCacheEntry) {
+    this.autoRefreshRetries.remove(cacheKey);
+    this.stats.recordRefreshSuccess();
+
+    if (oldCacheEntry != null) {
+      this.logger.debug("[Ableron] Refreshed cache entry {} {}ms before expiration", cacheKey, oldCacheEntry.getExpirationTime().minusMillis(Instant.now().toEpochMilli()).toEpochMilli());
+    } else {
+      this.logger.debug("[Ableron] Refreshed already expired cache entry {} via auto refresh", cacheKey);
+    }
+  }
+
+  private void handleFailedCacheRefreshAttempt(String cacheKey, Supplier<Fragment> autoRefresh) {
+    var retryCount = Optional.ofNullable(this.autoRefreshRetries.get(cacheKey)).orElse(0) + 1;
+    this.autoRefreshRetries.put(cacheKey, retryCount);
+    this.stats.recordRefreshFailure();
+
+    if (retryCount < this.autoRefreshMaxRetries) {
+      this.logger.error("[Ableron] Unable to refresh cache entry {}: Retry in 1s", cacheKey);
+      this.registerAutoRefresh(cacheKey, autoRefresh, 1000);
+    } else {
+      this.logger.error("[Ableron] Unable to refresh cache entry {}. {} consecutive attempts failed", cacheKey, this.autoRefreshMaxRetries);
+      this.autoRefreshRetries.remove(cacheKey);
+    }
   }
 
   private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
