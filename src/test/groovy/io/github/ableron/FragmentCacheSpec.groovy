@@ -49,4 +49,37 @@ class FragmentCacheSpec extends Specification {
     then:
     fragmentCache.get('cacheKey').isPresent()
   }
+
+  def "should handle cache refresh failure"() {
+    given:
+    fragmentCache.set('cacheKey', new Fragment('url', 200, 'fragment', Instant.now().plusSeconds(1), [:]), () -> null)
+
+    when:
+    sleep(1200)
+
+    then:
+    fragmentCache.get('cacheKey').isEmpty()
+  }
+
+  def "should use fragment expiration time as cache entry ttl"() {
+    given:
+    fragmentCache.set('cacheKey', new Fragment('url', 200, 'fragment', Instant.now().plusSeconds(1), [:]))
+
+    expect:
+    fragmentCache.get('cacheKey').get().content == 'fragment'
+
+    when:
+    sleep(1010)
+
+    then:
+    fragmentCache.get('cacheKey').isEmpty()
+  }
+
+  def "should not cache expired fragments"() {
+    when:
+    fragmentCache.set('cacheKey', new Fragment('url', 200, 'fragment', Instant.now(), [:]))
+
+    then:
+    fragmentCache.get('cacheKey').isEmpty()
+  }
 }
