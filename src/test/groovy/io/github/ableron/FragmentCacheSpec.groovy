@@ -97,4 +97,27 @@ class FragmentCacheSpec extends Specification {
     sleep(300)
     fragmentCache.get('cacheKey').isEmpty()
   }
+
+  def "should not auto refresh cached fragment when status code is not cacheable"() {
+    given:
+    def newFragment = (int status) -> new Fragment('url', status, 'fragment', Instant.now().plusMillis(300), [:])
+    fragmentCache.set('cacheKey', newFragment(200), () -> newFragment(500))
+
+    expect:
+    fragmentCache.get('cacheKey').isPresent()
+    sleep(300)
+    fragmentCache.get('cacheKey').isEmpty()
+  }
+
+  def "should not auto refresh cached fragment when fragment is marked as not cacheable"() {
+    given:
+    fragmentCache.set('cacheKey', new Fragment('url', 200, 'fragment', Instant.now().plusMillis(250), [:]), () ->
+      new Fragment(200, 'fragment')
+    )
+
+    expect:
+    fragmentCache.get('cacheKey').isPresent()
+    sleep(300)
+    fragmentCache.get('cacheKey').isEmpty()
+  }
 }
