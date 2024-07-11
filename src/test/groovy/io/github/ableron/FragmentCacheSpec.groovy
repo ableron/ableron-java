@@ -120,4 +120,19 @@ class FragmentCacheSpec extends Specification {
     sleep(300)
     fragmentCache.get('cacheKey').isEmpty()
   }
+
+  def "should continuously refresh cache"() {
+    given:
+    def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
+    fragmentCache.set('cacheKey', newFragment(), () -> newFragment())
+
+    expect:
+    fragmentCache.get('cacheKey').isPresent()
+    sleep(250)
+    fragmentCache.get('cacheKey').isPresent()
+    sleep(250)
+    fragmentCache.get('cacheKey').isPresent()
+    sleep(250)
+    fragmentCache.get('cacheKey').isPresent()
+  }
 }
