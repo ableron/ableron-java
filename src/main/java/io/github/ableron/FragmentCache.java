@@ -24,6 +24,7 @@ public class FragmentCache {
   private final Map<String, Integer> autoRefreshRetries = new HashMap<>();
   private final int autoRefreshMaxRetries = 3;
   private final CacheStats stats = new CacheStats();
+  private final ScheduledExecutorService autoRefreshScheduler = Executors.newScheduledThreadPool(3);
 
   public FragmentCache(long cacheMaxSizeInBytes, boolean autoRefreshEnabled) {
     this.fragmentCache = buildFragmentCache(cacheMaxSizeInBytes);
@@ -56,6 +57,13 @@ public class FragmentCache {
     return this;
   }
 
+  public FragmentCache clear() {
+    this.autoRefreshScheduler.shutdownNow();
+    this.autoRefreshRetries.clear();
+    this.fragmentCache.invalidateAll();
+    return this;
+  }
+
   public long estimatedSize() {
     return this.fragmentCache.estimatedSize();
   }
@@ -65,8 +73,7 @@ public class FragmentCache {
   }
 
   private void registerAutoRefresh(String cacheKey, Supplier<Fragment> autoRefresh, long refreshDelayMs) {
-    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    scheduler.schedule(() -> {
+    autoRefreshScheduler.schedule(() -> {
       try {
         var fragment = autoRefresh.get();
 

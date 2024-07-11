@@ -82,4 +82,19 @@ class FragmentCacheSpec extends Specification {
     then:
     fragmentCache.get('cacheKey').isEmpty()
   }
+
+  def "should clear cache"() {
+    given:
+    def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
+    fragmentCache.set('cacheKey', newFragment(), () -> newFragment())
+
+    expect:
+    fragmentCache.get('cacheKey').isPresent()
+    sleep(300)
+    fragmentCache.get('cacheKey').isPresent()
+    fragmentCache.clear()
+    fragmentCache.get('cacheKey').isEmpty()
+    sleep(300)
+    fragmentCache.get('cacheKey').isEmpty()
+  }
 }
