@@ -135,4 +135,40 @@ class FragmentCacheSpec extends Specification {
     sleep(250)
     fragmentCache.get('cacheKey').isPresent()
   }
+
+  def "should retry to refresh cache on failure with max 3 attempts"() {
+    given:
+    def counter = 0
+    def newFragment = () -> {
+      counter++
+
+      switch (counter) {
+        case 1:
+        case 4:
+        case 8:
+          return new Fragment('url', 200, 'fragment', Instant.now().plusSeconds(1), [:])
+        default:
+          return null
+      }
+    }
+    fragmentCache.set('cacheKey', newFragment(), () -> newFragment())
+
+    expect:
+    fragmentCache.get('cacheKey').isPresent()
+    sleep(1100)
+    fragmentCache.get('cacheKey').isEmpty()
+    sleep(1000)
+    fragmentCache.get('cacheKey').isEmpty()
+    sleep(1000)
+    fragmentCache.get('cacheKey').isPresent()
+
+    sleep(1100)
+    fragmentCache.get('cacheKey').isEmpty()
+    sleep(1000)
+    fragmentCache.get('cacheKey').isEmpty()
+    sleep(1000)
+    fragmentCache.get('cacheKey').isEmpty()
+    sleep(1000)
+    fragmentCache.get('cacheKey').isEmpty()
+  }
 }
