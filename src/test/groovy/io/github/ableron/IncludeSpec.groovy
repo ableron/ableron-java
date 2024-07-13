@@ -1,7 +1,9 @@
 package io.github.ableron
 
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -1149,6 +1151,40 @@ class IncludeSpec extends Specification {
     include2.resolvedFragment.content == "A,B,C"
     include3.resolvedFragment.content == "A,B,C"
     include4.resolvedFragment.content == "A,B,B"
+
+    cleanup:
+    mockWebServer.shutdown()
+  }
+
+  def "should configure auto refresh for cached Fragments"() {
+    given:
+    def mockWebServer = new MockWebServer()
+    mockWebServer.setDispatcher(new Dispatcher() {
+      @Override
+      MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
+        return new MockResponse()
+          .setResponseCode(200)
+          .setHeader("Cache-Control", "max-age=1")
+          .setBody("fragment")
+      }
+    })
+    def config = AbleronConfig.builder()
+      .cacheAutoRefreshEnabled(true)
+      .build()
+    def fragmentCache = new FragmentCache(1024, true)
+
+    when:
+    for (def i = 0; i < 6; i++) {
+      new Include("", ["src": mockWebServer.url("/").toString()])
+        .resolve(httpClient, [:], fragmentCache, config, supplyPool).get()
+      sleep(500)
+    }
+
+    then:
+    fragmentCache.stats().hitCount() == 5
+    fragmentCache.stats().missCount() == 1
+    fragmentCache.stats().refreshSuccessCount() == 3
+    fragmentCache.stats().refreshFailureCount() == 0
 
     cleanup:
     mockWebServer.shutdown()

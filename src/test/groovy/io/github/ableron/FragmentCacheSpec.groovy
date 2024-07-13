@@ -181,8 +181,12 @@ class FragmentCacheSpec extends Specification {
     expect:
     fragmentCache.stats().hitCount() == 0
     fragmentCache.stats().missCount() == 0
+    fragmentCache.stats().refreshSuccessCount() == 0
+    fragmentCache.stats().refreshFailureCount() == 0
     sleep(750)
     fragmentCache.stats().hitCount() == 0
     fragmentCache.stats().missCount() == 0
+    fragmentCache.stats().refreshSuccessCount() == 4
+    fragmentCache.stats().refreshFailureCount() == 0
   }
 }

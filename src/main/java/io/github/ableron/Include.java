@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.http.HttpClient;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -303,27 +304,21 @@ public class Include {
           .filter(response -> {
             if (!isHttpStatusCacheable(response.statusCode())) {
               logger.error("[Ableron] Fragment {} returned status code {}", uri, response.statusCode());
-              recordErroredPrimaryFragment(new Fragment(
-                uri,
-                response.statusCode(),
-                HttpUtil.getResponseBodyAsString(response),
-                Instant.EPOCH,
-                filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
-              ), this.resolvedFragmentSource);
+              recordErroredPrimaryFragment(
+                toFragment(response, uri, config.getPrimaryFragmentResponseHeadersToPass(), true),
+                this.resolvedFragmentSource
+              );
               return false;
             }
 
             return true;
           })
           .map(response -> {
-            var fragment = new Fragment(
-              response.uri().toString(),
-              response.statusCode(),
-              HttpUtil.getResponseBodyAsString(response),
-              HttpUtil.calculateResponseExpirationTime(response.headers().map()),
-              filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
-            );
-            fragmentCache.set(fragmentCacheKey, fragment);
+            var fragment = toFragment(response, uri, config.getPrimaryFragmentResponseHeadersToPass(), false);
+            fragmentCache.set(fragmentCacheKey, fragment, () ->
+              HttpUtil.loadUrl(uri, httpClient, requestHeaders, requestTimeout)
+                .map(res -> toFragment(res, uri, config.getPrimaryFragmentResponseHeadersToPass(), false))
+                .orElse(null));
             return fragment;
           })
           .orElse(null));
@@ -337,6 +332,20 @@ public class Include {
 
         return true;
       });
+  }
+
+  private Fragment toFragment(
+    HttpResponse<byte[]> response,
+    String url,
+    List<String> primaryFragmentResponseHeadersToPass,
+    boolean preventCaching) {
+    return new Fragment(
+      url,
+      response.statusCode(),
+      HttpUtil.getResponseBodyAsString(response),
+      preventCaching ? Instant.EPOCH : HttpUtil.calculateResponseExpirationTime(response.headers().map()),
+      filterHeaders(response.headers().map(), primaryFragmentResponseHeadersToPass)
+    );
   }
 
   private void recordErroredPrimaryFragment(Fragment fragment, String fragmentSource) {
