@@ -78,9 +78,9 @@ public class FragmentCache {
         var fragment = autoRefresh.get();
 
         if (isFragmentCacheable(fragment)) {
-          var oldCacheEntry = this.get(cacheKey);
+          var oldCacheEntry = fragmentCache.getIfPresent(cacheKey);
           this.set(cacheKey, fragment, autoRefresh);
-          this.handleSuccessfulCacheRefresh(cacheKey, oldCacheEntry.orElse(null));
+          this.handleSuccessfulCacheRefresh(cacheKey, oldCacheEntry);
         } else {
           this.handleFailedCacheRefreshAttempt(cacheKey, autoRefresh);
         }

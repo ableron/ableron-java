@@ -171,4 +171,18 @@ class FragmentCacheSpec extends Specification {
     sleep(1000)
     fragmentCache.get('cacheKey').isEmpty()
   }
+
+  def "should not pollute stats when refreshing cache"() {
+    given:
+    def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
+    def fragmentCache = new FragmentCache(1024, true)
+    fragmentCache.set('cacheKey', newFragment(), () -> newFragment())
+
+    expect:
+    fragmentCache.stats().hitCount() == 0
+    fragmentCache.stats().missCount() == 0
+    sleep(750)
+    fragmentCache.stats().hitCount() == 0
+    fragmentCache.stats().missCount() == 0
+  }
 }
