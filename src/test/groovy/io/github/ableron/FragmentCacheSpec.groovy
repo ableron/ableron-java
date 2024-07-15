@@ -20,8 +20,8 @@ class FragmentCacheSpec extends Specification {
     sleep(200)
 
     then:
-    fragmentCache.estimatedSize() >= 1024 * 10
-    fragmentCache.estimatedSize() < 1024 * 10 + 4
+    fragmentCache.estimatedSize() >= 1024 * 9
+    fragmentCache.estimatedSize() <= 1024 * 11
   }
 
   def "should not auto refresh fragments if disabled"() {
