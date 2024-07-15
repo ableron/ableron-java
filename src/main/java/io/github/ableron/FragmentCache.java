@@ -119,10 +119,10 @@ public class FragmentCache {
     this.stats.recordRefreshFailure();
 
     if (retryCount < this.autoRefreshMaxRetries) {
-      this.logger.error("[Ableron] Unable to refresh cache entry {}: Retry in 1s", cacheKey);
+      this.logger.error("[Ableron] Unable to refresh cache entry '{}': Retry in 1s", cacheKey);
       this.registerAutoRefresh(cacheKey, autoRefresh, 1000);
     } else {
-      this.logger.error("[Ableron] Unable to refresh cache entry {}. {} consecutive attempts failed", cacheKey, this.autoRefreshMaxRetries);
+      this.logger.error("[Ableron] Unable to refresh cache entry '{}'. {} consecutive attempts failed", cacheKey, this.autoRefreshMaxRetries);
       this.autoRefreshRetries.remove(cacheKey);
     }
   }

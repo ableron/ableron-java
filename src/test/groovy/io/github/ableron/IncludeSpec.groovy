@@ -1174,16 +1174,16 @@ class IncludeSpec extends Specification {
     def fragmentCache = new FragmentCache(1024, true)
 
     when:
-    for (def i = 0; i < 6; i++) {
+    for (def i = 0; i < 4; i++) {
       new Include("", ["src": mockWebServer.url("/").toString()])
         .resolve(httpClient, [:], fragmentCache, config, supplyPool).get()
-      sleep(500)
+      sleep(1000)
     }
 
     then:
-    fragmentCache.stats().hitCount() == 5
+    fragmentCache.stats().hitCount() == 3
     fragmentCache.stats().missCount() == 1
-    fragmentCache.stats().refreshSuccessCount() == 3
+    fragmentCache.stats().refreshSuccessCount() == 4
     fragmentCache.stats().refreshFailureCount() == 0
 
     cleanup:

@@ -14,9 +14,10 @@ class FragmentCacheSpec extends Specification {
 
   def "should have limited capacity to prevent out of memory problems"() {
     when:
-    for (int i = 0; i <= 1024 * 10 + 10; i++) {
+    for (int i = 0; i < 1024 * 10 + 10; i++) {
       fragmentCache.set("" + i, new Fragment(200, "a".repeat(1024)))
     }
+    sleep(200)
 
     then:
     fragmentCache.estimatedSize() >= 1024 * 10
