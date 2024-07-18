@@ -51,9 +51,9 @@ public class AbleronConfig {
 
   /**
    * Maximum size in bytes the fragment cache may have.
-   * Defaults to 10 MB.
+   * Defaults to 50 MB.
    */
-  private long cacheMaxSizeInBytes = 1024 * 1024 * 10;
+  private long cacheMaxSizeInBytes = 1024 * 1024 * 50;
 
   /**
    * Fragment request headers which influence the requested fragment aside from its URL.

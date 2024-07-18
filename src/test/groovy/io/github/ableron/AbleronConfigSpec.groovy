@@ -33,7 +33,7 @@ class AbleronConfigSpec extends Specification {
         "Location",
         "Refresh"
       ]
-      cacheMaxSizeInBytes == 1024 * 1024 * 10
+      cacheMaxSizeInBytes == 1024 * 1024 * 50
       cacheVaryByRequestHeaders == []
       !cacheAutoRefreshEnabled()
       !statsAppendToContent()

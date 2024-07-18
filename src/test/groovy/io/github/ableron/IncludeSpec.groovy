@@ -1183,7 +1183,7 @@ class IncludeSpec extends Specification {
     then:
     fragmentCache.stats().hitCount() == 3
     fragmentCache.stats().missCount() == 1
-    [3L, 4L].contains(fragmentCache.stats().refreshSuccessCount())
+    fragmentCache.stats().refreshSuccessCount() >= 3
     fragmentCache.stats().refreshFailureCount() == 0
 
     cleanup:

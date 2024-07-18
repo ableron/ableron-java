@@ -24,7 +24,7 @@ Maven:
 1. Init ableron
    ```java
    var ableron = new Ableron(AbleronConfig.builder()
-     .cacheMaxSizeInBytes(1024 * 1024 * 50)
+     .cacheMaxSizeInBytes(1024 * 1024 * 100)
      .build());
    ```
 2. Use includes in response body
@@ -110,7 +110,7 @@ Response headers of primary fragments to pass to the page response, if present.
 
 #### `cacheMaxSizeInBytes`
 
-Default: `10 MB`
+Default: `1024 * 1024 * 50` (`50 MB`)
 
 Maximum size in bytes the fragment cache may have.
 
