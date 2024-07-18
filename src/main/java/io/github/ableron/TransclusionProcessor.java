@@ -107,7 +107,7 @@ public class TransclusionProcessor {
   }
 
   private void handleResolveError(Include include, Exception e, TransclusionResult transclusionResult, long resolveStartTimeMillis) {
-    logger.error("[Ableron] Unable to resolve include {}", include.getId(), e);
+    logger.error("[Ableron] Unable to resolve include '{}'", include.getId(), e);
     transclusionResult.addResolvedInclude(include.resolveWith(
       new Fragment(null, 200, include.getFallbackContent(), Instant.now().plusSeconds(60), Map.of()),
       (int) ((System.nanoTime() - resolveStartTimeMillis) / NANO_2_MILLIS),

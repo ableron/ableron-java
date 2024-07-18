@@ -281,7 +281,7 @@ public class Include {
     this.resolvedFragment = fragment;
     this.resolvedFragmentSource = resolvedFragmentSource != null ? resolvedFragmentSource : "fallback content";
     this.resolveTimeMillis = resolveTimeMillis;
-    this.logger.debug("[Ableron] Resolved include {} in {}ms", this.id, this.resolveTimeMillis);
+    this.logger.debug("[Ableron] Resolved include '{}' in {}ms", this.id, this.resolveTimeMillis);
     return this;
   }
 
@@ -303,7 +303,7 @@ public class Include {
         return fragmentFromCache.orElseGet(() -> HttpUtil.loadUrl(uri, httpClient, requestHeaders, requestTimeout)
           .filter(response -> {
             if (!isHttpStatusCacheable(response.statusCode())) {
-              logger.error("[Ableron] Fragment {} returned status code {}", uri, response.statusCode());
+              logger.error("[Ableron] Fragment '{}' returned status code {}", uri, response.statusCode());
               recordErroredPrimaryFragment(
                 toFragment(response, uri, config.getPrimaryFragmentResponseHeadersToPass(), true),
                 this.resolvedFragmentSource
@@ -325,7 +325,7 @@ public class Include {
       })
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
-          logger.error("[Ableron] Fragment {} returned status code {}", uri, fragment.getStatusCode());
+          logger.error("[Ableron] Fragment '{}' returned status code {}", uri, fragment.getStatusCode());
           recordErroredPrimaryFragment(fragment, this.resolvedFragmentSource);
           return false;
         }

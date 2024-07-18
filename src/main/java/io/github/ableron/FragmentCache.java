@@ -107,9 +107,9 @@ public class FragmentCache {
     this.stats.recordRefreshSuccess();
 
     if (oldCacheEntry != null) {
-      this.logger.debug("[Ableron] Refreshed cache entry {} {}ms before expiration", cacheKey, oldCacheEntry.getExpirationTime().minusMillis(Instant.now().toEpochMilli()).toEpochMilli());
+      this.logger.debug("[Ableron] Refreshed cache entry '{}' {}ms before expiration", cacheKey, oldCacheEntry.getExpirationTime().minusMillis(Instant.now().toEpochMilli()).toEpochMilli());
     } else {
-      this.logger.debug("[Ableron] Refreshed already expired cache entry {} via auto refresh", cacheKey);
+      this.logger.debug("[Ableron] Refreshed already expired cache entry '{}' via auto refresh", cacheKey);
     }
   }
 
