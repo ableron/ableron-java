@@ -130,7 +130,7 @@ public class FragmentCache {
   private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
     return Caffeine.newBuilder()
       .maximumWeight(cacheMaxSizeInBytes)
-      .weigher((String fragmentCacheKey, Fragment fragment) -> fragment.getContent().length())
+      .weigher((String fragmentCacheKey, Fragment fragment) -> fragmentCacheKey.length() + fragment.getContent().length())
       .expireAfter(new Expiry<String, Fragment>() {
         public long expireAfterCreate(String fragmentCacheKey, Fragment fragment, long currentTime) {
           long milliseconds = fragment.getExpirationTime()

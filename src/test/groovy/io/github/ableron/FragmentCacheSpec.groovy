@@ -13,15 +13,20 @@ class FragmentCacheSpec extends Specification {
     .build()).getFragmentCache()
 
   def "should have limited capacity to prevent out of memory problems"() {
+    given:
+    def fragmentCache = new TransclusionProcessor(AbleronConfig.builder()
+      .cacheMaxSizeInBytes(500)
+      .build()).getFragmentCache()
+
     when:
-    for (int i = 0; i < 1024 * 10 + 10; i++) {
-      fragmentCache.set("" + i, new Fragment(200, "a".repeat(1024)))
+    for (int i = 0; i < 160; i++) {
+      fragmentCache.set("" + i, new Fragment(200, "a"))
     }
-    sleep(200)
+    sleep(20)
 
     then:
-    fragmentCache.estimatedSize() >= 1024 * 9
-    fragmentCache.estimatedSize() <= 1024 * 11
+    fragmentCache.estimatedSize() >= 144
+    fragmentCache.estimatedSize() <= 149
   }
 
   def "should not auto refresh fragments if disabled"() {
