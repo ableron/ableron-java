@@ -111,6 +111,7 @@ public class HttpUtil {
           .orElse(0L))
         .map(seconds -> Instant.now().plusSeconds(seconds));
     } catch (Exception e) {
+      logger.error("[Ableron] Unable to calculate cache lifetime by max-age", e);
       return Optional.empty();
     }
   }
@@ -121,6 +122,7 @@ public class HttpUtil {
         .map(value -> value.equals("0") ? Instant.EPOCH : parseHttpDate(value))
         .map(expires -> (dateHeaderValue != null) ? Instant.now().plusMillis(expires.toEpochMilli() - parseHttpDate(dateHeaderValue).toEpochMilli()) : expires);
     } catch (Exception e) {
+      logger.error("[Ableron] Unable to calculate cache lifetime by Expires header", e);
       return Optional.empty();
     }
   }

@@ -6,7 +6,7 @@ jobs:
   build_and_test:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
         javaVersion: [11, 17, 21]
     runs-on: ${{ matrix.os }}
     steps:
