@@ -20,13 +20,13 @@ class FragmentCacheSpec extends Specification {
 
     when:
     for (int i = 0; i < 160; i++) {
-      fragmentCache.set("" + i, new Fragment(200, "a"))
+      // using "9999 - i" as key and "a" as content, we should have 5 bytes per fragment
+      fragmentCache.set("" + (9999 - i), new Fragment(null, 200, "a", Instant.now().plusSeconds(5), [:]))
     }
-    sleep(20)
+    sleep(25)
 
     then:
-    fragmentCache.estimatedSize() >= 144
-    fragmentCache.estimatedSize() <= 149
+    fragmentCache.estimatedCacheEntryCount() == 100
   }
 
   def "should not auto refresh fragments if disabled"() {

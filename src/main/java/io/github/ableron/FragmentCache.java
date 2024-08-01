@@ -64,7 +64,7 @@ public class FragmentCache {
     return this;
   }
 
-  public long estimatedSize() {
+  public long estimatedCacheEntryCount() {
     return this.fragmentCache.estimatedSize();
   }
 
