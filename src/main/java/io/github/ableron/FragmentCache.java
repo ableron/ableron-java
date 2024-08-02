@@ -91,9 +91,7 @@ public class FragmentCache {
   }
 
   private long calculateFragmentRefreshDelay(Fragment fragment) {
-    return Math.max(Math.round(fragment.getExpirationTime()
-      .minusMillis(Instant.now().toEpochMilli())
-      .toEpochMilli() * 0.85), 10);
+    return Math.max(Math.round((fragment.getExpirationTime().toEpochMilli() - Instant.now().toEpochMilli()) * 0.85), 10);
   }
 
   private boolean isFragmentCacheable(Fragment fragment) {
