@@ -34,7 +34,7 @@ public class HttpUtil {
   /**
    * HTTP status codes indicating cacheable responses.
    *
-   * @link <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.1">RFC 9110 Section 15.1. Overview of Status Codes</a>
+   * @see <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.1">RFC 9110 Section 15.1. Overview of Status Codes</a>
    */
   public static final List<Integer> HTTP_STATUS_CODES_CACHEABLE = Arrays.asList(
     200, 203, 204, 206,
