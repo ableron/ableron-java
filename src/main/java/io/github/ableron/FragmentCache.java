@@ -75,28 +75,18 @@ public class FragmentCache {
     return this.stats;
   }
 
-  //TODO: Revert all the debugging changes. See git log
-  //TODO: Analyze why "should not pollute" test tells us, that there is no old cache entry. There should definitely be one
-
   private void registerAutoRefresh(String cacheKey, Supplier<Fragment> autoRefresh, long refreshDelayMs) {
-    logger.info("[Ableron] DEBUG Register autoRefresh for key '{}' in {}ms", cacheKey, refreshDelayMs);
-
     autoRefreshScheduler.schedule(() -> {
       try {
-        var start = System.currentTimeMillis();
-        logger.info("[Ableron] DEBUG Performing autoRefresh for key '{}'...", cacheKey);
         var fragment = autoRefresh.get();
 
         if (isFragmentCacheable(fragment)) {
           var oldCacheEntry = fragmentCache.getIfPresent(cacheKey);
-          logger.info("[Ableron] DEBUG Old cache entry for key '{}' is {}", cacheKey, oldCacheEntry);
-
           this.set(cacheKey, fragment, autoRefresh);
           this.handleSuccessfulCacheRefresh(cacheKey, oldCacheEntry);
         } else {
           this.handleFailedCacheRefreshAttempt(cacheKey, autoRefresh);
         }
-        logger.info("[Ableron] DEBUG Finished autoRefresh for key '{}' after {}ms...", cacheKey, System.currentTimeMillis() - start);
       } catch (Exception e) {
         logger.error("[Ableron] Unable to refresh cached fragment '{}'", cacheKey, e);
       }
@@ -118,9 +108,9 @@ public class FragmentCache {
     this.stats.recordRefreshSuccess();
 
     if (oldCacheEntry != null) {
-      this.logger.info("[Ableron] Refreshed cache entry '{}' {}ms before expiration", cacheKey, oldCacheEntry.getExpirationTime().minusMillis(Instant.now().toEpochMilli()).toEpochMilli());
+      this.logger.debug("[Ableron] Refreshed cache entry '{}' {}ms before expiration", cacheKey, oldCacheEntry.getExpirationTime().minusMillis(Instant.now().toEpochMilli()).toEpochMilli());
     } else {
-      this.logger.info("[Ableron] Refreshed already expired cache entry '{}' via auto refresh", cacheKey);
+      this.logger.debug("[Ableron] Refreshed already expired cache entry '{}' via auto refresh", cacheKey);
     }
   }
 
@@ -150,9 +140,6 @@ public class FragmentCache {
           long milliseconds = fragment.getExpirationTime()
             .minusMillis(Instant.now().toEpochMilli())
             .toEpochMilli();
-
-          logger.info("[Ableron] DEBUG ZZ expireAfterCreate('{}', {}ms)", fragmentCacheKey, milliseconds);
-
           return TimeUnit.MILLISECONDS.toNanos(milliseconds);
         }
         public long expireAfterUpdate(String fragmentCacheKey, Fragment fragment, long currentTime, long currentDuration) {
