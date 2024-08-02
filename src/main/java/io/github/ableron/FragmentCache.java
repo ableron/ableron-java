@@ -86,6 +86,8 @@ public class FragmentCache {
 
         if (isFragmentCacheable(fragment)) {
           var oldCacheEntry = fragmentCache.getIfPresent(cacheKey);
+          logger.info("[Ableron] DEBUG Old cache entry for key '{}' is {}", cacheKey, oldCacheEntry);
+
           this.set(cacheKey, fragment, autoRefresh);
           this.handleSuccessfulCacheRefresh(cacheKey, oldCacheEntry);
         } else {
