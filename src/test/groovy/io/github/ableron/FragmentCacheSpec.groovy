@@ -180,7 +180,7 @@ class FragmentCacheSpec extends Specification {
 
   def "should not pollute stats when refreshing cache"() {
     given:
-    def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
+    def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(300), [:])
     def fragmentCache = new FragmentCache(1024, true)
     fragmentCache.set('cacheKey', newFragment(), () -> newFragment())
 
@@ -189,10 +189,10 @@ class FragmentCacheSpec extends Specification {
     fragmentCache.stats().missCount() == 0
     fragmentCache.stats().refreshSuccessCount() == 0
     fragmentCache.stats().refreshFailureCount() == 0
-    sleep(750)
+    sleep(850)
     fragmentCache.stats().hitCount() == 0
     fragmentCache.stats().missCount() == 0
-    fragmentCache.stats().refreshSuccessCount() == 4
+    fragmentCache.stats().refreshSuccessCount() == 3
     fragmentCache.stats().refreshFailureCount() == 0
   }
 }
