@@ -76,12 +76,12 @@ public class FragmentCache {
   }
 
   private void registerAutoRefresh(String cacheKey, Supplier<Fragment> autoRefresh, long refreshDelayMs) {
-
     logger.info("[Ableron] DEBUG Register autoRefresh for key '{}' in {}ms", cacheKey, refreshDelayMs);
 
     autoRefreshScheduler.schedule(() -> {
       try {
-        logger.info("[Ableron] DEBUG Performing autoRefresh for key '{}'...", cacheKey);
+        var start = System.currentTimeMillis();
+        logger.info("[Ableron] DEBUG Performing autoRefresh for key '{}' after {}ms...", cacheKey, System.currentTimeMillis() - start);
         var fragment = autoRefresh.get();
 
         if (isFragmentCacheable(fragment)) {
@@ -91,7 +91,7 @@ public class FragmentCache {
         } else {
           this.handleFailedCacheRefreshAttempt(cacheKey, autoRefresh);
         }
-        logger.info("[Ableron] DEBUG Finished autoRefresh for key '{}'...", cacheKey);
+        logger.info("[Ableron] DEBUG Finished autoRefresh for key '{}' after {}ms...", cacheKey, System.currentTimeMillis() - start);
       } catch (Exception e) {
         logger.error("[Ableron] Unable to refresh cached fragment '{}'", cacheKey, e);
       }

@@ -182,7 +182,7 @@ class FragmentCacheSpec extends Specification {
     given:
     def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(300), [:])
     def fragmentCache = new FragmentCache(1024, true)
-    fragmentCache.set('cacheKey', newFragment(), () -> newFragment())
+    fragmentCache.set('testShouldNotPolluteStats', newFragment(), () -> newFragment())
 
     expect:
     fragmentCache.stats().hitCount() == 0
