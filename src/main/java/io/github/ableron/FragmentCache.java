@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class FragmentCache {
@@ -126,6 +127,8 @@ public class FragmentCache {
   }
 
   private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
+    final var evictedCacheItemCount = new AtomicLong();
+
     return Caffeine.newBuilder()
       .maximumWeight(cacheMaxSizeInBytes)
       .weigher((String fragmentCacheKey, Fragment fragment) -> fragmentCacheKey.length() + fragment.getContent().length())
@@ -145,7 +148,11 @@ public class FragmentCache {
       })
       .evictionListener((String fragmentCacheKey, Fragment fragment, RemovalCause cause) -> {
         if (cause == RemovalCause.SIZE) {
-          logger.info("[Ableron] Fragment cache size exceeded. Removing key '{}' from cache. Consider increasing cache size", fragmentCacheKey);
+          evictedCacheItemCount.incrementAndGet();
+
+          if (evictedCacheItemCount.get() == 1 || evictedCacheItemCount.get() % 50 == 0) {
+            logger.warn("[Ableron] Fragment cache size exceeded. Removed overall {} items from cache due to capacity. Consider increasing cache size", evictedCacheItemCount.get());
+          }
         }
       })
       .build();
