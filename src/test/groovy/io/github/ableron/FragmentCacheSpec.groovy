@@ -190,9 +190,15 @@ class FragmentCacheSpec extends Specification {
     fragmentCache.stats().refreshSuccessCount() == 0
     fragmentCache.stats().refreshFailureCount() == 0
     sleep(850)
-    fragmentCache.stats().hitCount() == 0
-    fragmentCache.stats().missCount() == 0
-    fragmentCache.stats().refreshSuccessCount() == 3
-    fragmentCache.stats().refreshFailureCount() == 0
+    [
+      fragmentCache.stats().hitCount(),
+      fragmentCache.stats().missCount(),
+      fragmentCache.stats().refreshSuccessCount(),
+      fragmentCache.stats().refreshFailureCount()
+    ] === [0L, 0L, 3L, 0L]
+//    fragmentCache.stats().hitCount() == 0
+//    fragmentCache.stats().missCount() == 0
+//    fragmentCache.stats().refreshSuccessCount() == 3
+//    fragmentCache.stats().refreshFailureCount() == 0
   }
 }
