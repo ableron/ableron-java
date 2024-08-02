@@ -75,6 +75,9 @@ public class FragmentCache {
     return this.stats;
   }
 
+  //TODO: Revert all the debugging changes. See git log
+  //TODO: Analyze why "should not pollute" test tells us, that there is no old cache entry. There should definitely be one
+
   private void registerAutoRefresh(String cacheKey, Supplier<Fragment> autoRefresh, long refreshDelayMs) {
     logger.info("[Ableron] DEBUG Register autoRefresh for key '{}' in {}ms", cacheKey, refreshDelayMs);
 
@@ -145,7 +148,7 @@ public class FragmentCache {
       .expireAfter(new Expiry<String, Fragment>() {
         public long expireAfterCreate(String fragmentCacheKey, Fragment fragment, long currentTime) {
           long milliseconds = fragment.getExpirationTime()
-            .minusMillis(System.currentTimeMillis())
+            .minusMillis(Instant.now().toEpochMilli())
             .toEpochMilli();
           return TimeUnit.MILLISECONDS.toNanos(milliseconds);
         }
