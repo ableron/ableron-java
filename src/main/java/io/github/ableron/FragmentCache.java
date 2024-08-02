@@ -7,6 +7,7 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +20,7 @@ import java.util.function.Supplier;
 
 public class FragmentCache {
 
+  private final static long ONE_MINUTE_IN_MILLIS = Duration.ofMinutes(1).toMillis();
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final Cache<String, Fragment> fragmentCache;
   private final boolean autoRefreshEnabled;
@@ -128,6 +130,7 @@ public class FragmentCache {
 
   private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
     final var evictedCacheItemCount = new AtomicLong();
+    final var evictedCacheItemCounterStartTimeMillis = new AtomicLong(System.currentTimeMillis());
 
     return Caffeine.newBuilder()
       .maximumWeight(cacheMaxSizeInBytes)
@@ -150,8 +153,10 @@ public class FragmentCache {
         if (cause == RemovalCause.SIZE) {
           evictedCacheItemCount.incrementAndGet();
 
-          if (evictedCacheItemCount.get() == 1 || evictedCacheItemCount.get() % 50 == 0) {
+          if (evictedCacheItemCount.get() == 1
+            || System.currentTimeMillis() - evictedCacheItemCounterStartTimeMillis.get() > ONE_MINUTE_IN_MILLIS) {
             logger.warn("[Ableron] Fragment cache size exceeded. Removed overall {} items from cache due to capacity. Consider increasing cache size", evictedCacheItemCount.get());
+            evictedCacheItemCounterStartTimeMillis.set(System.currentTimeMillis());
           }
         }
       })
