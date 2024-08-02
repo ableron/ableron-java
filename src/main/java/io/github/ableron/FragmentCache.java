@@ -84,7 +84,7 @@ public class FragmentCache {
     autoRefreshScheduler.schedule(() -> {
       try {
         var start = System.currentTimeMillis();
-        logger.info("[Ableron] DEBUG Performing autoRefresh for key '{}' after {}ms...", cacheKey, System.currentTimeMillis() - start);
+        logger.info("[Ableron] DEBUG Performing autoRefresh for key '{}'...", cacheKey);
         var fragment = autoRefresh.get();
 
         if (isFragmentCacheable(fragment)) {
@@ -150,6 +150,9 @@ public class FragmentCache {
           long milliseconds = fragment.getExpirationTime()
             .minusMillis(Instant.now().toEpochMilli())
             .toEpochMilli();
+
+          logger.info("[Ableron] DEBUG ZZ expireAfterCreate('{}', {}ms)", fragmentCacheKey, milliseconds);
+
           return TimeUnit.MILLISECONDS.toNanos(milliseconds);
         }
         public long expireAfterUpdate(String fragmentCacheKey, Fragment fragment, long currentTime, long currentDuration) {
