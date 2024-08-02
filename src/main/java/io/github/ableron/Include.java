@@ -1,20 +1,15 @@
 package io.github.ableron;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,18 +52,6 @@ public class Include {
    */
   private static final List<Integer> HTTP_STATUS_CODES_SUCCESS = Arrays.asList(
     200, 203, 204, 206
-  );
-
-  /**
-   * HTTP status codes indicating cacheable responses.
-   *
-   * @link <a href="https://www.rfc-editor.org/rfc/rfc9110#section-15.1">RFC 9110 Section 15.1. Overview of Status Codes</a>
-   */
-  private static final List<Integer> HTTP_STATUS_CODES_CACHEABLE = Arrays.asList(
-    200, 203, 204, 206,
-    300,
-    404, 405, 410, 414,
-    501
   );
 
   private static final long NANO_2_MILLIS = 1000000L;
@@ -260,10 +243,9 @@ public class Include {
    * @param fragmentCache Cache for fragments
    * @param config Global ableron configuration
    * @param resolveThreadPool Thread pool to use for resolving
-   * @param stats Stats object used to record stats while resolving the Include
    * @return The resolved Include
    */
-  public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, Cache<String, Fragment> fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool, Stats stats) {
+  public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, FragmentCache fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     var resolveStartTime = System.nanoTime();
     var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, Stream.concat(
         config.getFragmentRequestHeadersToPass().stream(),
@@ -273,8 +255,8 @@ public class Include {
     erroredPrimaryFragment = null;
 
     return CompletableFuture.supplyAsync(
-      () -> load(src, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), ATTR_SOURCE, stats)
-        .or(() -> load(fallbackSrc, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), ATTR_FALLBACK_SOURCE, stats))
+      () -> load(src, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(srcTimeout, config), ATTR_SOURCE)
+        .or(() -> load(fallbackSrc, httpClient, fragmentRequestHeaders, fragmentCache, config, getRequestTimeout(fallbackSrcTimeout, config), ATTR_FALLBACK_SOURCE))
         .or(() -> {
           resolvedFragmentSource = erroredPrimaryFragmentSource;
           return Optional.ofNullable(erroredPrimaryFragment);
@@ -299,7 +281,7 @@ public class Include {
     this.resolvedFragment = fragment;
     this.resolvedFragmentSource = resolvedFragmentSource != null ? resolvedFragmentSource : "fallback content";
     this.resolveTimeMillis = resolveTimeMillis;
-    this.logger.debug("[Ableron] Resolved include {} in {}ms", this.id, this.resolveTimeMillis);
+    this.logger.debug("[Ableron] Resolved include '{}' in {}ms", this.id, this.resolveTimeMillis);
     return this;
   }
 
@@ -307,56 +289,63 @@ public class Include {
     String uri,
     HttpClient httpClient,
     Map<String, List<String>> requestHeaders,
-    Cache<String, Fragment> fragmentCache,
+    FragmentCache fragmentCache,
     AbleronConfig config,
     Duration requestTimeout,
-    String urlSource,
-    Stats stats) {
+    String urlSource) {
     var fragmentCacheKey = buildFragmentCacheKey(uri, requestHeaders, config.getCacheVaryByRequestHeaders());
 
     return Optional.ofNullable(uri)
       .map(uri1 -> {
-        var fragmentFromCache = getFragmentFromCache(fragmentCacheKey, fragmentCache, stats);
-        this.resolvedFragmentSource = (fragmentFromCache != null ? "cached " : "remote ") + urlSource;
+        var fragmentFromCache = fragmentCache.get(fragmentCacheKey);
+        this.resolvedFragmentSource = (fragmentFromCache.isPresent() ? "cached " : "remote ") + urlSource;
 
-        return fragmentFromCache != null ? fragmentFromCache : performRequest(uri, httpClient, requestHeaders, requestTimeout)
+        return fragmentFromCache.orElseGet(() -> HttpUtil.loadUrl(uri, httpClient, requestHeaders, requestTimeout)
           .filter(response -> {
             if (!isHttpStatusCacheable(response.statusCode())) {
-              logger.error("[Ableron] Fragment {} returned status code {}", uri, response.statusCode());
-              recordErroredPrimaryFragment(new Fragment(
-                uri,
-                response.statusCode(),
-                HttpUtil.getResponseBodyAsString(response),
-                Instant.EPOCH,
-                filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
-              ), this.resolvedFragmentSource);
+              logger.error("[Ableron] Fragment '{}' returned status code {}", uri, response.statusCode());
+              recordErroredPrimaryFragment(
+                toFragment(response, uri, config.getPrimaryFragmentResponseHeadersToPass(), true),
+                this.resolvedFragmentSource
+              );
               return false;
             }
 
             return true;
           })
           .map(response -> {
-            var fragment = new Fragment(
-              response.uri().toString(),
-              response.statusCode(),
-              HttpUtil.getResponseBodyAsString(response),
-              HttpUtil.calculateResponseExpirationTime(response.headers().map()),
-              filterHeaders(response.headers().map(), config.getPrimaryFragmentResponseHeadersToPass())
-            );
-            fragmentCache.put(fragmentCacheKey, fragment);
+            var fragment = toFragment(response, uri, config.getPrimaryFragmentResponseHeadersToPass(), false);
+            fragmentCache.set(fragmentCacheKey, fragment, () ->
+              HttpUtil.loadUrl(uri, httpClient, requestHeaders, requestTimeout)
+                .map(res -> toFragment(res, uri, config.getPrimaryFragmentResponseHeadersToPass(), false))
+                .orElse(null));
             return fragment;
           })
-          .orElse(null);
+          .orElse(null));
       })
       .filter(fragment -> {
         if (!HTTP_STATUS_CODES_SUCCESS.contains(fragment.getStatusCode())) {
-          logger.error("[Ableron] Fragment {} returned status code {}", uri, fragment.getStatusCode());
+          logger.error("[Ableron] Fragment '{}' returned status code {}", uri, fragment.getStatusCode());
           recordErroredPrimaryFragment(fragment, this.resolvedFragmentSource);
           return false;
         }
 
         return true;
       });
+  }
+
+  private Fragment toFragment(
+    HttpResponse<byte[]> response,
+    String url,
+    List<String> primaryFragmentResponseHeadersToPass,
+    boolean preventCaching) {
+    return new Fragment(
+      url,
+      response.statusCode(),
+      HttpUtil.getResponseBodyAsString(response),
+      preventCaching ? Instant.EPOCH : HttpUtil.calculateResponseExpirationTime(response.headers().map()),
+      filterHeaders(response.headers().map(), primaryFragmentResponseHeadersToPass)
+    );
   }
 
   private void recordErroredPrimaryFragment(Fragment fragment, String fragmentSource) {
@@ -393,31 +382,7 @@ public class Include {
   }
 
   private boolean isHttpStatusCacheable(int httpStatusCode) {
-    return HTTP_STATUS_CODES_CACHEABLE.contains(httpStatusCode);
-  }
-
-  private Optional<HttpResponse<byte[]>> performRequest(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
-    try {
-      logger.debug("[Ableron] Loading fragment {} for include {} with timeout {}ms", uri, id, requestTimeout.toMillis());
-      var httpResponse = httpClient.sendAsync(buildHttpRequest(uri, requestHeaders), HttpResponse.BodyHandlers.ofByteArray());
-      return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
-    } catch (TimeoutException e) {
-      logger.error("[Ableron] Unable to load fragment {} for include {}: {}ms timeout exceeded", uri, id, requestTimeout.toMillis());
-      return Optional.empty();
-    } catch (Exception e) {
-      logger.error("[Ableron] Unable to load fragment {} for include {}: {}", uri, id, Optional.ofNullable(e.getMessage()).orElse(e.getClass().getSimpleName()));
-      return Optional.empty();
-    }
-  }
-
-  private HttpRequest buildHttpRequest(String uri, Map<String, List<String>> requestHeaders) {
-    var httpRequestBuilder = HttpRequest.newBuilder()
-      .uri(URI.create(uri))
-      .header("Accept-Encoding", "gzip");
-    requestHeaders.forEach((name, values) -> values.forEach(value -> httpRequestBuilder.header(name, value)));
-    return httpRequestBuilder
-      .GET()
-      .build();
+    return HttpUtil.HTTP_STATUS_CODES_CACHEABLE.contains(httpStatusCode);
   }
 
   private String buildIncludeId(String providedId) {
@@ -436,18 +401,6 @@ public class Include {
         .map(entry -> "|" + entry.getKey() + "=" + String.join(",", entry.getValue()))
         .map(String::toLowerCase)
         .collect(Collectors.joining());
-  }
-
-  private Fragment getFragmentFromCache(String cacheKey, Cache<String, Fragment> fragmentCache, Stats stats) {
-    var fragmentFromCache = fragmentCache.getIfPresent(cacheKey);
-
-    if (fragmentFromCache != null) {
-      stats.recordCacheHit();
-    } else {
-      stats.recordCacheMiss();
-    }
-
-    return fragmentFromCache;
   }
 
   private boolean hasBooleanAttribute(String attributeName) {

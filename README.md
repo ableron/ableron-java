@@ -24,7 +24,7 @@ Maven:
 1. Init ableron
    ```java
    var ableron = new Ableron(AbleronConfig.builder()
-     .cacheMaxSizeInBytes(1024 * 1024 * 50)
+     .cacheMaxSizeInBytes(1024 * 1024 * 100)
      .build());
    ```
 2. Use includes in response body
@@ -110,7 +110,7 @@ Response headers of primary fragments to pass to the page response, if present.
 
 #### `cacheMaxSizeInBytes`
 
-Default: `10 MB`
+Default: `1024 * 1024 * 50` (`50 MB`)
 
 Maximum size in bytes the fragment cache may have.
 
@@ -120,6 +120,17 @@ Default: `empty list`
 
 Fragment request headers which influence the requested fragment aside from its URL. Used to create fragment cache keys.
 Must be a subset of `fragmentRequestHeadersToPass`. Common example are headers used for steering A/B-tests.
+
+#### `cacheAutoRefreshEnabled`
+
+Default: `false`
+
+Whether to enable auto-refreshing of cached fragments, before they expire.
+If set to `true`, cached fragments are getting asynchronously refreshed before they expire. This reduces the cache miss
+rate and thus have a positive impact on latency. On the other hand, additional traffic is introduced, because the cached
+fragments are loaded again even before their actual expiration time.
+Fragments are tried to be refreshed when only 15% of their initial time to live remains. In case of failure, refresh is
+repeated three times with a static delay of one second.
 
 #### `statsAppendToContent`
 

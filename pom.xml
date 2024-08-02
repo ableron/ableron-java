@@ -58,18 +58,18 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <caffeine.version>3.1.8</caffeine.version>
-    <gmavenplus-plugin.version>2.1.0</gmavenplus-plugin.version>
-    <groovy.version>4.0.13</groovy.version>
+    <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
+    <groovy.version>4.0.22</groovy.version>
     <java.version>11</java.version>
-    <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
-    <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
-    <maven-javadoc-plugin.version>3.4.1</maven-javadoc-plugin.version>
-    <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-    <maven-surefire-plugin.version>3.0.0-M8</maven-surefire-plugin.version>
-    <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-gpg-plugin.version>3.2.4</maven-gpg-plugin.version>
+    <maven-javadoc-plugin.version>3.8.0</maven-javadoc-plugin.version>
+    <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
+    <maven-surefire-plugin.version>3.3.1</maven-surefire-plugin.version>
+    <nexus-staging-maven-plugin.version>1.7.0</nexus-staging-maven-plugin.version>
     <okhttp-mockwebserver.version>4.12.0</okhttp-mockwebserver.version>
-    <slf4j.version>2.0.9</slf4j.version>
-    <spock.version>2.4-M1-groovy-4.0</spock.version>
+    <slf4j.version>2.0.13</slf4j.version>
+    <spock.version>2.4-M4-groovy-4.0</spock.version>
   </properties>
 
   <dependencies>

@@ -51,14 +51,19 @@ public class AbleronConfig {
 
   /**
    * Maximum size in bytes the fragment cache may have.
-   * Defaults to 10 MB.
+   * Defaults to 50 MB.
    */
-  private long cacheMaxSizeInBytes = 1024 * 1024 * 10;
+  private long cacheMaxSizeInBytes = 1024 * 1024 * 50;
 
   /**
    * Fragment request headers which influence the requested fragment aside from its URL.
    */
   private List<String> cacheVaryByRequestHeaders = List.of();
+
+  /**
+   * Whether to enable auto-refreshing of cached fragments.
+   */
+  private boolean cacheAutoRefreshEnabled = false;
 
   /**
    * Whether to append UI composition stats as HTML comment to the content.
@@ -104,6 +109,10 @@ public class AbleronConfig {
 
   public List<String> getCacheVaryByRequestHeaders() {
     return cacheVaryByRequestHeaders;
+  }
+
+  public boolean cacheAutoRefreshEnabled() {
+    return cacheAutoRefreshEnabled;
   }
 
   public boolean statsAppendToContent() {
@@ -155,6 +164,11 @@ public class AbleronConfig {
 
     public Builder statsAppendToContent(boolean statsAppendToContent) {
       ableronConfig.statsAppendToContent = statsAppendToContent;
+      return this;
+    }
+
+    public Builder cacheAutoRefreshEnabled(boolean cacheAutoRefreshEnabled) {
+      ableronConfig.cacheAutoRefreshEnabled = cacheAutoRefreshEnabled;
       return this;
     }
 

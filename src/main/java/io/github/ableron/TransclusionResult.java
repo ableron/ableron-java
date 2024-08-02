@@ -27,7 +27,7 @@ public class TransclusionResult {
    */
   private String content;
 
-  private final Stats stats;
+  private final CacheStats cacheStats;
 
   /**
    * Expiration time of the content as defined by the fragment with the lowest expiration
@@ -62,12 +62,12 @@ public class TransclusionResult {
   private final List<Include> processedIncludes = new ArrayList<>();
 
   public TransclusionResult(String content) {
-    this(content, new Stats(), false, false);
+    this(content, new CacheStats(), false, false);
   }
 
-  public TransclusionResult(String content, Stats stats, boolean appendStatsToContent, boolean exposeFragmentUrl) {
+  public TransclusionResult(String content, CacheStats cacheStats, boolean appendStatsToContent, boolean exposeFragmentUrl) {
     this.content = content;
-    this.stats = stats;
+    this.cacheStats = cacheStats;
     this.appendStatsToContent = appendStatsToContent;
     this.exposeFragmentUrl = exposeFragmentUrl;
   }
@@ -199,7 +199,7 @@ public class TransclusionResult {
   }
 
   private String getCacheStats() {
-    return "\n\nCache Stats: " + this.stats.getTotalCacheHits() + " overall hits, " + this.stats.getTotalCacheMisses() + " overall misses";
+    return "\n\nCache Stats: " + this.cacheStats.hitCount() + " overall hits, " + this.cacheStats.missCount() + " overall misses";
   }
 
   private String getProcessedIncludeStatsRow(Include include) {

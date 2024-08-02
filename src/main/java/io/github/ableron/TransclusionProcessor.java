@@ -1,9 +1,5 @@
 package io.github.ableron;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Expiry;
-import com.github.benmanes.caffeine.cache.RemovalCause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +9,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -44,9 +39,7 @@ public class TransclusionProcessor {
   /**
    * Cache for fragments.
    */
-  private final Cache<String, Fragment> fragmentCache;
-
-  private final Stats stats = new Stats();
+  private final FragmentCache fragmentCache;
 
   /**
    * Thread pool used to resolve includes in parallel.
@@ -60,14 +53,14 @@ public class TransclusionProcessor {
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = ableronConfig;
     this.httpClient = buildHttpClient();
-    this.fragmentCache = buildFragmentCache(this.ableronConfig.getCacheMaxSizeInBytes());
+    this.fragmentCache = new FragmentCache(this.ableronConfig.getCacheMaxSizeInBytes(), this.ableronConfig.cacheAutoRefreshEnabled());
   }
 
   public HttpClient getHttpClient() {
     return httpClient;
   }
 
-  public Cache<String, Fragment> getFragmentCache() {
+  public FragmentCache getFragmentCache() {
     return fragmentCache;
   }
 
@@ -96,11 +89,11 @@ public class TransclusionProcessor {
    */
   public TransclusionResult resolveIncludes(String content, Map<String, List<String>> parentRequestHeaders) {
     var startTime = System.nanoTime();
-    var transclusionResult = new TransclusionResult(content, this.stats, ableronConfig.statsAppendToContent(), ableronConfig.statsExposeFragmentUrl());
+    var transclusionResult = new TransclusionResult(content, this.fragmentCache.stats(), ableronConfig.statsAppendToContent(), ableronConfig.statsExposeFragmentUrl());
     CompletableFuture.allOf(findIncludes(content).stream()
       .map(include -> {
         try {
-          return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool, stats)
+          return include.resolve(httpClient, parentRequestHeaders, fragmentCache, ableronConfig, resolveThreadPool)
             .thenAccept(transclusionResult::addResolvedInclude);
         } catch (Exception e) {
           handleResolveError(include, e, transclusionResult, startTime);
@@ -114,7 +107,7 @@ public class TransclusionProcessor {
   }
 
   private void handleResolveError(Include include, Exception e, TransclusionResult transclusionResult, long resolveStartTimeMillis) {
-    logger.error("[Ableron] Unable to resolve include {}", include.getId(), e);
+    logger.error("[Ableron] Unable to resolve include '{}'", include.getId(), e);
     transclusionResult.addResolvedInclude(include.resolveWith(
       new Fragment(null, 200, include.getFallbackContent(), Instant.now().plusSeconds(60), Map.of()),
       (int) ((System.nanoTime() - resolveStartTimeMillis) / NANO_2_MILLIS),
@@ -137,32 +130,6 @@ public class TransclusionProcessor {
   private HttpClient buildHttpClient() {
     return HttpClient.newBuilder()
       .followRedirects(HttpClient.Redirect.NEVER)
-      .build();
-  }
-
-  private Cache<String, Fragment> buildFragmentCache(long cacheMaxSizeInBytes) {
-    return Caffeine.newBuilder()
-      .maximumWeight(cacheMaxSizeInBytes)
-      .weigher((String fragmentCacheKey, Fragment fragment) -> fragment.getContent().length())
-      .expireAfter(new Expiry<String, Fragment>() {
-        public long expireAfterCreate(String fragmentCacheKey, Fragment fragment, long currentTime) {
-          long milliseconds = fragment.getExpirationTime()
-            .minusMillis(System.currentTimeMillis())
-            .toEpochMilli();
-          return TimeUnit.MILLISECONDS.toNanos(milliseconds);
-        }
-        public long expireAfterUpdate(String fragmentCacheKey, Fragment fragment, long currentTime, long currentDuration) {
-          return expireAfterCreate(fragmentCacheKey, fragment, currentTime);
-        }
-        public long expireAfterRead(String fragmentCacheKey, Fragment fragment, long currentTime, long currentDuration) {
-          return currentDuration;
-        }
-      })
-      .evictionListener((String fragmentCacheKey, Fragment fragment, RemovalCause cause) -> {
-        if (cause == RemovalCause.SIZE) {
-          logger.info("[Ableron] Fragment cache size exceeded. Removing {} from cache. Consider increasing cache size", fragmentCacheKey);
-        }
-      })
       .build();
   }
 }
