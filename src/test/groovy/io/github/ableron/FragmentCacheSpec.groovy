@@ -181,7 +181,9 @@ class FragmentCacheSpec extends Specification {
   def "should not pollute stats when refreshing cache"() {
     given:
     def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(300), [:])
-    def fragmentCache = new FragmentCache(1024, true)
+    def fragmentCache = new FragmentCache(AbleronConfig.builder()
+      .cacheAutoRefreshEnabled(true)
+      .build())
     fragmentCache.set('testShouldNotPolluteStats', newFragment(), () -> newFragment())
 
     expect:

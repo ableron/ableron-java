@@ -29,9 +29,9 @@ public class FragmentCache {
   private final CacheStats stats = new CacheStats();
   private final ScheduledExecutorService autoRefreshScheduler = Executors.newScheduledThreadPool(3);
 
-  public FragmentCache(long cacheMaxSizeInBytes, boolean autoRefreshEnabled) {
-    this.fragmentCache = buildFragmentCache(cacheMaxSizeInBytes);
-    this.autoRefreshEnabled = autoRefreshEnabled;
+  public FragmentCache(AbleronConfig config) {
+    this.fragmentCache = buildFragmentCache(config.getCacheMaxSizeInBytes());
+    this.autoRefreshEnabled = config.cacheAutoRefreshEnabled();
   }
 
   public Optional<Fragment> get(String cacheKey) {
