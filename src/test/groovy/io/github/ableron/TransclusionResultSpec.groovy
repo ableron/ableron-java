@@ -132,11 +132,13 @@ class TransclusionResultSpec extends Specification {
   }
 
   def "should handle missing content expiration time when calculating cache control header value"() {
-    given:
-    def transclusionResult = new TransclusionResult("")
-
     expect:
-    transclusionResult.calculateCacheControlHeaderValue([:]) == "no-store"
+    new TransclusionResult("").calculateCacheControlHeaderValue([:]) == "no-store"
+  }
+
+  def "should calculate content expiration time correctly for content without fragments"() {
+    expect:
+    new TransclusionResult("").calculateCacheControlHeaderValue(["Cache-Control": ["max-age=60"]]) == "max-age=60"
   }
 
   def "should not append stats to content by default"() {
