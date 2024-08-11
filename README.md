@@ -21,6 +21,14 @@ Maven:
 ```
 
 ## Usage
+
+Normally, you do not want to use `ableron-java` directly, because intercepting and modifying
+the response body within your service may be tricky. Instead, you may want to use an existing
+framework integration, which uses `ableron-java` under the hood, e.g.
+   * [ableron-spring-boot](https://github.com/ableron/ableron-spring-boot)
+
+To use `ableron-java` directly, follow these steps:
+
 1. Init ableron
    ```java
    var ableron = new Ableron(AbleronConfig.builder()
