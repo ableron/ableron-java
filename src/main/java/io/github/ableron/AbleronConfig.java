@@ -66,6 +66,13 @@ public class AbleronConfig {
   private boolean cacheAutoRefreshEnabled = false;
 
   /**
+   * Maximum number of consecutive refreshs of unused cached fragments.<br>
+   * A fragment is considered unused, if the cache has not been queried
+   * for the fragment between two cache refreshs.
+   */
+  private int cacheAutoRefreshInactiveEntryMaxRefreshs = 2;
+
+  /**
    * Whether to append UI composition stats as HTML comment to the content.
    * Defaults to false.
    */
@@ -113,6 +120,10 @@ public class AbleronConfig {
 
   public boolean cacheAutoRefreshEnabled() {
     return cacheAutoRefreshEnabled;
+  }
+
+  public int getCacheAutoRefreshInactiveEntryMaxRefreshs() {
+    return cacheAutoRefreshInactiveEntryMaxRefreshs;
   }
 
   public boolean statsAppendToContent() {
@@ -169,6 +180,11 @@ public class AbleronConfig {
 
     public Builder cacheAutoRefreshEnabled(boolean cacheAutoRefreshEnabled) {
       ableronConfig.cacheAutoRefreshEnabled = cacheAutoRefreshEnabled;
+      return this;
+    }
+
+    public Builder cacheAutoRefreshInactiveEntryMaxRefreshs(int cacheAutoRefreshInactiveEntryMaxRefreshs) {
+      ableronConfig.cacheAutoRefreshInactiveEntryMaxRefreshs = cacheAutoRefreshInactiveEntryMaxRefreshs;
       return this;
     }
 
