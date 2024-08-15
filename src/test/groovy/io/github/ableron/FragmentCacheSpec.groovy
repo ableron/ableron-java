@@ -142,7 +142,7 @@ class FragmentCacheSpec extends Specification {
     fragmentCache.get('cacheKey').isPresent()
   }
 
-  def "should retry to refresh cache on failure with max 3 attempts"() {
+  def "should make 3 attempts to refresh cached fragments"() {
     given:
     def counter = 0
     def newFragment = () -> {
@@ -161,14 +161,14 @@ class FragmentCacheSpec extends Specification {
 
     expect:
     fragmentCache.get('cacheKey').isPresent()
-    sleep(1100)
+    sleep(1200)
     fragmentCache.get('cacheKey').isEmpty()
     sleep(1000)
     fragmentCache.get('cacheKey').isEmpty()
     sleep(1000)
     fragmentCache.get('cacheKey').isPresent()
 
-    sleep(1100)
+    sleep(1200)
     fragmentCache.get('cacheKey').isEmpty()
     sleep(1000)
     fragmentCache.get('cacheKey').isEmpty()
@@ -198,5 +198,29 @@ class FragmentCacheSpec extends Specification {
       fragmentCache.stats().refreshSuccessCount(),
       fragmentCache.stats().refreshFailureCount()
     ] == [0L, 0L, 3L, 0L]
+  }
+
+  def "should stop refreshing unused fragments"() {
+    given:
+    def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
+    def fragmentCache = new FragmentCache(AbleronConfig.builder()
+      .cacheAutoRefreshEnabled(true)
+      .cacheAutoRefreshInactiveEntryMaxRefreshs(1)
+      .build())
+
+    when:
+    fragmentCache.set('key', newFragment(), () -> newFragment())
+    sleep(400)
+
+    then:
+    fragmentCache.stats().refreshSuccessCount() == 1
+
+    when:
+    fragmentCache.set('key', newFragment(), () -> newFragment())
+    fragmentCache.get('key')
+    sleep(400)
+
+    then:
+    fragmentCache.stats().refreshSuccessCount() == 3
   }
 }

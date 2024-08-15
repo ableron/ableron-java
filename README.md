@@ -140,6 +140,12 @@ fragments are loaded again even before their actual expiration time.
 Fragments are tried to be refreshed when only 15% of their initial time to live remains. In case of failure, refresh is
 repeated three times with a static delay of one second.
 
+#### `cacheAutoRefreshMaxAttempts`
+
+Default: `3`
+
+Maximum number of attempts to refresh a cached fragment.
+
 #### `cacheAutoRefreshInactiveEntryMaxRefreshs`
 
 Default: `2`

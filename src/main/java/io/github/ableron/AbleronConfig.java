@@ -66,6 +66,11 @@ public class AbleronConfig {
   private boolean cacheAutoRefreshEnabled = false;
 
   /**
+   * Maximum number of attempts to refresh a cached fragment.
+   */
+  private int cacheAutoRefreshMaxAttempts = 3;
+
+  /**
    * Maximum number of consecutive refreshs of unused cached fragments.<br>
    * A fragment is considered unused, if the cache has not been queried
    * for the fragment between two cache refreshs.
@@ -120,6 +125,10 @@ public class AbleronConfig {
 
   public boolean cacheAutoRefreshEnabled() {
     return cacheAutoRefreshEnabled;
+  }
+
+  public int getCacheAutoRefreshMaxAttempts() {
+    return cacheAutoRefreshMaxAttempts;
   }
 
   public int getCacheAutoRefreshInactiveEntryMaxRefreshs() {
@@ -180,6 +189,11 @@ public class AbleronConfig {
 
     public Builder cacheAutoRefreshEnabled(boolean cacheAutoRefreshEnabled) {
       ableronConfig.cacheAutoRefreshEnabled = cacheAutoRefreshEnabled;
+      return this;
+    }
+
+    public Builder cacheAutoRefreshMaxAttempts(int cacheAutoRefreshMaxAttempts) {
+      ableronConfig.cacheAutoRefreshMaxAttempts = cacheAutoRefreshMaxAttempts;
       return this;
     }
 
