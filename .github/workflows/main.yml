@@ -6,8 +6,8 @@ jobs:
   build_and_test:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        javaVersion: [11, 17, 21]
+        os: [ubuntu-latest, macos-latest]
+        javaVersion: [11, 17, 21, 22]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
