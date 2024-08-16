@@ -150,8 +150,8 @@ Maximum number of attempts to refresh a cached fragment.
 
 Default: `2`
 
-Maximum number of consecutive refreshs of unused cached fragments.
-A fragment is considered unused, if the cache has not been queried for the fragment between two cache refreshs.
+Maximum number of consecutive refreshs of inactive cached fragments.
+Fragments are considered inactive, if they have not been read from cache between writing to cache and a refresh attempt.
 
 #### `statsAppendToContent`
 
