@@ -75,7 +75,7 @@ public class AbleronConfig {
    * A fragment is considered unused, if the cache has not been queried
    * for the fragment between two cache refreshs.
    */
-  private int cacheAutoRefreshInactiveEntryMaxRefreshs = 2;
+  private int cacheAutoRefreshInactiveFragmentMaxRefreshs = 2;
 
   /**
    * Whether to append UI composition stats as HTML comment to the content.
@@ -131,8 +131,8 @@ public class AbleronConfig {
     return cacheAutoRefreshMaxAttempts;
   }
 
-  public int getCacheAutoRefreshInactiveEntryMaxRefreshs() {
-    return cacheAutoRefreshInactiveEntryMaxRefreshs;
+  public int getCacheAutoRefreshInactiveFragmentMaxRefreshs() {
+    return cacheAutoRefreshInactiveFragmentMaxRefreshs;
   }
 
   public boolean statsAppendToContent() {
@@ -197,8 +197,8 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder cacheAutoRefreshInactiveEntryMaxRefreshs(int cacheAutoRefreshInactiveEntryMaxRefreshs) {
-      ableronConfig.cacheAutoRefreshInactiveEntryMaxRefreshs = cacheAutoRefreshInactiveEntryMaxRefreshs;
+    public Builder cacheAutoRefreshInactiveFragmentMaxRefreshs(int cacheAutoRefreshInactiveFragmentMaxRefreshs) {
+      ableronConfig.cacheAutoRefreshInactiveFragmentMaxRefreshs = cacheAutoRefreshInactiveFragmentMaxRefreshs;
       return this;
     }
 

@@ -183,7 +183,7 @@ class FragmentCacheSpec extends Specification {
     def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
     def fragmentCache = new FragmentCache(AbleronConfig.builder()
       .cacheAutoRefreshEnabled(true)
-      .cacheAutoRefreshInactiveEntryMaxRefreshs(4)
+      .cacheAutoRefreshInactiveFragmentMaxRefreshs(4)
       .build())
     fragmentCache.set('testShouldNotPolluteStats', newFragment(), () -> newFragment())
 
@@ -204,7 +204,7 @@ class FragmentCacheSpec extends Specification {
     def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
     def fragmentCache = new FragmentCache(AbleronConfig.builder()
       .cacheAutoRefreshEnabled(true)
-      .cacheAutoRefreshInactiveEntryMaxRefreshs(1)
+      .cacheAutoRefreshInactiveFragmentMaxRefreshs(1)
       .build())
 
     when:
