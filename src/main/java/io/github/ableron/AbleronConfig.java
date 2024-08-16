@@ -75,7 +75,7 @@ public class AbleronConfig {
    * Fragments are considered inactive, if they have not been read from cache
    * between writing to cache and a refresh attempt.
    */
-  private int cacheAutoRefreshInactiveFragmentMaxRefreshs = 2;
+  private int cacheAutoRefreshInactiveFragmentsMaxRefreshs = 2;
 
   /**
    * Whether to append UI composition stats as HTML comment to the content.
@@ -131,8 +131,8 @@ public class AbleronConfig {
     return cacheAutoRefreshMaxAttempts;
   }
 
-  public int getCacheAutoRefreshInactiveFragmentMaxRefreshs() {
-    return cacheAutoRefreshInactiveFragmentMaxRefreshs;
+  public int getCacheAutoRefreshInactiveFragmentsMaxRefreshs() {
+    return cacheAutoRefreshInactiveFragmentsMaxRefreshs;
   }
 
   public boolean statsAppendToContent() {
@@ -197,8 +197,8 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder cacheAutoRefreshInactiveFragmentMaxRefreshs(int cacheAutoRefreshInactiveFragmentMaxRefreshs) {
-      ableronConfig.cacheAutoRefreshInactiveFragmentMaxRefreshs = cacheAutoRefreshInactiveFragmentMaxRefreshs;
+    public Builder cacheAutoRefreshInactiveFragmentsMaxRefreshs(int cacheAutoRefreshInactiveFragmentsMaxRefreshs) {
+      ableronConfig.cacheAutoRefreshInactiveFragmentsMaxRefreshs = cacheAutoRefreshInactiveFragmentsMaxRefreshs;
       return this;
     }
 

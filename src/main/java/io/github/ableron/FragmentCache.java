@@ -28,7 +28,7 @@ public class FragmentCache {
   private final int maxRefreshAttempts;
   private final Map<String, Integer> refreshAttempts = new ConcurrentHashMap<>();
   private final Set<String> activeFragments = new ConcurrentHashMap<String, Boolean>().keySet(true);
-  private final Integer inactiveFragmentMaxRefreshs;
+  private final Integer inactiveFragmentsMaxRefreshs;
   private final Map<String, Integer> inactiveFragmentRefreshs = new ConcurrentHashMap<>();
   private final CacheStats stats = new CacheStats();
   private final ScheduledExecutorService autoRefreshScheduler = Executors.newScheduledThreadPool(3);
@@ -36,7 +36,7 @@ public class FragmentCache {
   public FragmentCache(AbleronConfig config) {
     this.autoRefreshEnabled = config.cacheAutoRefreshEnabled();
     this.maxRefreshAttempts = config.getCacheAutoRefreshMaxAttempts();
-    this.inactiveFragmentMaxRefreshs = config.getCacheAutoRefreshInactiveFragmentMaxRefreshs();
+    this.inactiveFragmentsMaxRefreshs = config.getCacheAutoRefreshInactiveFragmentsMaxRefreshs();
     this.fragmentCache = buildFragmentCache(config.getCacheMaxSizeInBytes());
   }
 
@@ -116,7 +116,7 @@ public class FragmentCache {
 
   private boolean shouldPerformAutoRefresh(String cacheKey) {
     return activeFragments.contains(cacheKey)
-      || Optional.ofNullable(inactiveFragmentRefreshs.get(cacheKey)).orElse(0) < inactiveFragmentMaxRefreshs;
+      || Optional.ofNullable(inactiveFragmentRefreshs.get(cacheKey)).orElse(0) < inactiveFragmentsMaxRefreshs;
   }
 
   private boolean isFragmentCacheable(Fragment fragment) {

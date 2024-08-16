@@ -37,7 +37,7 @@ class AbleronConfigSpec extends Specification {
       cacheVaryByRequestHeaders == []
       !cacheAutoRefreshEnabled()
       cacheAutoRefreshMaxAttempts == 3
-      cacheAutoRefreshInactiveFragmentMaxRefreshs == 2
+      cacheAutoRefreshInactiveFragmentsMaxRefreshs == 2
       !statsAppendToContent()
       !statsExposeFragmentUrl()
     }
@@ -55,7 +55,7 @@ class AbleronConfigSpec extends Specification {
       .cacheVaryByRequestHeaders(["X-Test-Groups", "X-ACME-Country"])
       .cacheAutoRefreshEnabled(true)
       .cacheAutoRefreshMaxAttempts(5)
-      .cacheAutoRefreshInactiveFragmentMaxRefreshs(4)
+      .cacheAutoRefreshInactiveFragmentsMaxRefreshs(4)
       .statsAppendToContent(true)
       .statsExposeFragmentUrl(true)
       .build()
@@ -71,7 +71,7 @@ class AbleronConfigSpec extends Specification {
       cacheVaryByRequestHeaders == ["X-Test-Groups", "X-ACME-Country"]
       cacheAutoRefreshEnabled()
       cacheAutoRefreshMaxAttempts == 5
-      cacheAutoRefreshInactiveFragmentMaxRefreshs == 4
+      cacheAutoRefreshInactiveFragmentsMaxRefreshs == 4
       statsAppendToContent()
       statsExposeFragmentUrl()
     }

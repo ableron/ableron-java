@@ -146,7 +146,7 @@ Default: `3`
 
 Maximum number of attempts to refresh a cached fragment.
 
-#### `cacheAutoRefreshInactiveFragmentMaxRefreshs`
+#### `cacheAutoRefreshInactiveFragmentsMaxRefreshs`
 
 Default: `2`
 
