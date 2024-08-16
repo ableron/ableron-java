@@ -115,7 +115,8 @@ public class FragmentCache {
   }
 
   private boolean shouldPerformAutoRefresh(String cacheKey) {
-    return activeFragments.contains(cacheKey) || !inactiveFragmentMaxRefreshs.equals(inactiveFragmentRefreshs.get(cacheKey));
+    return activeFragments.contains(cacheKey)
+      || Optional.ofNullable(inactiveFragmentRefreshs.get(cacheKey)).orElse(0) < inactiveFragmentMaxRefreshs;
   }
 
   private boolean isFragmentCacheable(Fragment fragment) {

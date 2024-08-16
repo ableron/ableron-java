@@ -199,7 +199,7 @@ class FragmentCacheSpec extends Specification {
     fragmentCache.stats().refreshFailureCount() == 0
   }
 
-  def "should stop refreshing unused fragments"() {
+  def "should stop refreshing unused fragments with cacheAutoRefreshInactiveFragmentMaxRefreshs=2"() {
     given:
     def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
     def fragmentCache = new FragmentCache(AbleronConfig.builder()
@@ -221,5 +221,29 @@ class FragmentCacheSpec extends Specification {
 
     then:
     fragmentCache.stats().refreshSuccessCount() == 3
+  }
+
+  def "should stop refreshing unused fragments with cacheAutoRefreshInactiveFragmentMaxRefreshs=0"() {
+    given:
+    def newFragment = () -> new Fragment('url', 200, 'fragment', Instant.now().plusMillis(200), [:])
+    def fragmentCache = new FragmentCache(AbleronConfig.builder()
+      .cacheAutoRefreshEnabled(true)
+      .cacheAutoRefreshInactiveFragmentMaxRefreshs(0)
+      .build())
+
+    when:
+    fragmentCache.set('key', newFragment(), () -> newFragment())
+    sleep(400)
+
+    then:
+    fragmentCache.stats().refreshSuccessCount() == 0
+
+    when:
+    fragmentCache.set('key', newFragment(), () -> newFragment())
+    fragmentCache.get('key')
+    sleep(600)
+
+    then:
+    fragmentCache.stats().refreshSuccessCount() == 1
   }
 }
