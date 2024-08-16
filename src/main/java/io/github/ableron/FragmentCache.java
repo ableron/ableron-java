@@ -132,8 +132,10 @@ public class FragmentCache {
       this.activeFragments.remove(cacheKey);
       this.inactiveFragmentRefreshs.remove(cacheKey);
     } else {
-      var currentRefreshCount = this.inactiveFragmentRefreshs.get(cacheKey);
-      this.inactiveFragmentRefreshs.put(cacheKey, (currentRefreshCount == null ? 0 : currentRefreshCount) + 1);
+      this.inactiveFragmentRefreshs.put(
+        cacheKey,
+        Optional.ofNullable(this.inactiveFragmentRefreshs.get(cacheKey)).orElse(0) + 1
+      );
     }
 
     this.stats.recordRefreshSuccess();
