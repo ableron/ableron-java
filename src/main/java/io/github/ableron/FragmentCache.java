@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,14 +25,19 @@ public class FragmentCache {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final Cache<String, Fragment> fragmentCache;
   private final boolean autoRefreshEnabled;
-  private final Map<String, Integer> autoRefreshRetries = new ConcurrentHashMap<>();
-  private final int autoRefreshMaxRetries = 3;
+  private final int maxRefreshAttempts;
+  private final Map<String, Integer> refreshAttempts = new ConcurrentHashMap<>();
+  private final Set<String> activeFragments = new ConcurrentHashMap<String, Boolean>().keySet(true);
+  private final Integer inactiveFragmentsMaxRefreshs;
+  private final Map<String, Integer> inactiveFragmentRefreshs = new ConcurrentHashMap<>();
   private final CacheStats stats = new CacheStats();
   private final ScheduledExecutorService autoRefreshScheduler = Executors.newScheduledThreadPool(3);
 
-  public FragmentCache(long cacheMaxSizeInBytes, boolean autoRefreshEnabled) {
-    this.fragmentCache = buildFragmentCache(cacheMaxSizeInBytes);
-    this.autoRefreshEnabled = autoRefreshEnabled;
+  public FragmentCache(AbleronConfig config) {
+    this.autoRefreshEnabled = config.cacheAutoRefreshEnabled();
+    this.maxRefreshAttempts = config.getCacheAutoRefreshMaxAttempts();
+    this.inactiveFragmentsMaxRefreshs = config.getCacheAutoRefreshInactiveFragmentsMaxRefreshs();
+    this.fragmentCache = buildFragmentCache(config.getCacheMaxSizeInBytes());
   }
 
   public Optional<Fragment> get(String cacheKey) {
@@ -39,6 +45,10 @@ public class FragmentCache {
 
     if (fragmentFromCache.isPresent()) {
       this.stats.recordHit();
+
+      if (this.autoRefreshEnabled) {
+        this.activeFragments.add(cacheKey);
+      }
     } else {
       this.stats.recordMiss();
     }
@@ -62,7 +72,9 @@ public class FragmentCache {
 
   public FragmentCache clear() {
     this.autoRefreshScheduler.shutdownNow();
-    this.autoRefreshRetries.clear();
+    this.refreshAttempts.clear();
+    this.activeFragments.clear();
+    this.inactiveFragmentRefreshs.clear();
     this.fragmentCache.invalidateAll();
     return this;
   }
@@ -78,14 +90,19 @@ public class FragmentCache {
   private void registerAutoRefresh(String cacheKey, Supplier<Fragment> autoRefresh, long refreshDelayMs) {
     autoRefreshScheduler.schedule(() -> {
       try {
-        var fragment = autoRefresh.get();
+        if (shouldPerformAutoRefresh(cacheKey)) {
+          var fragment = autoRefresh.get();
 
-        if (isFragmentCacheable(fragment)) {
-          var oldCacheEntry = fragmentCache.getIfPresent(cacheKey);
-          this.set(cacheKey, fragment, autoRefresh);
-          this.handleSuccessfulCacheRefresh(cacheKey, oldCacheEntry);
+          if (isFragmentCacheable(fragment)) {
+            var oldCacheEntry = fragmentCache.getIfPresent(cacheKey);
+            this.set(cacheKey, fragment, autoRefresh);
+            this.handleSuccessfulCacheRefresh(cacheKey, oldCacheEntry);
+          } else {
+            this.handleFailedCacheRefreshAttempt(cacheKey, autoRefresh);
+          }
         } else {
-          this.handleFailedCacheRefreshAttempt(cacheKey, autoRefresh);
+          inactiveFragmentRefreshs.remove(cacheKey);
+          logger.debug("[Ableron] Stopping auto refresh of fragment '{}': Inactive fragment", cacheKey);
         }
       } catch (Exception e) {
         logger.error("[Ableron] Unable to refresh cached fragment '{}'", cacheKey, e);
@@ -97,6 +114,11 @@ public class FragmentCache {
     return Math.max(Math.round((fragment.getExpirationTime().toEpochMilli() - Instant.now().toEpochMilli()) * 0.85), 10);
   }
 
+  private boolean shouldPerformAutoRefresh(String cacheKey) {
+    return activeFragments.contains(cacheKey)
+      || Optional.ofNullable(inactiveFragmentRefreshs.get(cacheKey)).orElse(0) < inactiveFragmentsMaxRefreshs;
+  }
+
   private boolean isFragmentCacheable(Fragment fragment) {
     return fragment != null
       && HttpUtil.HTTP_STATUS_CODES_CACHEABLE.contains(fragment.getStatusCode())
@@ -104,27 +126,40 @@ public class FragmentCache {
   }
 
   private void handleSuccessfulCacheRefresh(String cacheKey, Fragment oldCacheEntry) {
-    this.autoRefreshRetries.remove(cacheKey);
+    this.refreshAttempts.remove(cacheKey);
+
+    if (this.activeFragments.contains(cacheKey)) {
+      this.activeFragments.remove(cacheKey);
+      this.inactiveFragmentRefreshs.remove(cacheKey);
+    } else {
+      this.inactiveFragmentRefreshs.put(
+        cacheKey,
+        Optional.ofNullable(this.inactiveFragmentRefreshs.get(cacheKey)).orElse(0) + 1
+      );
+    }
+
     this.stats.recordRefreshSuccess();
 
     if (oldCacheEntry != null) {
-      this.logger.debug("[Ableron] Refreshed cache entry '{}' {}ms before expiration", cacheKey, oldCacheEntry.getExpirationTime().minusMillis(Instant.now().toEpochMilli()).toEpochMilli());
+      this.logger.debug("[Ableron] Refreshed cached fragment '{}' {}ms before expiration", cacheKey, oldCacheEntry.getExpirationTime().minusMillis(Instant.now().toEpochMilli()).toEpochMilli());
     } else {
-      this.logger.debug("[Ableron] Refreshed already expired cache entry '{}' via auto refresh", cacheKey);
+      this.logger.debug("[Ableron] Refreshed expired cached fragment '{}'", cacheKey);
     }
   }
 
   private void handleFailedCacheRefreshAttempt(String cacheKey, Supplier<Fragment> autoRefresh) {
-    var retryCount = Optional.ofNullable(this.autoRefreshRetries.get(cacheKey)).orElse(0) + 1;
-    this.autoRefreshRetries.put(cacheKey, retryCount);
+    var attempts = Optional.ofNullable(this.refreshAttempts.get(cacheKey)).orElse(0) + 1;
     this.stats.recordRefreshFailure();
 
-    if (retryCount < this.autoRefreshMaxRetries) {
-      this.logger.error("[Ableron] Unable to refresh cache entry '{}': Retry in 1s", cacheKey);
+    if (attempts < this.maxRefreshAttempts) {
+      this.logger.error("[Ableron] Unable to refresh cached fragment '{}': Attempt #{} failed. Retry in 1s", cacheKey, attempts);
+      this.refreshAttempts.put(cacheKey, attempts);
       this.registerAutoRefresh(cacheKey, autoRefresh, 1000);
     } else {
-      this.logger.error("[Ableron] Unable to refresh cache entry '{}'. {} consecutive attempts failed", cacheKey, this.autoRefreshMaxRetries);
-      this.autoRefreshRetries.remove(cacheKey);
+      this.logger.error("[Ableron] Unable to refresh cached fragment '{}' after {} attempts. Stopping auto refresh", cacheKey, this.maxRefreshAttempts);
+      this.refreshAttempts.remove(cacheKey);
+      this.activeFragments.remove(cacheKey);
+      this.inactiveFragmentRefreshs.remove(cacheKey);
     }
   }
 
@@ -155,7 +190,7 @@ public class FragmentCache {
 
           if (evictedCacheItemCount.get() == 1
             || System.currentTimeMillis() - evictedCacheItemCounterStartTimeMillis.get() > ONE_MINUTE_IN_MILLIS) {
-            logger.warn("[Ableron] Fragment cache size exceeded. Removed overall {} items from cache due to capacity. Consider increasing cache size", evictedCacheItemCount.get());
+            logger.warn("[Ableron] Fragment cache size exceeded. Removed {} items from cache due to capacity. Consider increasing cache size", evictedCacheItemCount.get());
             evictedCacheItemCounterStartTimeMillis.set(System.currentTimeMillis());
           }
         }

@@ -53,7 +53,7 @@ public class TransclusionProcessor {
   public TransclusionProcessor(AbleronConfig ableronConfig) {
     this.ableronConfig = ableronConfig;
     this.httpClient = buildHttpClient();
-    this.fragmentCache = new FragmentCache(this.ableronConfig.getCacheMaxSizeInBytes(), this.ableronConfig.cacheAutoRefreshEnabled());
+    this.fragmentCache = new FragmentCache(this.ableronConfig);
   }
 
   public HttpClient getHttpClient() {

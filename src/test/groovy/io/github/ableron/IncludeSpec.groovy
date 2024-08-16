@@ -1171,7 +1171,9 @@ class IncludeSpec extends Specification {
     def config = AbleronConfig.builder()
       .cacheAutoRefreshEnabled(true)
       .build()
-    def fragmentCache = new FragmentCache(1024, true)
+    def fragmentCache = new FragmentCache(AbleronConfig.builder()
+      .cacheAutoRefreshEnabled(true)
+      .build())
 
     when:
     for (def i = 0; i < 4; i++) {

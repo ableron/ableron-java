@@ -66,6 +66,18 @@ public class AbleronConfig {
   private boolean cacheAutoRefreshEnabled = false;
 
   /**
+   * Maximum number of attempts to refresh a cached fragment.
+   */
+  private int cacheAutoRefreshMaxAttempts = 3;
+
+  /**
+   * Maximum number of consecutive refreshs of inactive cached fragments.<br>
+   * Fragments are considered inactive, if they have not been read from cache
+   * between writing to cache and a refresh attempt.
+   */
+  private int cacheAutoRefreshInactiveFragmentsMaxRefreshs = 2;
+
+  /**
    * Whether to append UI composition stats as HTML comment to the content.
    * Defaults to false.
    */
@@ -113,6 +125,14 @@ public class AbleronConfig {
 
   public boolean cacheAutoRefreshEnabled() {
     return cacheAutoRefreshEnabled;
+  }
+
+  public int getCacheAutoRefreshMaxAttempts() {
+    return cacheAutoRefreshMaxAttempts;
+  }
+
+  public int getCacheAutoRefreshInactiveFragmentsMaxRefreshs() {
+    return cacheAutoRefreshInactiveFragmentsMaxRefreshs;
   }
 
   public boolean statsAppendToContent() {
@@ -169,6 +189,16 @@ public class AbleronConfig {
 
     public Builder cacheAutoRefreshEnabled(boolean cacheAutoRefreshEnabled) {
       ableronConfig.cacheAutoRefreshEnabled = cacheAutoRefreshEnabled;
+      return this;
+    }
+
+    public Builder cacheAutoRefreshMaxAttempts(int cacheAutoRefreshMaxAttempts) {
+      ableronConfig.cacheAutoRefreshMaxAttempts = cacheAutoRefreshMaxAttempts;
+      return this;
+    }
+
+    public Builder cacheAutoRefreshInactiveFragmentsMaxRefreshs(int cacheAutoRefreshInactiveFragmentsMaxRefreshs) {
+      ableronConfig.cacheAutoRefreshInactiveFragmentsMaxRefreshs = cacheAutoRefreshInactiveFragmentsMaxRefreshs;
       return this;
     }
 

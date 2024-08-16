@@ -36,6 +36,8 @@ class AbleronConfigSpec extends Specification {
       cacheMaxSizeInBytes == 1024 * 1024 * 50
       cacheVaryByRequestHeaders == []
       !cacheAutoRefreshEnabled()
+      cacheAutoRefreshMaxAttempts == 3
+      cacheAutoRefreshInactiveFragmentsMaxRefreshs == 2
       !statsAppendToContent()
       !statsExposeFragmentUrl()
     }
@@ -52,6 +54,8 @@ class AbleronConfigSpec extends Specification {
       .cacheMaxSizeInBytes(1024 * 100)
       .cacheVaryByRequestHeaders(["X-Test-Groups", "X-ACME-Country"])
       .cacheAutoRefreshEnabled(true)
+      .cacheAutoRefreshMaxAttempts(5)
+      .cacheAutoRefreshInactiveFragmentsMaxRefreshs(4)
       .statsAppendToContent(true)
       .statsExposeFragmentUrl(true)
       .build()
@@ -66,6 +70,8 @@ class AbleronConfigSpec extends Specification {
       cacheMaxSizeInBytes == 1024 * 100
       cacheVaryByRequestHeaders == ["X-Test-Groups", "X-ACME-Country"]
       cacheAutoRefreshEnabled()
+      cacheAutoRefreshMaxAttempts == 5
+      cacheAutoRefreshInactiveFragmentsMaxRefreshs == 4
       statsAppendToContent()
       statsExposeFragmentUrl()
     }
