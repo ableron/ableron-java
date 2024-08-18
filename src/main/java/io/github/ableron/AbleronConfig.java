@@ -1,8 +1,12 @@
 package io.github.ableron;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class AbleronConfig {
 
@@ -21,7 +25,7 @@ public class AbleronConfig {
   /**
    * Request headers that are passed to fragment requests if present.
    */
-  private List<String> fragmentRequestHeadersToPass = List.of(
+  private Collection<String> fragmentRequestHeadersToPass = Set.of(
     "Accept-Language",
     "Correlation-ID",
     "Forwarded",
@@ -38,12 +42,12 @@ public class AbleronConfig {
   /**
    * Request headers that are passed to fragment requests in addition to fragmentRequestHeadersToPass.
    */
-  private List<String> fragmentAdditionalRequestHeadersToPass = List.of();
+  private Collection<String> fragmentAdditionalRequestHeadersToPass = Collections.emptySet();
 
   /**
    * Response headers of primary fragments to pass to the page response if present.
    */
-  private List<String> primaryFragmentResponseHeadersToPass = List.of(
+  private Collection<String> primaryFragmentResponseHeadersToPass = Set.of(
     "Content-Language",
     "Location",
     "Refresh"
@@ -58,7 +62,7 @@ public class AbleronConfig {
   /**
    * Fragment request headers which influence the requested fragment aside from its URL.
    */
-  private List<String> cacheVaryByRequestHeaders = List.of();
+  private Collection<String> cacheVaryByRequestHeaders = Collections.emptySet();
 
   /**
    * Whether to enable auto-refreshing of cached fragments.
@@ -103,15 +107,11 @@ public class AbleronConfig {
     return fragmentRequestTimeout;
   }
 
-  public List<String> getFragmentRequestHeadersToPass() {
+  public Collection<String> getFragmentRequestHeadersToPass() {
     return fragmentRequestHeadersToPass;
   }
 
-  public List<String> getFragmentAdditionalRequestHeadersToPass() {
-    return fragmentAdditionalRequestHeadersToPass;
-  }
-
-  public List<String> getPrimaryFragmentResponseHeadersToPass() {
+  public Collection<String> getPrimaryFragmentResponseHeadersToPass() {
     return primaryFragmentResponseHeadersToPass;
   }
 
@@ -119,7 +119,7 @@ public class AbleronConfig {
     return cacheMaxSizeInBytes;
   }
 
-  public List<String> getCacheVaryByRequestHeaders() {
+  public Collection<String> getCacheVaryByRequestHeaders() {
     return cacheVaryByRequestHeaders;
   }
 
@@ -157,17 +157,17 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder fragmentRequestHeadersToPass(List<String> fragmentRequestHeadersToPass) {
+    public Builder fragmentRequestHeadersToPass(Collection<String> fragmentRequestHeadersToPass) {
       ableronConfig.fragmentRequestHeadersToPass = Objects.requireNonNull(fragmentRequestHeadersToPass, "fragmentRequestHeadersToPass must not be null");
       return this;
     }
 
-    public Builder fragmentAdditionalRequestHeadersToPass(List<String> fragmentAdditionalRequestHeadersToPass) {
+    public Builder fragmentAdditionalRequestHeadersToPass(Collection<String> fragmentAdditionalRequestHeadersToPass) {
       ableronConfig.fragmentAdditionalRequestHeadersToPass = Objects.requireNonNull(fragmentAdditionalRequestHeadersToPass, "fragmentAdditionalRequestHeadersToPass must not be null");
       return this;
     }
 
-    public Builder primaryFragmentResponseHeadersToPass(List<String> primaryFragmentResponseHeadersToPass) {
+    public Builder primaryFragmentResponseHeadersToPass(Collection<String> primaryFragmentResponseHeadersToPass) {
       ableronConfig.primaryFragmentResponseHeadersToPass = Objects.requireNonNull(primaryFragmentResponseHeadersToPass, "primaryFragmentResponseHeadersToPass must not be null");
       return this;
     }
@@ -177,7 +177,7 @@ public class AbleronConfig {
       return this;
     }
 
-    public Builder cacheVaryByRequestHeaders(List<String> cacheVaryByRequestHeaders) {
+    public Builder cacheVaryByRequestHeaders(Collection<String> cacheVaryByRequestHeaders) {
       ableronConfig.cacheVaryByRequestHeaders = Objects.requireNonNull(cacheVaryByRequestHeaders, "cacheVaryByRequestHeaders must not be null");
       return this;
     }
@@ -208,6 +208,11 @@ public class AbleronConfig {
     }
 
     public AbleronConfig build() {
+      ableronConfig.fragmentRequestHeadersToPass = Stream.concat(
+        ableronConfig.fragmentRequestHeadersToPass.stream(),
+        ableronConfig.fragmentAdditionalRequestHeadersToPass.stream()
+      ).collect(Collectors.toUnmodifiableSet());
+
       return ableronConfig;
     }
   }

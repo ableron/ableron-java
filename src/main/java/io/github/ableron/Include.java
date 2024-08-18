@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Include {
 
@@ -247,11 +246,7 @@ public class Include {
    */
   public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, FragmentCache fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     var resolveStartTime = System.nanoTime();
-    var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, Stream.concat(
-        config.getFragmentRequestHeadersToPass().stream(),
-        config.getFragmentAdditionalRequestHeadersToPass().stream()
-      ).collect(Collectors.toList())
-    );
+    var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, config.getFragmentRequestHeadersToPass());
     erroredPrimaryFragment = null;
 
     return CompletableFuture.supplyAsync(
@@ -337,7 +332,7 @@ public class Include {
   private Fragment toFragment(
     HttpResponse<byte[]> response,
     String url,
-    List<String> primaryFragmentResponseHeadersToPass,
+    Collection<String> primaryFragmentResponseHeadersToPass,
     boolean preventCaching) {
     return new Fragment(
       url,
@@ -355,7 +350,7 @@ public class Include {
     }
   }
 
-  private Map<String, List<String>> filterHeaders(Map<String, List<String>> headersToFilter, List<String> allowedHeaders) {
+  private Map<String, List<String>> filterHeaders(Map<String, List<String>> headersToFilter, Collection<String> allowedHeaders) {
     return headersToFilter.entrySet()
       .stream()
       .filter(header -> allowedHeaders.stream().anyMatch(headerName -> headerName.equalsIgnoreCase(header.getKey())))
@@ -392,7 +387,7 @@ public class Include {
       .orElse(String.valueOf(Math.abs(rawIncludeTag.hashCode())));
   }
 
-  private String buildFragmentCacheKey(String fragmentUrl, Map<String, List<String>> fragmentRequestHeaders, List<String> cacheVaryByRequestHeaders) {
+  private String buildFragmentCacheKey(String fragmentUrl, Map<String, List<String>> fragmentRequestHeaders, Collection<String> cacheVaryByRequestHeaders) {
     return fragmentUrl +
       fragmentRequestHeaders.entrySet()
         .stream()

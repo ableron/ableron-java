@@ -22,19 +22,18 @@ class AbleronConfigSpec extends Specification {
         "User-Agent",
         "X-Correlation-ID",
         "X-Forwarded-For",
-        "X-Forwarded-Proto",
         "X-Forwarded-Host",
+        "X-Forwarded-Proto",
         "X-Real-IP",
         "X-Request-ID"
-      ]
-      fragmentAdditionalRequestHeadersToPass == []
+      ] as Set
       primaryFragmentResponseHeadersToPass == [
         "Content-Language",
         "Location",
         "Refresh"
-      ]
+      ] as Set
       cacheMaxSizeInBytes == 1024 * 1024 * 50
-      cacheVaryByRequestHeaders == []
+      cacheVaryByRequestHeaders == [] as Set
       !cacheAutoRefreshEnabled()
       cacheAutoRefreshMaxAttempts == 3
       cacheAutoRefreshInactiveFragmentsMaxRefreshs == 2
@@ -64,11 +63,15 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       !enabled
       fragmentRequestTimeout == Duration.ofMillis(200)
-      fragmentRequestHeadersToPass == ["X-Test-Request-Header", "X-Test-Request-Header-2"]
-      fragmentAdditionalRequestHeadersToPass == ["X-Additional-Req-Header", "X-Additional-Req-Header-2"]
-      primaryFragmentResponseHeadersToPass == ["X-Test-Response-Header", "X-Test-Response-Header-2"]
+      fragmentRequestHeadersToPass == [
+        "X-Test-Request-Header",
+        "X-Test-Request-Header-2",
+        "X-Additional-Req-Header",
+        "X-Additional-Req-Header-2"
+      ] as Set
+      primaryFragmentResponseHeadersToPass as Set == ["X-Test-Response-Header", "X-Test-Response-Header-2"] as Set
       cacheMaxSizeInBytes == 1024 * 100
-      cacheVaryByRequestHeaders == ["X-Test-Groups", "X-ACME-Country"]
+      cacheVaryByRequestHeaders as Set == ["X-Test-Groups", "X-ACME-Country"] as Set
       cacheAutoRefreshEnabled()
       cacheAutoRefreshMaxAttempts == 5
       cacheAutoRefreshInactiveFragmentsMaxRefreshs == 4
