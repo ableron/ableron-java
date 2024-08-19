@@ -24,6 +24,13 @@ public class Ableron {
   }
 
   /**
+   * @return The Ableron configuration
+   */
+  public AbleronConfig getConfig() {
+    return ableronConfig;
+  }
+
+  /**
    * Resolves all includes in the given content.
    *
    * @param content The content to resolve the includes of

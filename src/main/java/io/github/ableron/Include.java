@@ -337,7 +337,7 @@ public class Include {
   private Fragment toFragment(
     HttpResponse<byte[]> response,
     String url,
-    List<String> primaryFragmentResponseHeadersToPass,
+    Collection<String> primaryFragmentResponseHeadersToPass,
     boolean preventCaching) {
     return new Fragment(
       url,
@@ -355,7 +355,7 @@ public class Include {
     }
   }
 
-  private Map<String, List<String>> filterHeaders(Map<String, List<String>> headersToFilter, List<String> allowedHeaders) {
+  private Map<String, List<String>> filterHeaders(Map<String, List<String>> headersToFilter, Collection<String> allowedHeaders) {
     return headersToFilter.entrySet()
       .stream()
       .filter(header -> allowedHeaders.stream().anyMatch(headerName -> headerName.equalsIgnoreCase(header.getKey())))
@@ -392,7 +392,7 @@ public class Include {
       .orElse(String.valueOf(Math.abs(rawIncludeTag.hashCode())));
   }
 
-  private String buildFragmentCacheKey(String fragmentUrl, Map<String, List<String>> fragmentRequestHeaders, List<String> cacheVaryByRequestHeaders) {
+  private String buildFragmentCacheKey(String fragmentUrl, Map<String, List<String>> fragmentRequestHeaders, Collection<String> cacheVaryByRequestHeaders) {
     return fragmentUrl +
       fragmentRequestHeaders.entrySet()
         .stream()
