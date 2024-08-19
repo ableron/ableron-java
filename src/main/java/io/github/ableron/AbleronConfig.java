@@ -2,10 +2,8 @@ package io.github.ableron;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.TreeSet;
 
 public class AbleronConfig {
 
@@ -110,6 +108,10 @@ public class AbleronConfig {
     return fragmentRequestHeadersToPass;
   }
 
+  public Collection<String> getFragmentAdditionalRequestHeadersToPass() {
+    return fragmentAdditionalRequestHeadersToPass;
+  }
+
   public Collection<String> getPrimaryFragmentResponseHeadersToPass() {
     return primaryFragmentResponseHeadersToPass;
   }
@@ -207,10 +209,6 @@ public class AbleronConfig {
     }
 
     public AbleronConfig build() {
-      var fragmentRequestHeadersToPass = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-      fragmentRequestHeadersToPass.addAll(ableronConfig.fragmentRequestHeadersToPass);
-      fragmentRequestHeadersToPass.addAll(ableronConfig.fragmentAdditionalRequestHeadersToPass);
-      ableronConfig.fragmentRequestHeadersToPass = Collections.unmodifiableSet(fragmentRequestHeadersToPass);
       return ableronConfig;
     }
   }

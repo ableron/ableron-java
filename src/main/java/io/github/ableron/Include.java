@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Include {
 
@@ -246,7 +247,11 @@ public class Include {
    */
   public CompletableFuture<Include> resolve(HttpClient httpClient, Map<String, List<String>> parentRequestHeaders, FragmentCache fragmentCache, AbleronConfig config, ExecutorService resolveThreadPool) {
     var resolveStartTime = System.nanoTime();
-    var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, config.getFragmentRequestHeadersToPass());
+    var fragmentRequestHeaders = filterHeaders(parentRequestHeaders, Stream.concat(
+        config.getFragmentRequestHeadersToPass().stream(),
+        config.getFragmentAdditionalRequestHeadersToPass().stream()
+      ).collect(Collectors.toList())
+    );
     erroredPrimaryFragment = null;
 
     return CompletableFuture.supplyAsync(
