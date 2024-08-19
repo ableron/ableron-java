@@ -160,20 +160,20 @@ public class AbleronConfig {
     }
 
     public Builder fragmentRequestHeadersToPass(Collection<String> fragmentRequestHeadersToPass) {
-      ableronConfig.fragmentRequestHeadersToPass = Objects.requireNonNull(fragmentRequestHeadersToPass, "fragmentRequestHeadersToPass must not be null")
-        .stream().collect(Collectors.toUnmodifiableList());
+      Objects.requireNonNull(fragmentRequestHeadersToPass, "fragmentRequestHeadersToPass must not be null");
+      ableronConfig.fragmentRequestHeadersToPass = fragmentRequestHeadersToPass.stream().collect(Collectors.toUnmodifiableList());
       return this;
     }
 
     public Builder fragmentAdditionalRequestHeadersToPass(Collection<String> fragmentAdditionalRequestHeadersToPass) {
-      ableronConfig.fragmentAdditionalRequestHeadersToPass = Objects.requireNonNull(fragmentAdditionalRequestHeadersToPass, "fragmentAdditionalRequestHeadersToPass must not be null")
-        .stream().collect(Collectors.toUnmodifiableList());
+      Objects.requireNonNull(fragmentAdditionalRequestHeadersToPass, "fragmentAdditionalRequestHeadersToPass must not be null");
+      ableronConfig.fragmentAdditionalRequestHeadersToPass = fragmentAdditionalRequestHeadersToPass.stream().collect(Collectors.toUnmodifiableList());
       return this;
     }
 
     public Builder primaryFragmentResponseHeadersToPass(Collection<String> primaryFragmentResponseHeadersToPass) {
-      ableronConfig.primaryFragmentResponseHeadersToPass = Objects.requireNonNull(primaryFragmentResponseHeadersToPass, "primaryFragmentResponseHeadersToPass must not be null")
-        .stream().collect(Collectors.toUnmodifiableList());
+      Objects.requireNonNull(primaryFragmentResponseHeadersToPass, "primaryFragmentResponseHeadersToPass must not be null");
+      ableronConfig.primaryFragmentResponseHeadersToPass = primaryFragmentResponseHeadersToPass.stream().collect(Collectors.toUnmodifiableList());
       return this;
     }
 
@@ -183,8 +183,8 @@ public class AbleronConfig {
     }
 
     public Builder cacheVaryByRequestHeaders(Collection<String> cacheVaryByRequestHeaders) {
-      ableronConfig.cacheVaryByRequestHeaders = Objects.requireNonNull(cacheVaryByRequestHeaders, "cacheVaryByRequestHeaders must not be null")
-        .stream().collect(Collectors.toUnmodifiableList());
+      Objects.requireNonNull(cacheVaryByRequestHeaders, "cacheVaryByRequestHeaders must not be null");
+      ableronConfig.cacheVaryByRequestHeaders = cacheVaryByRequestHeaders.stream().collect(Collectors.toUnmodifiableList());
       return this;
     }
 
