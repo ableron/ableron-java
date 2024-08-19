@@ -132,12 +132,46 @@ class AbleronConfigSpec extends Specification {
     exception.message == "cacheVaryByRequestHeaders must not be null"
   }
 
-  def "should expose only immutable collections"() {
+  def "should expose only immutable collections - default values"() {
     given:
     def config = AbleronConfig.builder().build()
 
     when:
     config.getFragmentRequestHeadersToPass().add("Not-Allowed")
+
+    then:
+    thrown(UnsupportedOperationException)
+
+    when:
+    config.getPrimaryFragmentResponseHeadersToPass().add("Not-Allowed")
+
+    then:
+    thrown(UnsupportedOperationException)
+
+    when:
+    config.getCacheVaryByRequestHeaders().add("Not-Allowed")
+
+    then:
+    thrown(UnsupportedOperationException)
+  }
+
+  def "should expose only immutable collections - provided values"() {
+    given:
+    def config = AbleronConfig.builder()
+      .fragmentRequestHeadersToPass(new ArrayList())
+      .fragmentAdditionalRequestHeadersToPass(new ArrayList())
+      .primaryFragmentResponseHeadersToPass(new ArrayList())
+      .cacheVaryByRequestHeaders(new ArrayList())
+      .build()
+
+    when:
+    config.getFragmentRequestHeadersToPass().add("Not-Allowed")
+
+    then:
+    thrown(UnsupportedOperationException)
+
+    when:
+    config.getFragmentAdditionalRequestHeadersToPass().add("Not-Allowed")
 
     then:
     thrown(UnsupportedOperationException)
