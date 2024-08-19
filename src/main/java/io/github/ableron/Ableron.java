@@ -26,7 +26,7 @@ public class Ableron {
   /**
    * @return The Ableron configuration
    */
-  public AbleronConfig getAbleronConfig() {
+  public AbleronConfig getConfig() {
     return ableronConfig;
   }
 
