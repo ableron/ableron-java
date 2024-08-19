@@ -14,7 +14,7 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       enabled
       fragmentRequestTimeout == Duration.ofSeconds(3)
-      fragmentRequestHeadersToPass == [
+      fragmentRequestHeadersToPass as List == [
         "Accept-Language",
         "Correlation-ID",
         "Forwarded",
@@ -26,14 +26,14 @@ class AbleronConfigSpec extends Specification {
         "X-Forwarded-Proto",
         "X-Real-IP",
         "X-Request-ID"
-      ] as Set
+      ]
       primaryFragmentResponseHeadersToPass == [
         "Content-Language",
         "Location",
         "Refresh"
-      ] as Set
+      ]
       cacheMaxSizeInBytes == 1024 * 1024 * 50
-      cacheVaryByRequestHeaders == [] as Set
+      cacheVaryByRequestHeaders == []
       !cacheAutoRefreshEnabled()
       cacheAutoRefreshMaxAttempts == 3
       cacheAutoRefreshInactiveFragmentsMaxRefreshs == 2
@@ -63,15 +63,15 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       !enabled
       fragmentRequestTimeout == Duration.ofMillis(200)
-      fragmentRequestHeadersToPass == [
-        "X-Test-Request-Header",
-        "X-Test-Request-Header-2",
+      fragmentRequestHeadersToPass as List == [
         "X-Additional-Req-Header",
-        "X-Additional-Req-Header-2"
-      ] as Set
-      primaryFragmentResponseHeadersToPass as Set == ["X-Test-Response-Header", "X-Test-Response-Header-2"] as Set
+        "X-Additional-Req-Header-2",
+        "X-Test-Request-Header",
+        "X-Test-Request-Header-2"
+      ]
+      primaryFragmentResponseHeadersToPass == ["X-Test-Response-Header", "X-Test-Response-Header-2"]
       cacheMaxSizeInBytes == 1024 * 100
-      cacheVaryByRequestHeaders as Set == ["X-Test-Groups", "X-ACME-Country"] as Set
+      cacheVaryByRequestHeaders == ["X-Test-Groups", "X-ACME-Country"]
       cacheAutoRefreshEnabled()
       cacheAutoRefreshMaxAttempts == 5
       cacheAutoRefreshInactiveFragmentsMaxRefreshs == 4
@@ -87,21 +87,21 @@ class AbleronConfigSpec extends Specification {
       .build()
 
     then:
-    config.getFragmentRequestHeadersToPass() == [
+    config.fragmentRequestHeadersToPass as List == [
       "Accept-Language",
+      "Additional-A",
+      "Additional-B",
       "Correlation-ID",
       "Forwarded",
       "Referer",
       "User-Agent",
       "X-Correlation-ID",
       "X-Forwarded-For",
-      "X-Forwarded-Proto",
       "X-Forwarded-Host",
+      "X-Forwarded-Proto",
       "X-Real-IP",
       "X-Request-ID",
-      "Additional-A",
-      "Additional-B"
-    ] as Set
+    ]
   }
 
   def "should throw exception if fragmentRequestTimeout is tried to be set to null"() {

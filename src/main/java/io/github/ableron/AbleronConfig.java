@@ -3,8 +3,8 @@ package io.github.ableron;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.TreeSet;
 
 public class AbleronConfig {
@@ -24,7 +24,7 @@ public class AbleronConfig {
   /**
    * Request headers that are passed to fragment requests if present.
    */
-  private Collection<String> fragmentRequestHeadersToPass = Set.of(
+  private Collection<String> fragmentRequestHeadersToPass = List.of(
     "Accept-Language",
     "Correlation-ID",
     "Forwarded",
@@ -41,12 +41,12 @@ public class AbleronConfig {
   /**
    * Request headers that are passed to fragment requests in addition to fragmentRequestHeadersToPass.
    */
-  private Collection<String> fragmentAdditionalRequestHeadersToPass = Collections.emptySet();
+  private Collection<String> fragmentAdditionalRequestHeadersToPass = List.of();
 
   /**
    * Response headers of primary fragments to pass to the page response if present.
    */
-  private Collection<String> primaryFragmentResponseHeadersToPass = Set.of(
+  private Collection<String> primaryFragmentResponseHeadersToPass = List.of(
     "Content-Language",
     "Location",
     "Refresh"
@@ -61,7 +61,7 @@ public class AbleronConfig {
   /**
    * Fragment request headers which influence the requested fragment aside from its URL.
    */
-  private Collection<String> cacheVaryByRequestHeaders = Collections.emptySet();
+  private Collection<String> cacheVaryByRequestHeaders = List.of();
 
   /**
    * Whether to enable auto-refreshing of cached fragments.
