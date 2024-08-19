@@ -5,8 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.TreeSet;
 
 public class AbleronConfig {
 
@@ -208,11 +207,10 @@ public class AbleronConfig {
     }
 
     public AbleronConfig build() {
-      ableronConfig.fragmentRequestHeadersToPass = Stream.concat(
-        ableronConfig.fragmentRequestHeadersToPass.stream(),
-        ableronConfig.fragmentAdditionalRequestHeadersToPass.stream()
-      ).collect(Collectors.toUnmodifiableSet());
-
+      var fragmentRequestHeadersToPass = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+      fragmentRequestHeadersToPass.addAll(ableronConfig.fragmentRequestHeadersToPass);
+      fragmentRequestHeadersToPass.addAll(ableronConfig.fragmentAdditionalRequestHeadersToPass);
+      ableronConfig.fragmentRequestHeadersToPass = Collections.unmodifiableSet(fragmentRequestHeadersToPass);
       return ableronConfig;
     }
   }

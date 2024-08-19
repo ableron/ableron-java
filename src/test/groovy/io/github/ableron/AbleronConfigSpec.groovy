@@ -80,6 +80,30 @@ class AbleronConfigSpec extends Specification {
     }
   }
 
+  def "should append fragmentAdditionalRequestHeadersToPass to default fragmentsRequestHeadersToPass"() {
+    when:
+    def config = AbleronConfig.builder()
+      .fragmentAdditionalRequestHeadersToPass(Set.of("Additional-A", "Additional-B", "x-correlation-id", "x-request-id"))
+      .build()
+
+    then:
+    config.getFragmentRequestHeadersToPass() == [
+      "Accept-Language",
+      "Correlation-ID",
+      "Forwarded",
+      "Referer",
+      "User-Agent",
+      "X-Correlation-ID",
+      "X-Forwarded-For",
+      "X-Forwarded-Proto",
+      "X-Forwarded-Host",
+      "X-Real-IP",
+      "X-Request-ID",
+      "Additional-A",
+      "Additional-B"
+    ] as Set
+  }
+
   def "should throw exception if fragmentRequestTimeout is tried to be set to null"() {
     when:
     AbleronConfig.builder()
@@ -133,5 +157,28 @@ class AbleronConfigSpec extends Specification {
     then:
     def exception = thrown(NullPointerException)
     exception.message == "cacheVaryByRequestHeaders must not be null"
+  }
+
+  def "should expose only immutable collections"() {
+    given:
+    def config = AbleronConfig.builder().build()
+
+    when:
+    config.getFragmentRequestHeadersToPass().add("Not-Allowed")
+
+    then:
+    thrown(UnsupportedOperationException)
+
+    when:
+    config.getPrimaryFragmentResponseHeadersToPass().add("Not-Allowed")
+
+    then:
+    thrown(UnsupportedOperationException)
+
+    when:
+    config.getCacheVaryByRequestHeaders().add("Not-Allowed")
+
+    then:
+    thrown(UnsupportedOperationException)
   }
 }
