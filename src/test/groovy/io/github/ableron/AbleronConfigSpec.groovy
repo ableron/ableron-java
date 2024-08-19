@@ -143,6 +143,12 @@ class AbleronConfigSpec extends Specification {
     thrown(UnsupportedOperationException)
 
     when:
+    config.getFragmentAdditionalRequestHeadersToPass().add("Not-Allowed")
+
+    then:
+    thrown(UnsupportedOperationException)
+
+    when:
     config.getPrimaryFragmentResponseHeadersToPass().add("Not-Allowed")
 
     then:
