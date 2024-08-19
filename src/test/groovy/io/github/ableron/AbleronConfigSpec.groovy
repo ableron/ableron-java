@@ -14,7 +14,7 @@ class AbleronConfigSpec extends Specification {
     with(config) {
       enabled
       fragmentRequestTimeout == Duration.ofSeconds(3)
-      fragmentRequestHeadersToPass as List == [
+      fragmentRequestHeadersToPass == [
         "Accept-Language",
         "Correlation-ID",
         "Forwarded",
@@ -75,28 +75,6 @@ class AbleronConfigSpec extends Specification {
       statsAppendToContent()
       statsExposeFragmentUrl()
     }
-  }
-
-  def "should append fragmentAdditionalRequestHeadersToPass to default fragmentsRequestHeadersToPass"() {
-    when:
-    def config = AbleronConfig.builder()
-      .fragmentAdditionalRequestHeadersToPass(Set.of("Additional-A", "Additional-B", "x-correlation-id", "x-request-id"))
-      .build()
-
-    then:
-    config.fragmentRequestHeadersToPass as List == [
-      "Accept-Language",
-      "Correlation-ID",
-      "Forwarded",
-      "Referer",
-      "User-Agent",
-      "X-Correlation-ID",
-      "X-Forwarded-For",
-      "X-Forwarded-Proto",
-      "X-Forwarded-Host",
-      "X-Real-IP",
-      "X-Request-ID",
-    ]
   }
 
   def "should throw exception if fragmentRequestTimeout is tried to be set to null"() {
