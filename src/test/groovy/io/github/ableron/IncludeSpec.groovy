@@ -859,8 +859,7 @@ class IncludeSpec extends Specification {
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse().setResponseCode(204))
     def config = AbleronConfig.builder()
-      .fragmentRequestHeadersToPass(["X-Default"])
-      .fragmentAdditionalRequestHeadersToPass(["X-Additional"])
+      .fragmentRequestHeadersToPass(["X-Default", "X-Additional"])
       .build()
 
     when:
@@ -871,32 +870,6 @@ class IncludeSpec extends Specification {
     then:
     fragmentRequest.getHeader("X-default") == "Foo"
     fragmentRequest.getHeader("X-additional") == "Bar"
-
-    cleanup:
-    mockWebServer.shutdown()
-  }
-
-  def "should extend default allowed fragment request headers with additional allowed fragment request headers"() {
-    given:
-    def mockWebServer = new MockWebServer()
-    mockWebServer.enqueue(new MockResponse().setResponseCode(204))
-    def config = AbleronConfig.builder()
-      .fragmentAdditionalRequestHeadersToPass(["X-Additional"])
-      .build()
-
-    when:
-    new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, [
-        "X-Correlation-ID": ["Foo"],
-        "X-Additional": ["Bar"],
-        "X-Test": ["Baz"]
-      ], cache, config, supplyPool).get()
-    def fragmentRequest = mockWebServer.takeRequest()
-
-    then:
-    fragmentRequest.getHeader("X-Correlation-ID") == "Foo"
-    fragmentRequest.getHeader("X-Additional") == "Bar"
-    fragmentRequest.getHeader("X-Test") == null
 
     cleanup:
     mockWebServer.shutdown()
