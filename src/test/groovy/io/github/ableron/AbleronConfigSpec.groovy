@@ -15,16 +15,8 @@ class AbleronConfigSpec extends Specification {
       enabled
       fragmentRequestTimeout == Duration.ofSeconds(3)
       fragmentRequestHeadersToPass == [
-        "Accept-Language",
         "Correlation-ID",
-        "Forwarded",
-        "Referer",
-        "User-Agent",
         "X-Correlation-ID",
-        "X-Forwarded-For",
-        "X-Forwarded-Proto",
-        "X-Forwarded-Host",
-        "X-Real-IP",
         "X-Request-ID"
       ]
       fragmentAdditionalRequestHeadersToPass == []

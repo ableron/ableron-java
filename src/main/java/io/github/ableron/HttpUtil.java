@@ -47,16 +47,21 @@ public class HttpUtil {
   private static final String HEADER_CACHE_CONTROL = "Cache-Control";
   private static final String HEADER_DATE = "Date";
   private static final String HEADER_EXPIRES = "Expires";
+  private static final String HEADER_USER_AGENT = "User-Agent";
 
   private static final Pattern CHARSET_PATTERN = Pattern.compile("(?i)\\bcharset\\s*=\\s*\"?([^\\s;\"]+)");
 
   public static Optional<HttpResponse<byte[]>> loadUrl(String uri, HttpClient httpClient, Map<String, List<String>> requestHeaders, Duration requestTimeout) {
     try {
       logger.debug("[Ableron] Loading {} with timeout {}ms", uri, requestTimeout.toMillis());
-      var httpRequestBuilder = HttpRequest.newBuilder()
-        .uri(URI.create(uri))
-        .header("Accept-Encoding", "gzip");
+      var httpRequestBuilder = HttpRequest.newBuilder().uri(URI.create(uri));
       requestHeaders.forEach((name, values) -> values.forEach(value -> httpRequestBuilder.header(name, value)));
+      httpRequestBuilder.setHeader("Accept-Encoding", "gzip");
+
+      if (requestHeaders.keySet().stream().noneMatch(headerName -> headerName.equalsIgnoreCase(HEADER_USER_AGENT))) {
+        httpRequestBuilder.setHeader(HEADER_USER_AGENT, "Ableron/2.0");
+      }
+
       var httpResponse = httpClient.sendAsync(httpRequestBuilder.GET().build(), HttpResponse.BodyHandlers.ofByteArray());
       return Optional.of(httpResponse.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
     } catch (TimeoutException e) {

@@ -80,16 +80,8 @@ Default:
 
 ```java
 List.of(
-    "Accept-Language",
     "Correlation-ID",
-    "Forwarded",
-    "Referer",
-    "User-Agent",
     "X-Correlation-ID",
-    "X-Forwarded-For",
-    "X-Forwarded-Proto",
-    "X-Forwarded-Host",
-    "X-Real-IP",
     "X-Request-ID"
 );
 ```

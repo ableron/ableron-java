@@ -953,20 +953,23 @@ class IncludeSpec extends Specification {
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
-    fragmentRequest.getHeader("User-Agent").startsWith("Java-http-client/")
+    fragmentRequest.getHeader("User-Agent").equals("Ableron/2.0")
 
     cleanup:
     mockWebServer.shutdown()
   }
 
-  def "should pass provided User-Agent header to fragment requests by default"() {
+  def "should pass provided User-Agent header to fragment requests if enabled via fragmentRequestHeadersToPass"() {
     given:
     def mockWebServer = new MockWebServer()
     mockWebServer.enqueue(new MockResponse().setResponseCode(204))
+    def config = AbleronConfig.builder()
+      .fragmentRequestHeadersToPass(["User-Agent"])
+      .build()
 
     when:
     new Include("", ["src": mockWebServer.url("/").toString()])
-      .resolve(httpClient, ["user-agent":["test"]], cache, config, supplyPool).get()
+      .resolve(httpClient, ["user-AGENT":["test"]], cache, config, supplyPool).get()
     def fragmentRequest = mockWebServer.takeRequest()
 
     then:
