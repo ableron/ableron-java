@@ -186,7 +186,7 @@ public class TransclusionResult {
   }
 
   private String getProcessedIncludesStats() {
-    var stats = new StringBuilder("\nProcessed " + getProcessedIncludesCount() + " include(s) in " + this.processingTimeMillis + "ms");
+    var stats = new StringBuilder("\nProcessed " + getProcessedIncludesCount() + (getProcessedIncludesCount() == 1 ? " include" : " includes") + " in " + this.processingTimeMillis + "ms");
 
     if (!this.processedIncludes.isEmpty()) {
       stats

@@ -152,7 +152,7 @@ class TransclusionResultSpec extends Specification {
       ==
       "content\n"+
       "<!-- Ableron stats:\n"+
-      "Processed 0 include(s) in 0ms\n"+
+      "Processed 0 includes in 0ms\n"+
       "\n"+
       "Cache Stats: 0 overall hits, 0 overall misses\n"+
       "-->"
@@ -212,7 +212,7 @@ class TransclusionResultSpec extends Specification {
       "      cacheable-fragment-2\n" +
       "    \n" +
       "<!-- Ableron stats:\n" +
-      "Processed 4 include(s) in XXXms\n" +
+      "Processed 4 includes in XXXms\n" +
       "\n" +
       "Time | Include | Resolved With | Fragment Cacheability | Fragment URL\n"+
       "------------------------------------------------------\n" +
@@ -240,7 +240,7 @@ class TransclusionResultSpec extends Specification {
     then:
     transclusionResult.getContent() ==
       "\n<!-- Ableron stats:\n" +
-      "Processed 1 include(s) in 0ms\n" +
+      "Processed 1 include in 0ms\n" +
       "\n" +
       "Time | Include | Resolved With | Fragment Cacheability\n" +
       "------------------------------------------------------\n" +
@@ -262,7 +262,7 @@ class TransclusionResultSpec extends Specification {
     then:
     transclusionResult.getContent() ==
       "\n<!-- Ableron stats:\n" +
-      "Processed 1 include(s) in 0ms\n" +
+      "Processed 1 include in 0ms\n" +
       "\n" +
       "Time | Include | Resolved With | Fragment Cacheability\n" +
       "------------------------------------------------------\n" +
@@ -287,7 +287,7 @@ class TransclusionResultSpec extends Specification {
     then:
     transclusionResult.getContent() ==
       "\n<!-- Ableron stats:\n" +
-      "Processed 2 include(s) in 0ms\n" +
+      "Processed 2 includes in 0ms\n" +
       "\n" +
       "Time | Include | Resolved With | Fragment Cacheability\n" +
       "------------------------------------------------------\n" +
