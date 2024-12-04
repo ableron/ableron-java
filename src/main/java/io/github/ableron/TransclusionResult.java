@@ -10,6 +10,8 @@ import java.util.*;
 
 public class TransclusionResult {
 
+  private static final CacheStats emptyCacheStats = new CacheStats();
+
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   /**
@@ -62,7 +64,7 @@ public class TransclusionResult {
   private final List<Include> processedIncludes = new ArrayList<>();
 
   public TransclusionResult(String content) {
-    this(content, new CacheStats(), false, false);
+    this(content, emptyCacheStats, false, false);
   }
 
   public TransclusionResult(String content, CacheStats cacheStats, boolean appendStatsToContent, boolean exposeFragmentUrl) {
