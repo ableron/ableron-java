@@ -544,7 +544,7 @@ class TransclusionProcessorSpec extends Specification {
     )
 
     then:
-    result.content.matches("(?s)<!-- fallback content -->\\n<!-- Ableron stats:\\nProcessed 1 include in \\d+ms.+")
+    result.content.matches("(?s)<!-- fallback content -->\\n<!-- Processed 1 include in \\d+ms.+")
     result.content.matches("(?s).+\\d+ms \\| 125703905 \\| fallback content \\| -\\n.+")
     result.contentExpirationTime.get() <= Instant.now().plusSeconds(60)
     result.contentExpirationTime.get() >= Instant.now().plusSeconds(58)
@@ -618,8 +618,7 @@ class TransclusionProcessorSpec extends Specification {
       404
       200-not-cacheable
       200-cacheable
-<!-- Ableron stats:
-Processed 6 includes in XXXms
+<!-- Processed 6 includes in XXXms
 
 Time | Include | Resolved With | Fragment Cacheability
 ------------------------------------------------------

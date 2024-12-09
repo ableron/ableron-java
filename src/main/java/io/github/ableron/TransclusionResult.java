@@ -178,19 +178,11 @@ public class TransclusionResult {
   }
 
   private String getStats() {
-    return getStatsHeader() + getProcessedIncludesStats() + getCacheStats() + getStatsFooter();
-  }
-
-  private String getStatsHeader() {
-    return "\n<!-- Ableron stats:";
-  }
-
-  private String getStatsFooter() {
-    return "\n-->";
+    return "\n<!-- " + getProcessedIncludesLogLine() + getProcessedIncludesStats() + getCacheStats() + "\n-->";
   }
 
   private String getProcessedIncludesStats() {
-    var stats = new StringBuilder("\n").append(getProcessedIncludesLogLine());
+    var stats = new StringBuilder();
 
     if (!this.processedIncludes.isEmpty()) {
       stats
