@@ -89,8 +89,8 @@ public class FragmentCache {
 
   private void registerAutoRefresh(String cacheKey, Supplier<Fragment> autoRefresh, long refreshDelayMs) {
     autoRefreshScheduler.schedule(() -> {
-      try {
-        if (shouldPerformAutoRefresh(cacheKey)) {
+      if (shouldPerformAutoRefresh(cacheKey)) {
+        try {
           var fragment = autoRefresh.get();
 
           if (isFragmentCacheable(fragment)) {
@@ -100,12 +100,13 @@ public class FragmentCache {
           } else {
             this.handleFailedCacheRefreshAttempt(cacheKey, autoRefresh);
           }
-        } else {
-          inactiveFragmentRefreshs.remove(cacheKey);
-          logger.debug("[Ableron] Stopping auto refresh of fragment '{}': Inactive fragment", cacheKey);
+        } catch (Exception e) {
+          logger.error("[Ableron] Unable to refresh cached fragment '{}'", cacheKey, e);
+          this.handleFailedCacheRefreshAttempt(cacheKey, autoRefresh);
         }
-      } catch (Exception e) {
-        logger.error("[Ableron] Unable to refresh cached fragment '{}'", cacheKey, e);
+      } else {
+        inactiveFragmentRefreshs.remove(cacheKey);
+        logger.debug("[Ableron] Stopping auto refresh of fragment '{}': Inactive fragment", cacheKey);
       }
     }, refreshDelayMs, TimeUnit.MILLISECONDS);
   }

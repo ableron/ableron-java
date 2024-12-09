@@ -154,7 +154,7 @@ class FragmentCacheSpec extends Specification {
         case 8:
           return new Fragment('url', 200, 'fragment', Instant.now().plusSeconds(1), [:])
         default:
-          return null
+          throw new Exception('Refresh failed!')
       }
     }
     fragmentCache.set('cacheKey', newFragment(), () -> newFragment())
