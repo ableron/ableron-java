@@ -75,7 +75,7 @@ public class TransclusionResult {
   }
 
   public String getContent() {
-    return appendStatsToContent ? content + getStats() : content;
+    return appendStatsToContent ? content + getStatsAsHtmlComment() : content;
   }
 
   public Optional<Instant> getContentExpirationTime() {
@@ -177,11 +177,11 @@ public class TransclusionResult {
     return "Processed " + getProcessedIncludesCount() + (getProcessedIncludesCount() == 1 ? " include" : " includes") + " in " + this.processingTimeMillis + "ms";
   }
 
-  private String getStats() {
-    return "\n<!-- " + getProcessedIncludesLogLine() + getProcessedIncludesStats() + getCacheStats() + "\n-->";
+  private String getStatsAsHtmlComment() {
+    return "\n<!-- " + getProcessedIncludesLogLine() + getProcessedIncludesDetails() + getCacheStats() + "\n-->";
   }
 
-  private String getProcessedIncludesStats() {
+  private String getProcessedIncludesDetails() {
     var stats = new StringBuilder();
 
     if (!this.processedIncludes.isEmpty()) {
@@ -199,7 +199,9 @@ public class TransclusionResult {
   }
 
   private String getCacheStats() {
-    return "\n\nCache Stats: " + this.cacheStats.hitCount() + " overall hits, " + this.cacheStats.missCount() + " overall misses";
+    return "\n\nCache: " + this.cacheStats.itemCount() + " items, "
+      + this.cacheStats.hitCount()+ " hits, "
+      + this.cacheStats.missCount() + " misses";
   }
 
   private String getProcessedIncludeStatsRow(Include include) {

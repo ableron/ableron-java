@@ -53,6 +53,7 @@ public class FragmentCache {
       this.stats.recordMiss();
     }
 
+    this.stats.setItemCount(fragmentCache.estimatedSize());
     return fragmentFromCache;
   }
 
