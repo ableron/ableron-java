@@ -173,6 +173,10 @@ public class TransclusionResult {
     return calculateCacheControlHeaderValue(pageMaxAge);
   }
 
+  public String getProcessedIncludesLogLine() {
+    return "Processed " + getProcessedIncludesCount() + (getProcessedIncludesCount() == 1 ? " include" : " includes") + " in " + this.processingTimeMillis + "ms";
+  }
+
   private String getStats() {
     return getStatsHeader() + getProcessedIncludesStats() + getCacheStats() + getStatsFooter();
   }
@@ -186,7 +190,7 @@ public class TransclusionResult {
   }
 
   private String getProcessedIncludesStats() {
-    var stats = new StringBuilder("\nProcessed " + getProcessedIncludesCount() + (getProcessedIncludesCount() == 1 ? " include" : " includes") + " in " + this.processingTimeMillis + "ms");
+    var stats = new StringBuilder("\n").append(getProcessedIncludesLogLine());
 
     if (!this.processedIncludes.isEmpty()) {
       stats
