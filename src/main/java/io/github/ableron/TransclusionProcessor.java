@@ -103,7 +103,7 @@ public class TransclusionProcessor {
       .toArray(CompletableFuture[]::new)
     ).join();
     transclusionResult.setProcessingTimeMillis((System.nanoTime() - startTime) / NANO_2_MILLIS);
-    logger.debug("[Ableron] {}", transclusionResult.getProcessedIncludesLogLine());
+    logger.debug("[Ableron] {} ({})", transclusionResult.getProcessedIncludesLogLine(), transclusionResult.getCacheStatsLogLine());
     return transclusionResult;
   }
 

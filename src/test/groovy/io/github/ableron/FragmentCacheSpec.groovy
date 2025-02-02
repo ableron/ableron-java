@@ -26,7 +26,7 @@ class FragmentCacheSpec extends Specification {
     sleep(25)
 
     then:
-    fragmentCache.estimatedCacheEntryCount() == 100
+    fragmentCache.stats().itemCount() == 100
   }
 
   def "should not auto refresh fragments if disabled"() {

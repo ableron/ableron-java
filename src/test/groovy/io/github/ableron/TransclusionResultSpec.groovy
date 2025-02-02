@@ -153,7 +153,7 @@ class TransclusionResultSpec extends Specification {
       "content\n"+
       "<!-- Processed 0 includes in 0ms\n"+
       "\n"+
-      "Cache: 0 items, 0 hits, 0 misses\n"+
+      "Cache: 0 items, 0 hits, 0 misses, 0 successful refreshs, 0 failed refreshs\n"+
       "-->"
   }
 
@@ -219,7 +219,7 @@ class TransclusionResultSpec extends Specification {
       "XXXms | 3 | remote src | expires in XXXs | http://localhost:80/cacheable-fragment-1\n" +
       "XXXms | 4 | cached fallback-src | expires in 10s | http://localhost:80/cacheable-fragment-2\n" +
       "\n" +
-      "Cache: 1 items, 1 hits, 3 misses\n" +
+      "Cache: 3 items, 1 hits, 3 misses, 0 successful refreshs, 0 failed refreshs\n" +
       "-->"
 
     cleanup:
@@ -243,7 +243,7 @@ class TransclusionResultSpec extends Specification {
       "------------------------------------------------------\n" +
       "71ms | 0 | src | not cacheable\n" +
       "\n" +
-      "Cache: 0 items, 0 hits, 0 misses\n" +
+      "Cache: 0 items, 0 hits, 0 misses, 0 successful refreshs, 0 failed refreshs\n" +
       "-->"
   }
 
@@ -264,7 +264,7 @@ class TransclusionResultSpec extends Specification {
       "------------------------------------------------------\n" +
       "0ms | 1496920298 (primary) | fallback content | -\n" +
       "\n" +
-      "Cache: 0 items, 0 hits, 0 misses\n" +
+      "Cache: 0 items, 0 hits, 0 misses, 0 successful refreshs, 0 failed refreshs\n" +
       "-->"
   }
 
@@ -289,7 +289,7 @@ class TransclusionResultSpec extends Specification {
       "33ms | 1496920297 (primary) | fallback content | -\n" +
       "0ms | 1496920298 (primary) | fallback content | -\n" +
       "\n" +
-      "Cache: 0 items, 0 hits, 0 misses\n" +
+      "Cache: 0 items, 0 hits, 0 misses, 0 successful refreshs, 0 failed refreshs\n" +
       "-->"
   }
 }

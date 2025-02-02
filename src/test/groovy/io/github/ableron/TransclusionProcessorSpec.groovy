@@ -629,7 +629,7 @@ XXXms | e | remote src | not cacheable
 XXXms | h (primary) | remote src | not cacheable
 XXXms | z | remote fallback-src | not cacheable
 
-Cache: 3 items, 5 hits, 18 misses
+Cache: 3 items, 5 hits, 18 misses, 0 successful refreshs, 0 failed refreshs
 -->"""
 
     cleanup:

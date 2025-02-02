@@ -177,8 +177,22 @@ public class TransclusionResult {
     return "Processed " + getProcessedIncludesCount() + (getProcessedIncludesCount() == 1 ? " include" : " includes") + " in " + this.processingTimeMillis + "ms";
   }
 
+  public String getCacheStatsLogLine() {
+    return "Cache: " +
+      this.cacheStats.itemCount() + " items, " +
+      this.cacheStats.hitCount()+ " hits, " +
+      this.cacheStats.missCount() + " misses, " +
+      this.cacheStats.refreshSuccessCount() + " successful refreshs, " +
+      this.cacheStats.refreshFailureCount() + " failed refreshs";
+  }
+
   private String getStatsAsHtmlComment() {
-    return "\n<!-- " + getProcessedIncludesLogLine() + getProcessedIncludesDetails() + getCacheStats() + "\n-->";
+    return "\n<!-- " +
+      getProcessedIncludesLogLine() +
+      getProcessedIncludesDetails() +
+      "\n\n" +
+      getCacheStatsLogLine() +
+      "\n-->";
   }
 
   private String getProcessedIncludesDetails() {
@@ -196,12 +210,6 @@ public class TransclusionResult {
     }
 
     return stats.toString();
-  }
-
-  private String getCacheStats() {
-    return "\n\nCache: " + this.cacheStats.itemCount() + " items, "
-      + this.cacheStats.hitCount()+ " hits, "
-      + this.cacheStats.missCount() + " misses";
   }
 
   private String getProcessedIncludeStatsRow(Include include) {

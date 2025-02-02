@@ -1,52 +1,57 @@
 package io.github.ableron;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.function.LongSupplier;
 
 public class CacheStats {
 
-  private final AtomicLong itemCount = new AtomicLong();
-  private final AtomicLong hitCount = new AtomicLong();
-  private final AtomicLong missCount = new AtomicLong();
-  private final AtomicLong refreshSuccessCount = new AtomicLong();
-  private final AtomicLong refreshFailureCount = new AtomicLong();
+  private final LongAdder hitCount = new LongAdder();
+  private final LongAdder missCount = new LongAdder();
+  private final LongAdder refreshSuccessCount = new LongAdder();
+  private final LongAdder refreshFailureCount = new LongAdder();
+  private final LongSupplier itemCountSupplier;
 
-  public long itemCount() {
-    return itemCount.get();
+  public CacheStats() {
+    this(() -> 0L);
   }
 
-  public void setItemCount(long itemCount) {
-    this.itemCount.set(itemCount);
+  public CacheStats(LongSupplier itemCountSupplier) {
+    this.itemCountSupplier = itemCountSupplier;
+  }
+
+  public long itemCount() {
+    return itemCountSupplier.getAsLong();
   }
 
   public long hitCount() {
-    return hitCount.get();
+    return hitCount.sum();
   }
 
   public void recordHit() {
-    hitCount.incrementAndGet();
+    hitCount.increment();
   }
 
   public long missCount() {
-    return missCount.get();
+    return missCount.sum();
   }
 
   public void recordMiss() {
-    missCount.incrementAndGet();
+    missCount.increment();
   }
 
   public long refreshSuccessCount() {
-    return refreshSuccessCount.get();
+    return refreshSuccessCount.sum();
   }
 
   public void recordRefreshSuccess() {
-    refreshSuccessCount.incrementAndGet();
+    refreshSuccessCount.increment();
   }
 
   public long refreshFailureCount() {
-    return refreshFailureCount.get();
+    return refreshFailureCount.sum();
   }
 
   public void recordRefreshFailure() {
-    refreshFailureCount.incrementAndGet();
+    refreshFailureCount.increment();
   }
 }

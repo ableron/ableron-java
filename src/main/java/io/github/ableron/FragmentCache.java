@@ -30,7 +30,7 @@ public class FragmentCache {
   private final Set<String> activeFragments = new ConcurrentHashMap<String, Boolean>().keySet(true);
   private final Integer inactiveFragmentsMaxRefreshs;
   private final Map<String, Integer> inactiveFragmentRefreshs = new ConcurrentHashMap<>();
-  private final CacheStats stats = new CacheStats();
+  private final CacheStats stats;
   private final ScheduledExecutorService autoRefreshScheduler = Executors.newScheduledThreadPool(3);
 
   public FragmentCache(AbleronConfig config) {
@@ -38,6 +38,7 @@ public class FragmentCache {
     this.maxRefreshAttempts = config.getCacheAutoRefreshMaxAttempts();
     this.inactiveFragmentsMaxRefreshs = config.getCacheAutoRefreshInactiveFragmentsMaxRefreshs();
     this.fragmentCache = buildFragmentCache(config.getCacheMaxSizeInBytes());
+    this.stats = new CacheStats(this.fragmentCache::estimatedSize);
   }
 
   public Optional<Fragment> get(String cacheKey) {
@@ -53,7 +54,6 @@ public class FragmentCache {
       this.stats.recordMiss();
     }
 
-    this.stats.setItemCount(fragmentCache.estimatedSize());
     return fragmentFromCache;
   }
 
@@ -78,10 +78,6 @@ public class FragmentCache {
     this.inactiveFragmentRefreshs.clear();
     this.fragmentCache.invalidateAll();
     return this;
-  }
-
-  public long estimatedCacheEntryCount() {
-    return this.fragmentCache.estimatedSize();
   }
 
   public CacheStats stats() {
