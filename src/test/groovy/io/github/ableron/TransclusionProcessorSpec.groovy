@@ -395,10 +395,10 @@ class TransclusionProcessorSpec extends Specification {
     result.content == "before" + expectedResult + "after"
 
     where:
-    scenarioName                   | includeTag                                                                     | expectedResult
-    "invalid src url"              | '<ableron-include src=",._">fallback</ableron-include>'                        | "fallback"
-    "invalid src timeout"          | '<ableron-include src-timeout-millis="5s">fallback</ableron-include>'          | "fallback"
-    "invalid fallback-src timeout" | '<ableron-include fallback-src-timeout-millis="5s">fallback</ableron-include>' | "fallback"
+    scenarioName                   | includeTag                                                               | expectedResult
+    "invalid src url"              | '<ableron-include src=",._">fallback</ableron-include>'                  | "fallback"
+    "invalid src timeout"          | '<ableron-include src-timeout="5 seconds">fallback</ableron-include>'    | "fallback"
+    "invalid fallback-src timeout" | '<ableron-include fallback-src-timeout=" 5s">fallback</ableron-include>' | "fallback"
   }
 
   def "should perform only one request per URL"() {

@@ -87,9 +87,13 @@ class IncludeSpec extends Specification {
     include.srcTimeout == expectedSrcTimeout
 
     where:
-    include                                         | expectedSrcTimeout
-    new Include("")                                 | null
-    new Include("", ["src-timeout-millis": "2000"]) | Duration.ofMillis(2000)
+    include                                    | expectedSrcTimeout
+    new Include("")                            | null
+    new Include("", ["src-timeout": "2000"])   | Duration.ofMillis(2000)
+    new Include("", ["src-timeout": "2000ms"]) | Duration.ofMillis(2000)
+    new Include("", ["src-timeout": "2s"])     | Duration.ofMillis(2000)
+    new Include("", ["src-timeout": "2S"])     | null
+    new Include("", ["src-timeout": "2m"])     | null
   }
 
   def "constructor should set fallback-src attribute"() {
@@ -107,9 +111,13 @@ class IncludeSpec extends Specification {
     include.fallbackSrcTimeout == expectedFallbackSrcTimeout
 
     where:
-    include                                                  | expectedFallbackSrcTimeout
-    new Include("")                                          | null
-    new Include("", ["fallback-src-timeout-millis": "2000"]) | Duration.ofMillis(2000)
+    include                                             | expectedFallbackSrcTimeout
+    new Include("")                                     | null
+    new Include("", ["fallback-src-timeout": "2000"])   | Duration.ofMillis(2000)
+    new Include("", ["fallback-src-timeout": "2000ms"]) | Duration.ofMillis(2000)
+    new Include("", ["fallback-src-timeout": "2s"])     | Duration.ofMillis(2000)
+    new Include("", ["fallback-src-timeout": "2S"])     | null
+    new Include("", ["fallback-src-timeout": "2m"])     | null
   }
 
   def "constructor should set primary attribute"() {
@@ -845,13 +853,13 @@ class IncludeSpec extends Specification {
     mockWebServer.shutdown()
 
     where:
-    srcAttributeName | timeoutAttribute                        | expectedFragment
-    "src"            | [:]                                     | ""
-    "src"            | ["src-timeout-millis": "2000"]          | "fragment"
-    "src"            | ["fallback-src-timeout-millis": "2000"] | ""
-    "fallback-src"   | [:]                                     | ""
-    "fallback-src"   | ["fallback-src-timeout-millis": "2000"] | "fragment"
-    "fallback-src"   | ["src-timeout-millis": "2000"]          | ""
+    srcAttributeName | timeoutAttribute               | expectedFragment
+    "src"            | [:]                            | ""
+    "src"            | ["src-timeout": "2s"]          | "fragment"
+    "src"            | ["fallback-src-timeout": "2s"] | ""
+    "fallback-src"   | [:]                            | ""
+    "fallback-src"   | ["fallback-src-timeout": "2s"] | "fragment"
+    "fallback-src"   | ["src-timeout": "2s"]          | ""
   }
 
   def "should pass allowed request headers to fragment requests"() {

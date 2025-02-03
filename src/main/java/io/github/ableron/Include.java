@@ -10,8 +10,9 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Include {
 
@@ -28,7 +29,7 @@ public class Include {
   /**
    * Name of the attribute which contains the timeout for requesting the src URL.
    */
-  private static final String ATTR_SOURCE_TIMEOUT_MILLIS = "src-timeout-millis";
+  private static final String ATTR_SOURCE_TIMEOUT = "src-timeout";
 
   /**
    * Name of the attribute which contains the fallback URL to resolve the include to in case the
@@ -39,13 +40,21 @@ public class Include {
   /**
    * Name of the attribute which contains the timeout for requesting the fallback-src URL.
    */
-  private static final String ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS = "fallback-src-timeout-millis";
+  private static final String ATTR_FALLBACK_SOURCE_TIMEOUT = "fallback-src-timeout";
 
   /**
    * Name of the attribute which denotes a fragment whose response code is set as response code
    * for the page.
    */
   private static final String ATTR_PRIMARY = "primary";
+
+  /**
+   * Regular expression for parsing timeouts.<br>
+   * <br>
+   * Accepts plain numbers and numbers suffixed with either <code>s</code> indicating <code>seconds</code> or
+   * <code>ms</code> indicating <code>milliseconds</code>.
+   */
+  private static final Pattern TIMEOUT_PATTERN = Pattern.compile("(\\d+)(ms|s)?");
 
   /**
    * HTTP status codes indicating successful and cacheable responses.
@@ -149,9 +158,9 @@ public class Include {
     this.rawAttributes.putAll(Optional.ofNullable(rawAttributes).orElseGet(Map::of));
     this.id = buildIncludeId(this.rawAttributes.get(ATTR_ID));
     this.src = this.rawAttributes.get(ATTR_SOURCE);
-    this.srcTimeout = parseTimeout(this.rawAttributes.get(ATTR_SOURCE_TIMEOUT_MILLIS));
+    this.srcTimeout = parseTimeout(this.rawAttributes.get(ATTR_SOURCE_TIMEOUT));
     this.fallbackSrc = this.rawAttributes.get(ATTR_FALLBACK_SOURCE);
-    this.fallbackSrcTimeout = parseTimeout(this.rawAttributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT_MILLIS));
+    this.fallbackSrcTimeout = parseTimeout(this.rawAttributes.get(ATTR_FALLBACK_SOURCE_TIMEOUT));
     this.primary = hasBooleanAttribute(ATTR_PRIMARY);
     this.fallbackContent = Optional.ofNullable(fallbackContent).orElse("");
   }
@@ -361,14 +370,22 @@ public class Include {
   private Duration parseTimeout(String timeoutAsString) {
     return Optional.ofNullable(timeoutAsString)
       .map(timeout -> {
-        try {
-          return Long.parseLong(timeout);
-        } catch (NumberFormatException e) {
-          logger.error("[Ableron] Invalid request timeout: {}", timeout);
+          Matcher matcher = TIMEOUT_PATTERN.matcher(timeout);
+
+          if (matcher.matches()) {
+            String amount = matcher.group(1);
+            String unit = matcher.group(2);
+
+            if ("s".equals(unit)) {
+              return Duration.ofSeconds(Long.parseLong(amount));
+            }
+
+            return Duration.ofMillis(Long.parseLong(amount));
+          }
+
+          logger.error("[Ableron] Invalid request timeout: '{}'", timeout);
           return null;
-        }
       })
-      .map(Duration::ofMillis)
       .orElse(null);
   }
 
